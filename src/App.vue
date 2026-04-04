@@ -20,16 +20,13 @@ const addTab = async () => {
   if (!input) return
 
   let url = input
-  let title = input
 
   if (!isUrl(input)) {
     url = `https://www.baidu.com/s?wd=${encodeURIComponent(input)}`
-    title = `百度搜索: ${input}`
     currentUrl.value = url
   }
 
-  await window.ipcRenderer.invoke('tabs:create', { title, url })
-  await getTabsData()
+  window.ipcRenderer.send('tabs:updateUrl', url)
 }
 
 const addTabByButton = async () => {

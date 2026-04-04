@@ -49,6 +49,17 @@ function refreshCurTab() {
   const tab = getCurTab();
   tab == null ? void 0 : tab.view.webContents.reload();
 }
+function updateCurTabUrl(url) {
+  const tab = getCurTab();
+  if (tab) {
+    if (isUrl(url)) {
+      tab.view.webContents.loadURL(url);
+    } else {
+      tab.view.webContents.loadFile(url);
+    }
+    tab.info.url = url;
+  }
+}
 function getTabInfoList() {
   return [...webContentViewMap.values()].map((item) => item.info);
 }
@@ -121,6 +132,10 @@ function registerTabHandlers(win2) {
   });
   ipcMain.on("tabs:refresh", () => {
     refreshCurTab();
+  });
+  ipcMain.on("tabs:updateUrl", (_event, url) => {
+    updateCurTabUrl(url);
+    updateCurTabBounds(win2);
   });
   ipcMain.handle("tabs:switch", async (_event, tabId) => {
     return switchTab(tabId, win2);
