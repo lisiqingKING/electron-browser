@@ -3,9 +3,14 @@ import { BrowserWindow, WebContentsView, shell } from 'electron'
 export interface TabInfo {
   title: string
   url: string
+  time?: number
 }
 
-export function createTab(win: BrowserWindow): WebContentsView {
+export type TabEvent = 'tabs:list'
+
+export const tabs: TabInfo[] = []
+
+export function createTab(win: BrowserWindow, tabInfo: TabInfo): WebContentsView {
   const view = new WebContentsView({
     webPreferences: {
       preload: undefined,
@@ -25,7 +30,11 @@ export function createTab(win: BrowserWindow): WebContentsView {
 
   win.on('resize', updateBounds)
 
-  view.webContents.loadFile('home.html')
+  view.webContents.loadFile(tabInfo.url)
+  tabs.push({
+    ...tabInfo,
+    time: new Date().getTime()
+  })
   view.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }

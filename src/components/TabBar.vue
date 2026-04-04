@@ -28,6 +28,7 @@ const emit = defineEmits<{
   flex-shrink: 0;
   background: #16213e;
   gap: 16px;
+  padding: 5px;
 }
 
 .tabs {

@@ -1,7 +1,7 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { createTab } from './tabManager'
+import { createTab, tabs } from './tabManager'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -38,7 +38,14 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 
-  createTab(win)
+  createTab(win, {
+    title: '首页',
+    url: 'home.html'
+  })
+
+  ipcMain.handle('tabs:list', async () => {
+     return tabs
+  })
   win.webContents.openDevTools()
 }
 

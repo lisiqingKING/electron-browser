@@ -1,7 +1,8 @@
-import { WebContentsView, shell, app, BrowserWindow, Menu } from "electron";
+import { WebContentsView, shell, app, BrowserWindow, Menu, ipcMain } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-function createTab(win2) {
+const tabs = [];
+function createTab(win2, tabInfo) {
   const view = new WebContentsView({
     webPreferences: {
       preload: void 0,
@@ -18,7 +19,11 @@ function createTab(win2) {
     });
   };
   win2.on("resize", updateBounds);
-  view.webContents.loadFile("home.html");
+  view.webContents.loadFile(tabInfo.url);
+  tabs.push({
+    ...tabInfo,
+    time: (/* @__PURE__ */ new Date()).getTime()
+  });
   view.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -52,7 +57,13 @@ function createWindow() {
   } else {
     win.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
-  createTab(win);
+  createTab(win, {
+    title: "首页",
+    url: "home.html"
+  });
+  ipcMain.handle("tabs:list", async () => {
+    return tabs;
+  });
   win.webContents.openDevTools();
 }
 app.on("window-all-closed", () => {

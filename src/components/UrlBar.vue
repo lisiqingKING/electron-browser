@@ -28,6 +28,7 @@ const emit = defineEmits<{
   height: 40px;
   box-sizing: border-box;
   flex-shrink: 0;
+  text-align: center;
 }
 
 .url-input {
