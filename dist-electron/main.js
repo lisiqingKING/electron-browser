@@ -1,6 +1,31 @@
-import { app, BrowserWindow, Menu } from "electron";
+import { WebContentsView, shell, app, BrowserWindow, Menu } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+function createTab(win2) {
+  const view = new WebContentsView({
+    webPreferences: {
+      preload: void 0,
+      contextIsolation: true
+    }
+  });
+  const updateBounds = () => {
+    const [width, height] = win2.getContentSize();
+    view.setBounds({
+      x: 0,
+      y: 100,
+      width,
+      height: height - 100
+    });
+  };
+  win2.on("resize", updateBounds);
+  view.webContents.loadFile("home.html");
+  view.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+  win2.contentView.addChildView(view);
+  return view;
+}
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname$1, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
@@ -15,7 +40,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname$1, "preload.mjs"),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      webviewTag: true
     }
   });
   win.webContents.on("did-finish-load", () => {
@@ -26,6 +52,8 @@ function createWindow() {
   } else {
     win.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
+  createTab(win);
+  win.webContents.openDevTools();
 }
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

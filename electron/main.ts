@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { createTab } from './tabManager'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -23,6 +24,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
       contextIsolation: true,
+      webviewTag: true,
     },
   })
 
@@ -35,6 +37,9 @@ function createWindow() {
   } else {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
+
+  createTab(win)
+  win.webContents.openDevTools()
 }
 
 app.on('window-all-closed', () => {

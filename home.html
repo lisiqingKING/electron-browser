@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electron Vite Project</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1b2e 50%, #16213e 100%);
+      min-height: 100vh;
+      color: #e4e7eb;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 40px;
+    }
+
+    /* 背景装饰 */
+    .bg-decoration {
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .bg-1 {
+      background: #6366f1;
+      top: -200px;
+      left: -100px;
+    }
+
+    .bg-2 {
+      background: #8b5cf6;
+      bottom: -200px;
+      right: -100px;
+    }
+
+    .bg-3 {
+      background: #06b6d4;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 800px;
+    }
+
+    /* 头部 */
+    .header {
+      text-align: center;
+      margin-bottom: 80px;
+      position: relative;
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 32px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 60px rgba(99, 102, 241, 0.4);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .logo svg {
+      width: 64px;
+      height: 64px;
+      fill: white;
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f1f5f9 0%, #a5b4fc 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      font-size: 1.25rem;
+      color: #94a3b8;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* 技术栈卡片 */
+    .tech-section {
+      margin-bottom: 80px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 40px;
+      color: #f1f5f9;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+    }
+
+    .tech-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .tech-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .tech-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .tech-card:nth-child(1) .tech-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .tech-card:nth-child(2) .tech-icon { background: linear-gradient(135deg, #22d3ee, #06b6d4); }
+    .tech-card:nth-child(3) .tech-icon { background: linear-gradient(135deg, #10b981, #059669); }
+    .tech-card:nth-child(4) .tech-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    .tech-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+      color: #f1f5f9;
+    }
+
+    .tech-card p {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    /* 特性区域 */
+    .features-section {
+      margin-bottom: 80px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 20px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    }
+
+    .feature-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 16px;
+      color: #f1f5f9;
+    }
+
+    .feature-card p {
+      color: #94a3b8;
+      line-height: 1.8;
+      font-size: 0.95rem;
+    }
+
+    /* 架构图 */
+    .architecture {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 24px;
+      padding: 48px;
+      margin-bottom: 80px;
+    }
+
+    .architecture h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 40px;
+      color: #f1f5f9;
+    }
+
+    .arch-diagram {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .arch-layer {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 16px;
+      padding: 24px 32px;
+      text-align: center;
+      min-width: 160px;
+    }
+
+    .arch-layer h4 {
+      font-size: 1rem;
+      color: #a5b4fc;
+      margin-bottom: 8px;
+    }
+
+    .arch-layer span {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    .arch-arrow {
+      font-size: 24px;
+      color: #6366f1;
+    }
+
+    /* 页脚 */
+    .footer {
+      text-align: center;
+      padding: 40px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .footer a {
+      color: #818cf8;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .container {
+        padding: 60px 20px;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+      }
+
+      .tech-grid,
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .arch-diagram {
+        flex-direction: column;
+      }
+
+      .arch-arrow {
+        transform: rotate(90deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-decoration bg-1"></div>
+  <div class="bg-decoration bg-2"></div>
+  <div class="bg-decoration bg-3"></div>
+
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <h1>Electron Vite Project</h1>
+      <p class="subtitle">基于 Electron + Vite + Vue 3 + TypeScript 构建的现代化跨平台桌面应用程序</p>
+    </header>
+
+    <section class="tech-section">
+      <h2 class="section-title">技术栈</h2>
+      <div class="tech-grid">
+        <div class="tech-card">
+          <div class="tech-icon">⚡</div>
+          <h3>Electron</h3>
+          <p>跨平台桌面应用框架，使用 Chromium 和 Node.js 构建原生应用</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-icon">⚛️</div>
+          <h3>Vue 3</h3>
+          <p>渐进式 JavaScript 框架，组合式 API 和 TypeScript 支持</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-icon">🔧</div>
+          <h3>Vite</h3>
+          <p>下一代前端构建工具，极速的开发服务器和热模块替换</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-icon">📘</div>
+          <h3>TypeScript</h3>
+          <p>JavaScript 的超集，提供类型检查和面向对象编程能力</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="features-section">
+      <h2 class="section-title">核心特性</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <h3>🚀 极速开发体验</h3>
+          <p>Vite 提供的即时开发服务器启动和热模块替换，让开发效率提升数倍。修改代码即可实时预览，无需手动刷新。</p>
+        </div>
+        <div class="feature-card">
+          <h3>🔒 安全隔离架构</h3>
+          <p>采用 Context Isolation 和 Preload Scripts 设计，有效隔离渲染进程与主进程，保护应用安全。</p>
+        </div>
+        <div class="feature-card">
+          <h3>📦 高效打包构建</h3>
+          <p>利用 electron-builder 进行应用打包，生成跨平台可执行文件，支持 Windows、macOS 和 Linux。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture">
+      <h2>项目架构</h2>
+      <div class="arch-diagram">
+        <div class="arch-layer">
+          <h4>渲染进程</h4>
+          <span>Vue 3 + TypeScript</span>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-layer">
+          <h4>预加载脚本</h4>
+          <span>Context Bridge</span>
+        </div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-layer">
+          <h4>主进程</h4>
+          <span>Electron + Node.js</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>Built with <a href="https://electronjs.org">Electron</a> + <a href="https://vitejs.dev">Vite</a> + <a href="https://vuejs.org">Vue 3</a></p>
+    </footer>
+  </div>
+</body>
+</html>
