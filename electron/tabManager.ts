@@ -81,9 +81,9 @@ export function updateCurTabBounds(win: BrowserWindow) {
     const [width, height] = win.getContentSize()
     tab.view.setBounds({
       x: 0,
-      y: 100,
+      y: 80,
       width: width,
-      height: height - 100
+      height: height - 80
     })
   }
 }
