@@ -7,6 +7,10 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'submit'): void
 }>()
+
+const handleRefresh = () => {
+  window.ipcRenderer.send('tabs:refresh')
+}
 </script>
 
 <template>
@@ -19,6 +23,7 @@ const emit = defineEmits<{
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       @keyup.enter="emit('submit')"
     />
+    <button class="refresh-btn" @click="handleRefresh">刷新</button>
   </div>
 </template>
 
@@ -29,6 +34,10 @@ const emit = defineEmits<{
   box-sizing: border-box;
   flex-shrink: 0;
   text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
 
 .url-input {
@@ -50,5 +59,19 @@ const emit = defineEmits<{
 
 .url-input::placeholder {
   color: #64748b;
+}
+
+.refresh-btn {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e4e7eb;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 </style>

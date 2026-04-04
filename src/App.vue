@@ -2,42 +2,72 @@
 import { ref } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
-import { TabInfo } from '../electron/tabManager'
+import { isUrl } from './utils'
 
-const tabs = ref<TabInfo[]>([])
-
-const currentUrl = ref('')
-
-const addTab = () => {
-  // const url = currentUrl.value.trim()
-  // if (url) {
-  //   tabs.value.push({
-  //     title: url,
-  //     url: url
-  //   })
-  //   currentUrl.value = ''
-  // }
+interface TabInfo {
+  title: string
+  url: string
+  time?: number
+  id?: string
 }
 
+const tabs = ref<TabInfo[]>([])
+const currentTabId = ref<string | null>(null)
+const currentUrl = ref('')
+
+const addTab = async () => {
+  const input = currentUrl.value.trim()
+  if (!input) return
+
+  let url = input
+  let title = input
+
+  if (!isUrl(input)) {
+    url = `https://www.baidu.com/s?wd=${encodeURIComponent(input)}`
+    title = `百度搜索: ${input}`
+    currentUrl.value = url
+  }
+
+  await window.ipcRenderer.invoke('tabs:create', { title, url })
+  await getTabsData()
+}
+
+const addTabByButton = async () => {
+  await window.ipcRenderer.invoke('tabs:createDefault')
+  await getTabsData()
+}
 
 const getTabsData = async () => {
   const res = await window.ipcRenderer.invoke('tabs:list')
   tabs.value = res || []
+  if (res && res.length > 0) {
+    currentTabId.value = res[res.length - 1].id || null
+  }
   console.log(res)
 }
 
 getTabsData()
 
-// window.ipcRenderer.on('tabs:list:update', () => {
-//   console.log('tabs:list:update')
-// })
+const switchTab = async (tabId: string) => {
+  await window.ipcRenderer.invoke('tabs:switch', tabId)
+  currentTabId.value = tabId
+}
 
-
+const closeTab = async (tabId: string) => {
+  await window.ipcRenderer.invoke('tabs:close', tabId)
+  await getTabsData()
+}
 </script>
 
 <template>
   <div class="app-container">
-    <TabBar :tabs="tabs" @add="addTab" />
+    <TabBar
+      :tabs="tabs"
+      :current-tab-id="currentTabId"
+      @add="addTabByButton"
+      @switch="switchTab"
+      @close="closeTab"
+    />
     <UrlBar v-model="currentUrl" @submit="addTab" />
   </div>
 </template>
