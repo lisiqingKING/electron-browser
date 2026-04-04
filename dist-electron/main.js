@@ -49,7 +49,7 @@ function refreshCurTab() {
   const tab = getCurTab();
   tab == null ? void 0 : tab.view.webContents.reload();
 }
-function updateCurTabUrl(url) {
+function updateCurTabUrl(url, win2) {
   const tab = getCurTab();
   if (tab) {
     if (isUrl(url)) {
@@ -58,6 +58,10 @@ function updateCurTabUrl(url) {
       tab.view.webContents.loadFile(url);
     }
     tab.info.url = url;
+    tab.view.webContents.once("page-title-updated", () => {
+      tab.info.title = tab.view.webContents.getTitle();
+      win2.webContents.send("tab:updated", tab.info);
+    });
   }
 }
 function getTabInfoList() {
@@ -134,7 +138,7 @@ function registerTabHandlers(win2) {
     refreshCurTab();
   });
   ipcMain.on("tabs:updateUrl", (_event, url) => {
-    updateCurTabUrl(url);
+    updateCurTabUrl(url, win2);
     updateCurTabBounds(win2);
   });
   ipcMain.handle("tabs:switch", async (_event, tabId) => {

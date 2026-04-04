@@ -54,6 +54,13 @@ const closeTab = async (tabId: string) => {
   await window.ipcRenderer.invoke('tabs:close', tabId)
   await getTabsData()
 }
+
+window.ipcRenderer.on('tab:updated', (_event, tabInfo: TabInfo) => {
+  const index = tabs.value.findIndex(t => t.id === tabInfo.id)
+  if (index !== -1) {
+    tabs.value[index] = tabInfo
+  }
+})
 </script>
 
 <template>

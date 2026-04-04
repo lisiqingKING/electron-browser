@@ -71,7 +71,7 @@ export function refreshCurTab() {
   tab?.view.webContents.reload()
 }
 
-export function updateCurTabUrl(url: string) {
+export function updateCurTabUrl(url: string, win: BrowserWindow) {
   const tab = getCurTab()
   if (tab) {
     if (isUrl(url)) {
@@ -80,6 +80,11 @@ export function updateCurTabUrl(url: string) {
       tab.view.webContents.loadFile(url)
     }
     tab.info.url = url
+
+    tab.view.webContents.once('page-title-updated', () => {
+      tab.info.title = tab.view.webContents.getTitle()
+      win.webContents.send('tab:updated', tab.info)
+    })
   }
 }
 
@@ -175,7 +180,7 @@ export function registerTabHandlers(win: BrowserWindow) {
   })
 
   ipcMain.on('tabs:updateUrl', (_event, url: string) => {
-    updateCurTabUrl(url)
+    updateCurTabUrl(url, win)
     updateCurTabBounds(win)
   })
 
