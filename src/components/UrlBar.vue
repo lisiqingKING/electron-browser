@@ -1,15 +1,27 @@
 <script setup lang="ts">
 const props = defineProps<{
   modelValue: string
+  canGoBack?: boolean
+  canGoForward?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'submit'): void
+  (e: 'goBack'): void
+  (e: 'goForward'): void
 }>()
 
 const handleRefresh = () => {
   window.ipcRenderer.send('tabs:refresh')
+}
+
+const handleGoBack = () => {
+  if (props.canGoBack) emit('goBack')
+}
+
+const handleGoForward = () => {
+  if (props.canGoForward) emit('goForward')
 }
 </script>
 
@@ -17,12 +29,12 @@ const handleRefresh = () => {
   <div class="url-bar">
     <div class="url-bar-container">
       <div class="nav-buttons">
-        <button class="nav-btn" title="后退">
+        <button class="nav-btn" :class="{ disabled: !canGoBack }" title="后退" @click="handleGoBack">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
           </svg>
         </button>
-        <button class="nav-btn" title="前进">
+        <button class="nav-btn" :class="{ disabled: !canGoForward }" title="前进" @click="handleGoForward">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
           </svg>
@@ -115,6 +127,11 @@ const handleRefresh = () => {
   background: rgba(255, 255, 255, 0.1);
   color: #e8eaed;
   border-radius: 6px;
+}
+
+.nav-btn.disabled {
+  color: #5f6368;
+  cursor: not-allowed;
 }
 
 .url-input-container {

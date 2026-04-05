@@ -14,6 +14,8 @@ interface TabInfo {
 const tabs = ref<TabInfo[]>([])
 const currentTabId = ref<string | null>(null)
 const currentUrl = ref('')
+const canGoBack = ref(false)
+const canGoForward = ref(false)
 
 
 const updateCurrentUrl = () => {
@@ -85,6 +87,27 @@ window.ipcRenderer.on('tab:updated', (_event, tabInfo: TabInfo) => {
 window.ipcRenderer.on('ipcMain:tabs:update', () => {
   getTabsData()
 })
+
+window.ipcRenderer.on('tab:url-changed', (_event, data: { id: string; url: string }) => {
+  if (data.id === currentTabId.value) {
+    currentUrl.value = data.url
+  }
+})
+
+window.ipcRenderer.on('tab:navigation-state', (_event, data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
+  if (data.id === currentTabId.value) {
+    canGoBack.value = data.canGoBack
+    canGoForward.value = data.canGoForward
+  }
+})
+
+const handleGoBack = () => {
+  window.ipcRenderer.send('tabs:goBack')
+}
+
+const handleGoForward = () => {
+  window.ipcRenderer.send('tabs:goForward')
+}
 </script>
 
 <template>
@@ -96,7 +119,14 @@ window.ipcRenderer.on('ipcMain:tabs:update', () => {
       @switch="switchTab"
       @close="closeTab"
     />
-    <UrlBar v-model="currentUrl" @submit="addTab" />
+    <UrlBar
+      v-model="currentUrl"
+      :can-go-back="canGoBack"
+      :can-go-forward="canGoForward"
+      @submit="addTab"
+      @goBack="handleGoBack"
+      @goForward="handleGoForward"
+    />
   </div>
 </template>
 

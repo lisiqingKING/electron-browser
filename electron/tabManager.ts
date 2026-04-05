@@ -7,6 +7,8 @@ export interface TabInfo {
   url: string
   time?: number
   id?: string
+  canGoBack?: boolean
+  canGoForward?: boolean
 }
 
 const DEFAULT_TAB = {
@@ -66,6 +68,27 @@ export function createTab(tabInfo: TabInfo, win: BrowserWindow): WebContentsView
   }
  
 
+  // 监听 SPA 内部导航（百度搜索结果点击后 URL 变化）
+  view.webContents.on('did-navigate-in-page', (_event, url, isMainFrame) => {
+    if (isMainFrame) {
+      const tab = webContentViewMap.get(_id)
+      if (tab) {
+        tab.info.url = url
+        win.webContents.send('tab:url-changed', { id: _id, url })
+        updateNavigationState(_id, win)
+      }
+    }
+  })
+
+  // 监听普通导航
+  view.webContents.on('did-navigate', (_event, url) => {
+    const tab = webContentViewMap.get(_id)
+    if (tab) {
+      tab.info.url = url
+      updateNavigationState(_id, win)
+    }
+  })
+
   if(isUrl(tabInfo.url)) {
     view.webContents.loadURL(tabInfo.url)
   } else {
@@ -98,6 +121,33 @@ export function getCurTab() {
 export function refreshCurTab() {
   const tab = getCurTab()
   tab?.view.webContents.reload()
+}
+
+export function updateNavigationState(tabId: string, win: BrowserWindow) {
+  const tab = webContentViewMap.get(tabId)
+  if (tab) {
+    const canGoBack = tab.view.webContents.canGoBack()
+    const canGoForward = tab.view.webContents.canGoForward()
+    tab.info.canGoBack = canGoBack
+    tab.info.canGoForward = canGoForward
+    win.webContents.send('tab:navigation-state', { id: tabId, canGoBack, canGoForward })
+  }
+}
+
+export function goBack(win: BrowserWindow) {
+  const tab = getCurTab()
+  if (tab?.view.webContents.canGoBack()) {
+    tab.view.webContents.goBack()
+    if (curTabId) updateNavigationState(curTabId, win)
+  }
+}
+
+export function goForward(win: BrowserWindow) {
+  const tab = getCurTab()
+  if (tab?.view.webContents.canGoForward()) {
+    tab.view.webContents.goForward()
+    if (curTabId) updateNavigationState(curTabId, win)
+  }
 }
 
 export function updateCurTabUrl(url: string, win: BrowserWindow) {
@@ -219,5 +269,13 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   ipcMain.handle('tabs:close', async (_event, tabId: string) => {
     return closeTab(tabId, win)
+  })
+
+  ipcMain.on('tabs:goBack', () => {
+    goBack(win)
+  })
+
+  ipcMain.on('tabs:goForward', () => {
+    goForward(win)
   })
 }
