@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
 import { isUrl } from './utils'
@@ -14,6 +14,26 @@ interface TabInfo {
 const tabs = ref<TabInfo[]>([])
 const currentTabId = ref<string | null>(null)
 const currentUrl = ref('')
+
+
+const updateCurrentUrl = () => {
+   if(typeof currentTabId.value === 'string') {
+      const curTabInfo = tabs.value.find(item => item.id === currentTabId.value)
+      if(!curTabInfo) return
+
+      if(curTabInfo?.title === '新建标签页') {
+        currentUrl.value = ''
+      } else {
+        if(isUrl(curTabInfo?.url)) {
+          currentUrl.value = curTabInfo.url
+        }
+      }
+    }
+}
+
+watch(currentTabId, () => {
+  updateCurrentUrl()
+})
 
 const addTab = async () => {
   const input = currentUrl.value.trim()
