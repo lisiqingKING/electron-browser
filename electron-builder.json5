@@ -3,13 +3,15 @@
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "YourAppID",
   "asar": true,
-  "productName": "YourAppName",
+  "productName": "浏览器",
   "directories": {
     "output": "release/${version}"
   },
   "files": [
     "dist",
-    "dist-electron"
+    "dist-electron",
+    "default.html",
+    "history.html"
   ],
   "mac": {
     "target": [
@@ -24,9 +26,14 @@
         "arch": [
           "x64"
         ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
       }
-    ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    ]
   },
   "nsis": {
     "oneClick": false,

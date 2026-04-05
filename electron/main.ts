@@ -53,7 +53,9 @@ function createWindow() {
   // 注册 tab 相关 handlers
   registerTabHandlers(win)
 
-  win.webContents.openDevTools()
+  if (VITE_DEV_SERVER_URL) {
+    win.webContents.openDevTools()
+  }
 }
 
 app.on('window-all-closed', () => {
