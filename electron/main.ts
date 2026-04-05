@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createTab, updateCurTabBounds, registerTabHandlers } from './tabManager'
+import { initDatabase, closeDatabase } from './database'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -61,10 +62,17 @@ app.on('window-all-closed', () => {
   }
 })
 
+app.on('will-quit', () => {
+  closeDatabase()
+})
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  initDatabase()
+  createWindow()
+})

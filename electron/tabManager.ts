@@ -1,6 +1,7 @@
 import { WebContentsView, BrowserWindow, ipcMain } from 'electron'
 import { isUrl } from '../src/utils'
 import path from 'node:path'
+import { recordVisit, getHistory } from './historyManager'
 
 export interface TabInfo {
   title: string
@@ -74,6 +75,7 @@ export function createTab(tabInfo: TabInfo, win: BrowserWindow): WebContentsView
       const tab = webContentViewMap.get(_id)
       if (tab) {
         tab.info.url = url
+        recordVisit(_id, tab.info.title || url, url)
         win.webContents.send('tab:url-changed', { id: _id, url })
         updateNavigationState(_id, win)
       }
@@ -85,6 +87,7 @@ export function createTab(tabInfo: TabInfo, win: BrowserWindow): WebContentsView
     const tab = webContentViewMap.get(_id)
     if (tab) {
       tab.info.url = url
+      recordVisit(_id, tab.info.title || url, url)
       updateNavigationState(_id, win)
     }
   })
@@ -277,5 +280,9 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   ipcMain.on('tabs:goForward', () => {
     goForward(win)
+  })
+
+  ipcMain.handle('history:get', async () => {
+    return getHistory()
   })
 }
