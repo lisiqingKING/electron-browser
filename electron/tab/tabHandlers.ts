@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import path from 'node:path'
 import { getCurTab, createTabCore, webContentViewMap, updateCurTabBounds, DEFAULT_TAB, TabInfo, closeTab, setCurTabId } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
-import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow } from './tabNavigation'
+import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, updateNavigationState } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
 
 // Re-export for external use
@@ -33,7 +33,7 @@ export function registerTabHandlers(win: BrowserWindow) {
 
     win.contentView.addChildView(view)
     updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-    win.webContents.send('ipcMain:tabs:update')
+    win.webContents.send('tab:list-changed')
     return true
   })
 
@@ -102,6 +102,7 @@ export function registerTabHandlers(win: BrowserWindow) {
       win.contentView.addChildView(targetTab.view)
       updateCurTabBounds(targetTab, win)
       setCurTabId(tabId) // 更新当前 tab id
+      updateNavigationState(tabId, win) // 发送导航状态
     }
     return true
   })
@@ -109,7 +110,7 @@ export function registerTabHandlers(win: BrowserWindow) {
   // 关闭标签
   ipcMain.handle('tabs:close', async (_event, tabId: string) => {
     closeTab(tabId, win)
-    win.webContents.send('ipcMain:tabs:update')
+    win.webContents.send('tab:list-changed')
     return true
   })
 

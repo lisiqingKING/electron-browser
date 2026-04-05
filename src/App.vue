@@ -77,8 +77,8 @@ const closeTab = async (tabId: string) => {
   await getTabsData()
 }
 
-window.ipcRenderer.on('tab:updated', (_event, tabInfo: TabInfo) => {
-  console.log('[tab:updated] tabInfo:', tabInfo)
+window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
+  console.log('[tab:info-changed] tabInfo:', tabInfo)
   const index = tabs.value.findIndex(t => t.id === tabInfo.id)
   if (index !== -1) {
     tabs.value[index] = tabInfo
@@ -88,22 +88,14 @@ window.ipcRenderer.on('tab:updated', (_event, tabInfo: TabInfo) => {
   }
 })
 
-window.ipcRenderer.on('ipcMain:tabs:update', () => {
+window.ipcRenderer.on('tab:list-changed', () => {
   getTabsData()
 })
 
-window.ipcRenderer.on('tab:url-changed', (_event, data: { id: string; url: string }) => {
-  console.log('[tab:url-changed]', data)
-  if (data.id === currentTabId.value) {
-    currentUrl.value = isUrl(data.url) ? data.url : ''
-  }
-})
-
-window.ipcRenderer.on('tab:navigation-state', (_event, data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
-  if (data.id === currentTabId.value) {
-    canGoBack.value = data.canGoBack
-    canGoForward.value = data.canGoForward
-  }
+window.ipcRenderer.on('tab:can-navigate', (_event, data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
+  // 切换 tab 时，事件先于 currentTabId 更新到达，所以直接更新
+  canGoBack.value = data.canGoBack
+  canGoForward.value = data.canGoForward
 })
 
 window.ipcRenderer.on('tab:loading', (_event, data: { id: string; isLoading: boolean }) => {

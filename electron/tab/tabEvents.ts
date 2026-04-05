@@ -1,6 +1,6 @@
 import { WebContentsView, BrowserWindow } from 'electron'
 import { recordVisit } from '../history/historyManager'
-import { webContentViewMap, getCurTab, isLocalFile, TabInfo, createTabCore, updateCurTabBounds } from './tabCore'
+import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds } from './tabCore'
 import { updateNavigationState } from './tabNavigation'
 import { isUrl } from '../../src/utils'
 
@@ -36,7 +36,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     registerWebContentsEvents(newView, newTabInfo, win)
     win.contentView.addChildView(newView)
     updateCurTabBounds(webContentViewMap.get(newTabInfo.id!)!, win)
-    win.webContents.send('ipcMain:tabs:update')
+    win.webContents.send('tab:list-changed')
 
     return { action: 'deny' }
   })
@@ -68,7 +68,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       tab.info.url = newUrl
       tab.info.title = title
       recordVisit(title, newUrl)
-      win.webContents.send('tab:updated', tab.info)
+      win.webContents.send('tab:info-changed', tab.info)
       updateNavigationState(tabId, win)
     }
   })
@@ -79,9 +79,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       const tab = webContentViewMap.get(tabId)
       if (tab) {
         tab.info.url = url
-        win.webContents.send('tab:url-changed', { id: tabId, url })
         updateNavigationState(tabId, win)
-        // 标题更新交给 page-title-updated 事件处理，避免时序问题
       }
     }
   })
@@ -92,10 +90,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     if (tab) {
       tab.info.url = url
       tab.info.title = getTitleForUrl(tab, view.webContents.getTitle())
-      if (!isLocalFile(url)) {
-        win.webContents.send('tab:url-changed', { id: tabId, url })
-      }
-      win.webContents.send('tab:updated', tab.info)
+      win.webContents.send('tab:info-changed', tab.info)
       updateNavigationState(tabId, win)
     }
   })
@@ -107,7 +102,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       const newTitle = getTitleForUrl(tab, title)
       if (newTitle !== tab.info.title) {
         tab.info.title = newTitle
-        win.webContents.send('tab:updated', tab.info)
+        win.webContents.send('tab:info-changed', tab.info)
       }
     }
   })

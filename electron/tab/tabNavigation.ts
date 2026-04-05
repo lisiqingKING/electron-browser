@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isLocalFile } from './tabCore'
+import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '../../src/utils'
 
@@ -10,18 +10,18 @@ export function updateNavigationState(tabId: string, win: BrowserWindow) {
     const canGoForward = tab.view.webContents.canGoForward()
     tab.info.canGoBack = canGoBack
     tab.info.canGoForward = canGoForward
-    win.webContents.send('tab:navigation-state', { id: tabId, canGoBack, canGoForward })
+    win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
   }
 }
 
 export function goBack(win: BrowserWindow) {
   const tab = getCurTab()
   if (tab?.view.webContents.canGoBack()) {
-    const handler = (_event: Electron.Event, title: string) => {
-      tab.view.webContents.removeListener('page-title-updated', handler)
-      updateTabInfo(tab.info.id!, win, title)
+    const handler = () => {
+      tab.view.webContents.removeListener('did-navigate', handler)
+      updateTabInfo(tab.info.id!, win)
     }
-    tab.view.webContents.on('page-title-updated', handler)
+    tab.view.webContents.on('did-navigate', handler)
     tab.view.webContents.goBack()
   }
 }
@@ -29,11 +29,11 @@ export function goBack(win: BrowserWindow) {
 export function goForward(win: BrowserWindow) {
   const tab = getCurTab()
   if (tab?.view.webContents.canGoForward()) {
-    const handler = (_event: Electron.Event, title: string) => {
-      tab.view.webContents.removeListener('page-title-updated', handler)
-      updateTabInfo(tab.info.id!, win, title)
+    const handler = () => {
+      tab.view.webContents.removeListener('did-navigate', handler)
+      updateTabInfo(tab.info.id!, win)
     }
-    tab.view.webContents.on('page-title-updated', handler)
+    tab.view.webContents.on('did-navigate', handler)
     tab.view.webContents.goForward()
   }
 }
@@ -49,17 +49,14 @@ function getTitleForUrl(tab: { info: { url: string }, view: { webContents: { get
   return pageTitle || tab.view.webContents.getTitle()
 }
 
-function updateTabInfo(tabId: string, win: BrowserWindow, title?: string) {
+function updateTabInfo(tabId: string, win: BrowserWindow) {
   const tab = webContentViewMap.get(tabId)
   if (tab) {
     const newUrl = tab.view.webContents.getURL()
     tab.info.url = newUrl
-    tab.info.title = getTitleForUrl(tab, title || tab.view.webContents.getTitle())
+    tab.info.title = getTitleForUrl(tab, tab.view.webContents.getTitle())
     updateNavigationState(tabId, win)
-    win.webContents.send('tab:updated', tab.info)
-    if (!isLocalFile(newUrl)) {
-      win.webContents.send('tab:url-changed', { id: tabId, url: newUrl })
-    }
+    win.webContents.send('tab:info-changed', tab.info)
   }
 }
 
@@ -71,10 +68,7 @@ export function refreshCurTab(win: BrowserWindow) {
         const newUrl = tab.view.webContents.getURL()
         tab.info.url = newUrl
         tab.info.title = getTitleForUrl(tab)
-        win.webContents.send('tab:updated', tab.info)
-        if (!isLocalFile(newUrl)) {
-          win.webContents.send('tab:url-changed', { id: tab.info.id, url: newUrl })
-        }
+        win.webContents.send('tab:info-changed', tab.info)
       }
     })
     tab.view.webContents.reload()
@@ -93,7 +87,7 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
 
     tab.view.webContents.once('page-title-updated', () => {
       tab.info.title = tab.view.webContents.getTitle()
-      win.webContents.send('tab:updated', tab.info)
+      win.webContents.send('tab:info-changed', tab.info)
     })
   }
 }
@@ -115,7 +109,7 @@ export function createTabAndShow(tabInfo: { title: string; url: string }, win: B
   registerWebContentsEvents(view, enrichedTabInfo, win)
   win.contentView.addChildView(view)
   updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-  win.webContents.send('ipcMain:tabs:update')
+  win.webContents.send('tab:list-changed')
 
   return view
 }
