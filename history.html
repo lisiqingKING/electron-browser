@@ -286,8 +286,8 @@
         }
 
         grid.innerHTML = history.map(item => `
-          <a href="#" class="history-card" data-url="${encodeURIComponent(item.url)}" data-id="${item.id}">
-            <button class="delete-btn" onclick="event.stopPropagation(); deleteHistory(${item.id})">×</button>
+          <a href="#" class="history-card" data-url="${encodeURIComponent(item.url)}" data-visitedat="${item.visitedAt}">
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteHistory('${encodeURIComponent(item.url)}', ${item.visitedAt})">×</button>
             <div class="history-card-title">${escapeHtml(item.title || item.url)}</div>
             <div class="history-card-url">${escapeHtml(item.url)}</div>
             <div class="history-card-time">${formatTime(item.visitedAt)}</div>
@@ -328,9 +328,9 @@
 
     loadHistory();
 
-    async function deleteHistory(id) {
+    async function deleteHistory(url, visitedAt) {
       try {
-        await window.ipcRenderer.invoke('history:delete', id);
+        await window.ipcRenderer.invoke('history:delete', url, visitedAt);
         loadHistory();
       } catch (err) {
         console.error('Failed to delete history:', err);

@@ -21,21 +21,13 @@ function initTabsTable(): void {
 }
 
 function initHistoryTable(): void {
+  // 先删除旧表（如果存在），再创建新表
+  getDatabase().exec('DROP TABLE IF EXISTS history')
   getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tabId TEXT NOT NULL,
-      title TEXT NOT NULL DEFAULT '',
-      url TEXT NOT NULL,
-      visitedAt INTEGER NOT NULL
+      data TEXT NOT NULL,
+      updatedAt INTEGER NOT NULL
     )
-  `)
-
-  getDatabase().exec(`
-    CREATE INDEX IF NOT EXISTS idx_history_tabId ON history(tabId)
-  `)
-  getDatabase().exec(`
-    CREATE INDEX IF NOT EXISTS idx_history_visitedAt ON history(visitedAt)
   `)
 }
 

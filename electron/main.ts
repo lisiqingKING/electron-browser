@@ -1,8 +1,8 @@
 import { app, BrowserWindow, Menu } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { createTab, updateCurTabBounds, registerTabHandlers } from './tabManager'
-import { initDatabase, closeDatabase } from './database'
+import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
+import { initDatabase, closeDatabase } from './database/index'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -39,16 +39,17 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 
-  const webContentView = createTab({
+  // 创建初始标签页
+  createTabAndShow({
     title: '新建标签页',
     url: path.join(process.env.APP_ROOT, 'default.html')
   }, win)
 
-  win.contentView.addChildView(webContentView)
-
   // 统一在 window 层面处理 resize
-  win.on('resize', () => updateCurTabBounds(win!))
-  updateCurTabBounds(win!)
+  win.on('resize', () => {
+    const curTab = getCurTab()
+    if (curTab) updateCurTabBounds(curTab, win!)
+  })
 
   // 注册 tab 相关 handlers
   registerTabHandlers(win)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  tabs: { title: string; url: string; id?: string }[]
+  tabs: { title: string; url: string; id?: string; isLoading?: boolean }[]
   currentTabId: string | null
 }>()
 
@@ -22,7 +22,10 @@ const emit = defineEmits<{
         @click="emit('switch', tab.id!)"
       >
         <div class="tab-favicon">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <svg v-if="tab.isLoading" class="loading-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8zm8 16a8 8 0 0 1-8 8v-2a10 10 0 0 0 10-10h-2a8 8 0 0 1-8 8v2a8 8 0 0 1-8-8v-2a10 10 0 0 1 10-10h2a8 8 0 0 1 8 8z"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
           </svg>
         </div>
@@ -121,6 +124,15 @@ const emit = defineEmits<{
   justify-content: center;
   color: #8ab4f8;
   flex-shrink: 0;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .tab-title {

@@ -1,11 +1,87 @@
-import { app as h, WebContentsView as F, ipcMain as c, BrowserWindow as V, Menu as S } from "electron";
-import { fileURLToPath as I } from "node:url";
-import a from "node:path";
-import B from "better-sqlite3";
-const y = a.join(h.getPath("userData"), "app.db");
-let w = null;
-function x() {
-  b().exec(`
+import { WebContentsView, app, ipcMain, BrowserWindow, Menu } from "electron";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import Database from "better-sqlite3";
+const __dirname$2 = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_TAB = {
+  title: "新建标签页",
+  url: "default.html"
+};
+const tabs = [];
+let curTabId;
+const webContentViewMap = /* @__PURE__ */ new Map();
+function getCurTab() {
+  return curTabId ? webContentViewMap.get(curTabId) : null;
+}
+function setCurTabId(id) {
+  curTabId = id;
+}
+function createTabCore(tabInfo) {
+  const view = new WebContentsView({
+    webPreferences: {
+      preload: path.join(__dirname$2, "preload.mjs"),
+      contextIsolation: true
+    }
+  });
+  const _time = (/* @__PURE__ */ new Date()).getTime();
+  const _id = "id" + _time;
+  const _tabInfo = {
+    ...tabInfo,
+    time: _time,
+    id: _id
+  };
+  tabs.push(_tabInfo);
+  curTabId = _id;
+  webContentViewMap.set(_id, {
+    info: _tabInfo,
+    view
+  });
+  return { view, tabInfo: _tabInfo };
+}
+function isLocalFile(url) {
+  return !url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("www.");
+}
+function switchTab(id, win2) {
+  if (!webContentViewMap.has(id)) return false;
+  const curTab = getCurTab();
+  if (curTab == null ? void 0 : curTab.view) {
+    win2.contentView.removeChildView(curTab.view);
+  }
+  curTabId = id;
+  const targetTab = webContentViewMap.get(id);
+  win2.contentView.addChildView(targetTab.view);
+  updateCurTabBounds(targetTab, win2);
+  return true;
+}
+function closeTab(id, win2) {
+  if (!webContentViewMap.has(id)) return false;
+  const tab = webContentViewMap.get(id);
+  win2.contentView.removeChildView(tab.view);
+  webContentViewMap.delete(id);
+  tabs.splice(tabs.findIndex((t) => t.id === id), 1);
+  if (curTabId === id) {
+    const firstTab = webContentViewMap.values().next().value;
+    if (firstTab) {
+      switchTab(firstTab.info.id, win2);
+    } else {
+      curTabId = null;
+    }
+  }
+  return true;
+}
+function updateCurTabBounds(tab, win2) {
+  const [width, height] = win2.getContentSize();
+  tab.view.setBounds({
+    x: 0,
+    y: 80,
+    width,
+    height: height - 80
+  });
+}
+const DB_PATH = path.join(app.getPath("userData"), "app.db");
+let db = null;
+function initTabsTable() {
+  getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS tabs (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL DEFAULT '',
@@ -15,252 +91,437 @@ function x() {
     )
   `);
 }
-function H() {
-  b().exec(`
+function initHistoryTable() {
+  getDatabase().exec("DROP TABLE IF EXISTS history");
+  getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tabId TEXT NOT NULL,
-      title TEXT NOT NULL DEFAULT '',
-      url TEXT NOT NULL,
-      visitedAt INTEGER NOT NULL
+      data TEXT NOT NULL,
+      updatedAt INTEGER NOT NULL
     )
-  `), b().exec(`
-    CREATE INDEX IF NOT EXISTS idx_history_tabId ON history(tabId)
-  `), b().exec(`
-    CREATE INDEX IF NOT EXISTS idx_history_visitedAt ON history(visitedAt)
   `);
 }
-function A() {
-  return w || (w = new B(y), x(), H(), console.log("[Database] Initialized at:", y), w);
+function initDatabase() {
+  if (db) {
+    return db;
+  }
+  db = new Database(DB_PATH);
+  initTabsTable();
+  initHistoryTable();
+  console.log("[Database] Initialized at:", DB_PATH);
+  return db;
 }
-function b() {
-  return w || A();
+function getDatabase() {
+  if (!db) {
+    return initDatabase();
+  }
+  return db;
 }
-function M() {
-  w && (w.close(), w = null, console.log("[Database] Closed"));
-}
-function j(e, t, n) {
-  b().prepare(
-    "INSERT INTO history (tabId, title, url, visitedAt) VALUES (?, ?, ?, ?)"
-  ).run(e, t, n, Date.now());
-}
-function G(e = 100) {
-  return b().prepare(
-    "SELECT * FROM history ORDER BY visitedAt DESC LIMIT ?"
-  ).all(e);
-}
-function X(e) {
-  b().prepare("DELETE FROM history WHERE id = ?").run(e);
-}
-function k() {
-  b().exec("DELETE FROM history");
-}
-const p = [];
-function W() {
-  const e = G();
-  p.length = 0, p.push(...e);
-}
-function Y(e, t, n) {
-  j(e, t, n);
-  const o = {
-    id: Date.now(),
-    tabId: e,
-    title: t,
-    url: n,
-    visitedAt: Date.now()
-  };
-  p.unshift(o);
-}
-function $() {
-  return p.length === 0 && W(), [...p];
-}
-function z() {
-  k(), p.length = 0;
-}
-function q(e) {
-  X(e);
-  const t = p.findIndex((n) => n.id === e);
-  t !== -1 && p.splice(t, 1);
-}
-function O(e) {
-  return /^(https?:\/\/|www\.)[^\s]+$/i.test(e);
-}
-const K = a.dirname(I(import.meta.url)), L = {
-  title: "新建标签页",
-  url: "default.html"
-}, m = [];
-let u;
-const l = /* @__PURE__ */ new Map();
-function E(e, t) {
-  const n = new F({
-    webPreferences: {
-      preload: a.join(K, "preload.mjs"),
-      contextIsolation: !0
-    }
-  });
-  n.webContents.setWindowOpenHandler((i) => {
-    console.log("[setWindowOpenHandler] 拦截到 window.open, url:", i.url);
-    const f = d();
-    f != null && f.view && t.contentView.removeChildView(f.view);
-    const v = E({
-      url: i.url,
-      title: "新窗口"
-    }, t);
-    return t.contentView.addChildView(v), T(t), t.webContents.send("ipcMain:tabs:update"), { action: "deny" };
-  }), e.title !== "新建标签页" && n.webContents.once("page-title-updated", () => {
-    console.log("123");
-    const i = d();
-    i && (i.info.title = i.view.webContents.getTitle(), t.webContents.send("tab:updated", i.info));
-  }), n.webContents.on("did-navigate-in-page", (i, f, v) => {
-    if (v) {
-      const _ = l.get(s);
-      _ && (_.info.url = f, t.webContents.send("tab:url-changed", { id: s, url: f }), g(s, t));
-    }
-  }), n.webContents.on("did-navigate", (i, f) => {
-    const v = l.get(s);
-    v && (v.info.url = f, g(s, t));
-  }), n.webContents.on("did-finish-load", () => {
-    const i = l.get(s);
-    i && !i.info.url.includes("default.html") && !i.info.url.includes("history.html") && Y(s, i.info.title || i.info.url, i.info.url);
-  }), O(e.url) ? n.webContents.loadURL(e.url) : n.webContents.loadFile(e.url);
-  const o = (/* @__PURE__ */ new Date()).getTime(), s = "id" + o, R = {
-    ...e,
-    time: o,
-    id: s
-  };
-  return m.push(R), u = s, l.set(s, {
-    info: R,
-    view: n
-  }), n;
-}
-function d() {
-  return u ? l.get(u) : null;
-}
-function J() {
-  const e = d();
-  e == null || e.view.webContents.reload();
-}
-function g(e, t) {
-  const n = l.get(e);
-  if (n) {
-    const o = n.view.webContents.canGoBack(), s = n.view.webContents.canGoForward();
-    n.info.canGoBack = o, n.info.canGoForward = s, t.webContents.send("tab:navigation-state", { id: e, canGoBack: o, canGoForward: s });
+function closeDatabase() {
+  if (db) {
+    db.close();
+    db = null;
+    console.log("[Database] Closed");
   }
 }
-function Q(e) {
-  const t = d();
-  t != null && t.view.webContents.canGoBack() && (t.view.webContents.goBack(), u && g(u, e));
+function getAllHistory() {
+  const stmt = getDatabase().prepare("SELECT data FROM history LIMIT 1");
+  const row = stmt.get();
+  if (!row) return [];
+  return JSON.parse(row.data);
 }
-function Z(e) {
-  const t = d();
-  t != null && t.view.webContents.canGoForward() && (t.view.webContents.goForward(), u && g(u, e));
+function saveHistory(data) {
+  getDatabase().exec("DELETE FROM history");
+  const stmt = getDatabase().prepare("INSERT INTO history (data, updatedAt) VALUES (?, ?)");
+  stmt.run(JSON.stringify(data), Date.now());
 }
-function ee(e, t) {
-  const n = d();
-  n && (O(e) ? n.view.webContents.loadURL(e) : n.view.webContents.loadFile(e), n.info.url = e, n.view.webContents.once("page-title-updated", () => {
-    n.info.title = n.view.webContents.getTitle(), t.webContents.send("tab:updated", n.info);
-  }));
+function clearAll() {
+  getDatabase().exec("DELETE FROM history");
 }
-function te() {
-  return [...l.values()].map((e) => e.info);
+const historyCache = [];
+function syncFromDb() {
+  historyCache.length = 0;
+  const records = getAllHistory();
+  historyCache.push(...records);
 }
-function T(e) {
-  const t = d();
-  if (t != null && t.view) {
-    const [n, o] = e.getContentSize();
-    t.view.setBounds({
-      x: 0,
-      y: 80,
-      width: n,
-      height: o - 80
+function getHistory() {
+  if (historyCache.length === 0) {
+    syncFromDb();
+  }
+  return [...historyCache];
+}
+function recordVisit(title, url) {
+  historyCache.unshift({
+    title,
+    url,
+    visitedAt: Date.now()
+  });
+  if (historyCache.length > 100) {
+    historyCache.length = 100;
+  }
+  saveHistory(historyCache);
+}
+function deleteRecord(url, visitedAt) {
+  const index = historyCache.findIndex(
+    (item) => item.url === url && item.visitedAt === visitedAt
+  );
+  if (index !== -1) {
+    historyCache.splice(index, 1);
+    saveHistory(historyCache);
+  }
+}
+function clearAllHistory() {
+  historyCache.length = 0;
+  clearAll();
+}
+function isUrl(input) {
+  return /^(https?:\/\/|www\.)[^\s]+$/i.test(input);
+}
+function updateNavigationState(tabId, win2) {
+  const tab = webContentViewMap.get(tabId);
+  if (tab) {
+    const canGoBack = tab.view.webContents.canGoBack();
+    const canGoForward = tab.view.webContents.canGoForward();
+    tab.info.canGoBack = canGoBack;
+    tab.info.canGoForward = canGoForward;
+    win2.webContents.send("tab:navigation-state", { id: tabId, canGoBack, canGoForward });
+  }
+}
+function goBack(win2) {
+  const tab = getCurTab();
+  if (tab == null ? void 0 : tab.view.webContents.canGoBack()) {
+    const handler = (_event, title) => {
+      tab.view.webContents.removeListener("page-title-updated", handler);
+      updateTabInfo(tab.info.id, win2, title);
+    };
+    tab.view.webContents.on("page-title-updated", handler);
+    tab.view.webContents.goBack();
+  }
+}
+function goForward(win2) {
+  const tab = getCurTab();
+  if (tab == null ? void 0 : tab.view.webContents.canGoForward()) {
+    const handler = (_event, title) => {
+      tab.view.webContents.removeListener("page-title-updated", handler);
+      updateTabInfo(tab.info.id, win2, title);
+    };
+    tab.view.webContents.on("page-title-updated", handler);
+    tab.view.webContents.goForward();
+  }
+}
+function isDefaultPageUrl$1(url) {
+  return url.includes("default.html") || url.endsWith("/default.html");
+}
+function getTitleForUrl$1(tab, pageTitle) {
+  if (isDefaultPageUrl$1(tab.info.url)) {
+    return "新建标签页";
+  }
+  return pageTitle || tab.view.webContents.getTitle();
+}
+function updateTabInfo(tabId, win2, title) {
+  const tab = webContentViewMap.get(tabId);
+  if (tab) {
+    const newUrl = tab.view.webContents.getURL();
+    tab.info.url = newUrl;
+    tab.info.title = getTitleForUrl$1(tab, title || tab.view.webContents.getTitle());
+    updateNavigationState(tabId, win2);
+    win2.webContents.send("tab:updated", tab.info);
+    if (!isLocalFile(newUrl)) {
+      win2.webContents.send("tab:url-changed", { id: tabId, url: newUrl });
+    }
+  }
+}
+function refreshCurTab(win2) {
+  const tab = getCurTab();
+  if (tab) {
+    tab.view.webContents.once("did-finish-load", () => {
+      if (tab.info.id) {
+        const newUrl = tab.view.webContents.getURL();
+        tab.info.url = newUrl;
+        tab.info.title = getTitleForUrl$1(tab);
+        win2.webContents.send("tab:updated", tab.info);
+        if (!isLocalFile(newUrl)) {
+          win2.webContents.send("tab:url-changed", { id: tab.info.id, url: newUrl });
+        }
+      }
+    });
+    tab.view.webContents.reload();
+  }
+}
+function updateCurTabUrl(url, win2) {
+  const tab = getCurTab();
+  if (tab) {
+    if (isUrl(url)) {
+      tab.view.webContents.loadURL(url);
+    } else {
+      tab.view.webContents.loadFile(url);
+    }
+    tab.info.url = url;
+    tab.view.webContents.once("page-title-updated", () => {
+      tab.info.title = tab.view.webContents.getTitle();
+      win2.webContents.send("tab:updated", tab.info);
     });
   }
 }
-function N(e, t) {
-  if (!l.has(e)) return !1;
-  const n = d();
-  n != null && n.view && t.contentView.removeChildView(n.view), u = e;
-  const o = l.get(e);
-  return t.contentView.addChildView(o.view), T(t), !0;
-}
-function ne(e, t) {
-  if (!l.has(e)) return !1;
-  const n = l.get(e);
-  if (t.contentView.removeChildView(n.view), l.delete(e), m.splice(m.findIndex((o) => o.id === e), 1), u === e) {
-    const o = l.values().next().value;
-    o ? N(o.info.id, t) : u = null;
+function createTabAndShow(tabInfo, win2) {
+  const curTab = getCurTab();
+  if (curTab == null ? void 0 : curTab.view) {
+    win2.contentView.removeChildView(curTab.view);
   }
-  return !0;
+  const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo);
+  if (isUrl(tabInfo.url)) {
+    view.webContents.loadURL(tabInfo.url);
+  } else {
+    view.webContents.loadFile(tabInfo.url);
+  }
+  registerWebContentsEvents(view, enrichedTabInfo, win2);
+  win2.contentView.addChildView(view);
+  updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id), win2);
+  win2.webContents.send("ipcMain:tabs:update");
+  return view;
 }
-function oe(e) {
-  c.handle("tabs:list", async () => te()), c.handle("tabs:create", async (t, n) => {
-    const o = d();
-    o != null && o.view && e.contentView.removeChildView(o.view);
-    const s = E(n, e);
-    return e.contentView.addChildView(s), T(e), e.webContents.send("ipcMain:tabs:update"), !0;
-  }), c.handle("tabs:createDefault", async () => {
-    const t = d();
-    t != null && t.view && e.contentView.removeChildView(t.view);
-    const n = E({
-      title: L.title,
-      url: a.join(process.env.APP_ROOT, L.url)
-    }, e);
-    return e.contentView.addChildView(n), T(e), !0;
-  }), c.handle("tabs:createHistory", async () => {
-    const t = d();
-    t != null && t.view && e.contentView.removeChildView(t.view);
-    const n = E({
-      title: "历史记录",
-      url: a.join(process.env.APP_ROOT, "history.html")
-    }, e);
-    return e.contentView.addChildView(n), T(e), !0;
-  }), c.on("tabs:refresh", () => {
-    J();
-  }), c.on("tabs:updateUrl", (t, n) => {
-    ee(n, e), T(e);
-  }), c.handle("tabs:switch", async (t, n) => N(n, e)), c.handle("tabs:close", async (t, n) => ne(n, e)), c.on("tabs:goBack", () => {
-    Q(e);
-  }), c.on("tabs:goForward", () => {
-    Z(e);
-  }), c.handle("history:get", async () => $()), c.handle("history:clear", async () => (z(), !0)), c.handle("history:delete", async (t, n) => (q(n), !0));
+function isDefaultPageUrl(url) {
+  return url.includes("default.html");
 }
-const D = a.dirname(I(import.meta.url));
-process.env.APP_ROOT = a.join(D, "..");
-const C = process.env.VITE_DEV_SERVER_URL, ce = a.join(process.env.APP_ROOT, "dist-electron"), U = a.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = C ? a.join(process.env.APP_ROOT, "public") : U;
-let r;
-function P() {
-  S.setApplicationMenu(null), r = new V({
-    icon: a.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
-    webPreferences: {
-      preload: a.join(D, "preload.mjs"),
-      nodeIntegration: !1,
-      contextIsolation: !0,
-      webviewTag: !0
+function getTitleForUrl(tab, pageTitle) {
+  if (isDefaultPageUrl(tab.info.url)) {
+    return "新建标签页";
+  }
+  return pageTitle;
+}
+function registerWebContentsEvents(view, tabInfo, win2) {
+  const tabId = tabInfo.id;
+  view.webContents.setWindowOpenHandler((event) => {
+    console.log("[setWindowOpenHandler] 拦截到 window.open, url:", event.url);
+    const curTab = getCurTab();
+    if (curTab == null ? void 0 : curTab.view) {
+      win2.contentView.removeChildView(curTab.view);
     }
-  }), r.webContents.on("did-finish-load", () => {
-    r == null || r.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  }), C ? r.loadURL(C) : r.loadFile(a.join(U, "index.html"));
-  const e = E({
-    title: "新建标签页",
-    url: a.join(process.env.APP_ROOT, "default.html")
-  }, r);
-  r.contentView.addChildView(e), r.on("resize", () => T(r)), T(r), oe(r), C && r.webContents.openDevTools();
+    const { view: newView, tabInfo: newTabInfo } = createTabCore({ url: event.url, title: "新窗口" });
+    if (isUrl(event.url)) {
+      newView.webContents.loadURL(event.url);
+    } else {
+      newView.webContents.loadFile(event.url);
+    }
+    registerWebContentsEvents(newView, newTabInfo, win2);
+    win2.contentView.addChildView(newView);
+    updateCurTabBounds(webContentViewMap.get(newTabInfo.id), win2);
+    win2.webContents.send("ipcMain:tabs:update");
+    return { action: "deny" };
+  });
+  view.webContents.on("did-start-loading", () => {
+    const tab = webContentViewMap.get(tabId);
+    if (tab) {
+      tab.info.isLoading = true;
+      win2.webContents.send("tab:loading", { id: tabId, isLoading: true });
+    }
+  });
+  view.webContents.on("did-stop-loading", () => {
+    const tab = webContentViewMap.get(tabId);
+    if (tab) {
+      tab.info.isLoading = false;
+      win2.webContents.send("tab:loading", { id: tabId, isLoading: false });
+    }
+  });
+  view.webContents.on("did-finish-load", () => {
+    const tab = webContentViewMap.get(tabId);
+    if (tab && !tab.info.url.includes("history.html") && !tab.info.url.includes("default.html")) {
+      const newUrl = view.webContents.getURL();
+      const title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title);
+      tab.info.url = newUrl;
+      tab.info.title = title;
+      recordVisit(title, newUrl);
+      win2.webContents.send("tab:updated", tab.info);
+      updateNavigationState(tabId, win2);
+    }
+  });
+  view.webContents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
+    if (isMainFrame) {
+      const tab = webContentViewMap.get(tabId);
+      if (tab) {
+        tab.info.url = url;
+        win2.webContents.send("tab:url-changed", { id: tabId, url });
+        updateNavigationState(tabId, win2);
+      }
+    }
+  });
+  view.webContents.on("did-navigate", (_event, url) => {
+    const tab = webContentViewMap.get(tabId);
+    if (tab) {
+      tab.info.url = url;
+      tab.info.title = getTitleForUrl(tab, view.webContents.getTitle());
+      if (!isLocalFile(url)) {
+        win2.webContents.send("tab:url-changed", { id: tabId, url });
+      }
+      win2.webContents.send("tab:updated", tab.info);
+      updateNavigationState(tabId, win2);
+    }
+  });
+  view.webContents.on("page-title-updated", (_event, title) => {
+    const tab = webContentViewMap.get(tabId);
+    if (tab) {
+      const newTitle = getTitleForUrl(tab, title);
+      if (newTitle !== tab.info.title) {
+        tab.info.title = newTitle;
+        win2.webContents.send("tab:updated", tab.info);
+      }
+    }
+  });
 }
-h.on("window-all-closed", () => {
-  process.platform !== "darwin" && h.quit();
+function registerTabHandlers(win2) {
+  ipcMain.handle("tabs:list", async () => {
+    return [...webContentViewMap.values()].map((item) => item.info);
+  });
+  ipcMain.handle("tabs:create", async (_event, tabInfo) => {
+    const curTab = getCurTab();
+    if (curTab == null ? void 0 : curTab.view) {
+      win2.contentView.removeChildView(curTab.view);
+    }
+    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo);
+    registerWebContentsEvents(view, enrichedTabInfo, win2);
+    if (tabInfo.url.startsWith("http")) {
+      view.webContents.loadURL(tabInfo.url);
+    } else {
+      view.webContents.loadFile(tabInfo.url);
+    }
+    win2.contentView.addChildView(view);
+    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id), win2);
+    win2.webContents.send("ipcMain:tabs:update");
+    return true;
+  });
+  ipcMain.handle("tabs:createDefault", async () => {
+    const curTab = getCurTab();
+    if (curTab == null ? void 0 : curTab.view) {
+      win2.contentView.removeChildView(curTab.view);
+    }
+    const tabInfo = {
+      title: DEFAULT_TAB.title,
+      url: path.join(process.env.APP_ROOT, DEFAULT_TAB.url)
+    };
+    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo);
+    registerWebContentsEvents(view, enrichedTabInfo, win2);
+    view.webContents.loadFile(tabInfo.url);
+    win2.contentView.addChildView(view);
+    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id), win2);
+    return true;
+  });
+  ipcMain.handle("tabs:createHistory", async () => {
+    const curTab = getCurTab();
+    if (curTab == null ? void 0 : curTab.view) {
+      win2.contentView.removeChildView(curTab.view);
+    }
+    const tabInfo = {
+      title: "历史记录",
+      url: path.join(process.env.APP_ROOT, "history.html")
+    };
+    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo);
+    registerWebContentsEvents(view, enrichedTabInfo, win2);
+    view.webContents.loadFile(tabInfo.url);
+    win2.contentView.addChildView(view);
+    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id), win2);
+    return true;
+  });
+  ipcMain.on("tabs:refresh", () => {
+    refreshCurTab(win2);
+  });
+  ipcMain.on("tabs:updateUrl", (_event, url) => {
+    var _a;
+    updateCurTabUrl(url, win2);
+    updateCurTabBounds(webContentViewMap.get((_a = getCurTab()) == null ? void 0 : _a.info.id), win2);
+  });
+  ipcMain.handle("tabs:switch", async (_event, tabId) => {
+    const curTab = getCurTab();
+    if (curTab == null ? void 0 : curTab.view) {
+      win2.contentView.removeChildView(curTab.view);
+    }
+    const targetTab = webContentViewMap.get(tabId);
+    if (targetTab) {
+      win2.contentView.addChildView(targetTab.view);
+      updateCurTabBounds(targetTab, win2);
+      setCurTabId(tabId);
+    }
+    return true;
+  });
+  ipcMain.handle("tabs:close", async (_event, tabId) => {
+    closeTab(tabId, win2);
+    win2.webContents.send("ipcMain:tabs:update");
+    return true;
+  });
+  ipcMain.on("tabs:goBack", () => {
+    goBack(win2);
+  });
+  ipcMain.on("tabs:goForward", () => {
+    goForward(win2);
+  });
+  ipcMain.handle("history:get", async () => {
+    return getHistory();
+  });
+  ipcMain.handle("history:clear", async () => {
+    clearAllHistory();
+    return true;
+  });
+  ipcMain.handle("history:delete", async (_event, url, visitedAt) => {
+    deleteRecord(url, visitedAt);
+    return true;
+  });
+}
+const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
+process.env.APP_ROOT = path.join(__dirname$1, "..");
+const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
+const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
+const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
+let win;
+function createWindow() {
+  Menu.setApplicationMenu(null);
+  win = new BrowserWindow({
+    icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    webPreferences: {
+      preload: path.join(__dirname$1, "preload.mjs"),
+      nodeIntegration: false,
+      contextIsolation: true,
+      webviewTag: true
+    }
+  });
+  win.webContents.on("did-finish-load", () => {
+    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  });
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(VITE_DEV_SERVER_URL);
+  } else {
+    win.loadFile(path.join(RENDERER_DIST, "index.html"));
+  }
+  createTabAndShow({
+    title: "新建标签页",
+    url: path.join(process.env.APP_ROOT, "default.html")
+  }, win);
+  win.on("resize", () => {
+    const curTab = getCurTab();
+    if (curTab) updateCurTabBounds(curTab, win);
+  });
+  registerTabHandlers(win);
+  if (VITE_DEV_SERVER_URL) {
+    win.webContents.openDevTools();
+  }
+}
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
-h.on("will-quit", () => {
-  M();
+app.on("will-quit", () => {
+  closeDatabase();
 });
-h.on("activate", () => {
-  V.getAllWindows().length === 0 && P();
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
-h.whenReady().then(() => {
-  A(), P();
+app.whenReady().then(() => {
+  initDatabase();
+  createWindow();
 });
 export {
-  ce as MAIN_DIST,
-  U as RENDERER_DIST,
-  C as VITE_DEV_SERVER_URL
+  MAIN_DIST,
+  RENDERER_DIST,
+  VITE_DEV_SERVER_URL
 };
