@@ -1,7 +1,10 @@
 import { WebContentsView, BrowserWindow, ipcMain } from 'electron'
-import { isUrl } from '../src/utils'
+import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { recordVisit, getHistory } from './historyManager'
+import { recordVisit, getHistory, clearHistory, deleteHistory } from './historyManager'
+import { isUrl } from '../src/utils'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export interface TabInfo {
   title: string
@@ -29,7 +32,7 @@ export const webContentViewMap = new Map<string, { info: TabInfo, view: WebConte
 export function createTab(tabInfo: TabInfo, win: BrowserWindow): WebContentsView {
   const view = new WebContentsView({
     webPreferences: {
-      preload: undefined,
+      preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,
     },
   })
@@ -75,7 +78,6 @@ export function createTab(tabInfo: TabInfo, win: BrowserWindow): WebContentsView
       const tab = webContentViewMap.get(_id)
       if (tab) {
         tab.info.url = url
-        recordVisit(_id, tab.info.title || url, url)
         win.webContents.send('tab:url-changed', { id: _id, url })
         updateNavigationState(_id, win)
       }
@@ -87,8 +89,18 @@ export function createTab(tabInfo: TabInfo, win: BrowserWindow): WebContentsView
     const tab = webContentViewMap.get(_id)
     if (tab) {
       tab.info.url = url
-      recordVisit(_id, tab.info.title || url, url)
       updateNavigationState(_id, win)
+    }
+  })
+
+  // 监听页面加载完成
+  view.webContents.on('did-finish-load', () => {
+    const tab = webContentViewMap.get(_id)
+    if (tab) {
+      // 排除默认页和历史页
+      if (!tab.info.url.includes('default.html') && !tab.info.url.includes('history.html')) {
+        recordVisit(_id, tab.info.title || tab.info.url, tab.info.url)
+      }
     }
   })
 
@@ -229,15 +241,15 @@ export function registerTabHandlers(win: BrowserWindow) {
   })
 
   ipcMain.handle('tabs:create', async (_event, tabInfo: { title: string; url: string }) => {
+    // 创建新标签页并显示
     const tab = getCurTab()
     if (tab?.view) {
       win.contentView.removeChildView(tab.view)
     }
-
     const _view = createTab(tabInfo, win)
     win.contentView.addChildView(_view)
     updateCurTabBounds(win)
-
+    win.webContents.send('ipcMain:tabs:update')
     return true
   })
 
@@ -250,6 +262,22 @@ export function registerTabHandlers(win: BrowserWindow) {
     const _view = createTab({
       title: DEFAULT_TAB.title,
       url: path.join(process.env.APP_ROOT!, DEFAULT_TAB.url)
+    }, win)
+    win.contentView.addChildView(_view)
+    updateCurTabBounds(win)
+
+    return true
+  })
+
+  ipcMain.handle('tabs:createHistory', async () => {
+    const tab = getCurTab()
+    if (tab?.view) {
+      win.contentView.removeChildView(tab.view)
+    }
+
+    const _view = createTab({
+      title: '历史记录',
+      url: path.join(process.env.APP_ROOT!, 'history.html')
     }, win)
     win.contentView.addChildView(_view)
     updateCurTabBounds(win)
@@ -284,5 +312,15 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   ipcMain.handle('history:get', async () => {
     return getHistory()
+  })
+
+  ipcMain.handle('history:clear', async () => {
+    clearHistory()
+    return true
+  })
+
+  ipcMain.handle('history:delete', async (_event, id: number) => {
+    deleteHistory(id)
+    return true
   })
 }

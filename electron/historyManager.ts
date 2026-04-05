@@ -1,4 +1,4 @@
-import { addHistory, getAllHistory, clearAllHistory, HistoryRecord } from './historyDb'
+import { addHistory, getAllHistory, clearAllHistory, deleteHistory as dbDeleteHistory, HistoryRecord } from './historyDb'
 
 // 内存缓存
 const historyList: HistoryRecord[] = []
@@ -39,4 +39,13 @@ export function getHistory(): HistoryRecord[] {
 export function clearHistory(): void {
   clearAllHistory()
   historyList.length = 0
+}
+
+// 删除单条历史记录
+export function deleteHistory(id: number): void {
+  dbDeleteHistory(id)
+  const index = historyList.findIndex(h => h.id === id)
+  if (index !== -1) {
+    historyList.splice(index, 1)
+  }
 }

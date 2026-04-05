@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>历史记录</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1b2e 50%, #16213e 100%);
+      min-height: 100vh;
+      color: #e4e7eb;
+      padding: 40px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .header-left {
+      text-align: left;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .clear-btn {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .clear-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .clear-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .history-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      position: relative;
+    }
+
+    .history-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .history-card:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 4px;
+      background: rgba(239, 68, 68, 0.8);
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .delete-btn:hover {
+      background: rgba(239, 68, 68, 1);
+    }
+
+    .history-card-title {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 30px;
+    }
+
+    .history-card-url {
+      font-size: 0.8rem;
+      color: #6366f1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 8px;
+    }
+
+    .history-card-time {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #64748b;
+      font-size: 0.9rem;
+      grid-column: 1 / -1;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #64748b;
+      font-size: 0.9rem;
+      grid-column: 1 / -1;
+    }
+
+    /* 美化滚动条 */
+    ::-webkit-scrollbar {
+      width: 8px !important;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(120, 120, 120, 0.6) !important;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(150, 150, 150, 0.8) !important;
+    }
+
+    /* 自定义模态框 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: #2d2d2d;
+      border: 1px solid #444;
+      border-radius: 16px;
+      padding: 24px;
+      min-width: 320px;
+      max-width: 400px;
+      transform: scale(0.9);
+      transition: transform 0.2s ease;
+    }
+
+    .modal-overlay.show .modal {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 12px;
+    }
+
+    .modal-message {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .modal-btn-cancel {
+      background: transparent;
+      border: 1px solid #444;
+      color: #94a3b8;
+    }
+
+    .modal-btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #e8eaed;
+    }
+
+    .modal-btn-confirm {
+      background: #ef4444;
+      color: white;
+    }
+
+    .modal-btn-confirm:hover {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>历史记录</h1>
+      <p>最近访问的网页</p>
+    </div>
+    <button id="clear-btn" class="clear-btn" onclick="clearHistory()">清空历史记录</button>
+  </div>
+
+  <div id="history-grid" class="history-grid">
+    <div class="loading">加载中...</div>
+  </div>
+
+  <script>
+    async function loadHistory() {
+      const grid = document.getElementById('history-grid');
+      try {
+        const history = await window.ipcRenderer.invoke('history:get');
+        if (!history || history.length === 0) {
+          grid.innerHTML = '<div class="empty">暂无历史记录</div>';
+          return;
+        }
+
+        grid.innerHTML = history.map(item => `
+          <a href="#" class="history-card" data-url="${encodeURIComponent(item.url)}" data-id="${item.id}">
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteHistory(${item.id})">×</button>
+            <div class="history-card-title">${escapeHtml(item.title || item.url)}</div>
+            <div class="history-card-url">${escapeHtml(item.url)}</div>
+            <div class="history-card-time">${formatTime(item.visitedAt)}</div>
+          </a>
+        `).join('');
+
+        grid.querySelectorAll('.history-card').forEach(card => {
+          card.addEventListener('click', (e) => {
+            e.preventDefault();
+            const url = decodeURIComponent(card.dataset.url);
+            window.ipcRenderer.invoke('tabs:create', { title: '加载中...', url: url });
+          });
+        });
+      } catch (err) {
+        console.error('Failed to load history:', err);
+        grid.innerHTML = '<div class="empty">加载失败: ' + err.message + '</div>';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatTime(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now - date;
+
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+      if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+
+      return date.toLocaleDateString('zh-CN');
+    }
+
+    loadHistory();
+
+    async function deleteHistory(id) {
+      try {
+        await window.ipcRenderer.invoke('history:delete', id);
+        loadHistory();
+      } catch (err) {
+        console.error('Failed to delete history:', err);
+      }
+    }
+
+    // 页面重新可见时刷新数据
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        loadHistory();
+      }
+    });
+
+    function clearHistory() {
+      document.getElementById('confirm-modal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('confirm-modal').classList.remove('show');
+    }
+
+    async function confirmClear() {
+      try {
+        await window.ipcRenderer.invoke('history:clear');
+        closeModal();
+        document.getElementById('history-grid').innerHTML = '<div class="empty">暂无历史记录</div>';
+      } catch (err) {
+        console.error('Failed to clear history:', err);
+        alert('清空失败: ' + err.message);
+      }
+    }
+  </script>
+
+  <!-- 自定义确认弹窗 -->
+  <div id="confirm-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-title">确认清空</div>
+      <div class="modal-message">确定要清空所有历史记录吗？此操作无法撤销。</div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
+        <button class="modal-btn modal-btn-confirm" onclick="confirmClear()">确认清空</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

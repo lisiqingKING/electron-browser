@@ -2,9 +2,6 @@ import { app, WebContentsView, ipcMain, BrowserWindow, Menu } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import Database from "better-sqlite3";
-function isUrl(input) {
-  return /^(https?:\/\/|www\.)[^\s]+$/i.test(input);
-}
 const DB_PATH = path.join(app.getPath("userData"), "app.db");
 let db = null;
 function initTabsTable() {
@@ -70,6 +67,13 @@ function getAllHistory(limit = 100) {
   );
   return stmt.all(limit);
 }
+function deleteHistory$1(id) {
+  const stmt = getDatabase().prepare("DELETE FROM history WHERE id = ?");
+  stmt.run(id);
+}
+function clearAllHistory() {
+  getDatabase().exec("DELETE FROM history");
+}
 const historyList = [];
 function syncHistoryFromDb() {
   const records = getAllHistory();
@@ -93,6 +97,21 @@ function getHistory() {
   }
   return [...historyList];
 }
+function clearHistory() {
+  clearAllHistory();
+  historyList.length = 0;
+}
+function deleteHistory(id) {
+  deleteHistory$1(id);
+  const index = historyList.findIndex((h) => h.id === id);
+  if (index !== -1) {
+    historyList.splice(index, 1);
+  }
+}
+function isUrl(input) {
+  return /^(https?:\/\/|www\.)[^\s]+$/i.test(input);
+}
+const __dirname$2 = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TAB = {
   title: "新建标签页",
   url: "default.html"
@@ -103,7 +122,7 @@ const webContentViewMap = /* @__PURE__ */ new Map();
 function createTab(tabInfo, win2) {
   const view = new WebContentsView({
     webPreferences: {
-      preload: void 0,
+      preload: path.join(__dirname$2, "preload.mjs"),
       contextIsolation: true
     }
   });
@@ -136,7 +155,6 @@ function createTab(tabInfo, win2) {
       const tab = webContentViewMap.get(_id);
       if (tab) {
         tab.info.url = url;
-        recordVisit(_id, tab.info.title || url, url);
         win2.webContents.send("tab:url-changed", { id: _id, url });
         updateNavigationState(_id, win2);
       }
@@ -146,8 +164,15 @@ function createTab(tabInfo, win2) {
     const tab = webContentViewMap.get(_id);
     if (tab) {
       tab.info.url = url;
-      recordVisit(_id, tab.info.title || url, url);
       updateNavigationState(_id, win2);
+    }
+  });
+  view.webContents.on("did-finish-load", () => {
+    const tab = webContentViewMap.get(_id);
+    if (tab) {
+      if (!tab.info.url.includes("default.html") && !tab.info.url.includes("history.html")) {
+        recordVisit(_id, tab.info.title || tab.info.url, tab.info.url);
+      }
     }
   });
   if (isUrl(tabInfo.url)) {
@@ -271,6 +296,7 @@ function registerTabHandlers(win2) {
     const _view = createTab(tabInfo, win2);
     win2.contentView.addChildView(_view);
     updateCurTabBounds(win2);
+    win2.webContents.send("ipcMain:tabs:update");
     return true;
   });
   ipcMain.handle("tabs:createDefault", async () => {
@@ -281,6 +307,19 @@ function registerTabHandlers(win2) {
     const _view = createTab({
       title: DEFAULT_TAB.title,
       url: path.join(process.env.APP_ROOT, DEFAULT_TAB.url)
+    }, win2);
+    win2.contentView.addChildView(_view);
+    updateCurTabBounds(win2);
+    return true;
+  });
+  ipcMain.handle("tabs:createHistory", async () => {
+    const tab = getCurTab();
+    if (tab == null ? void 0 : tab.view) {
+      win2.contentView.removeChildView(tab.view);
+    }
+    const _view = createTab({
+      title: "历史记录",
+      url: path.join(process.env.APP_ROOT, "history.html")
     }, win2);
     win2.contentView.addChildView(_view);
     updateCurTabBounds(win2);
@@ -307,6 +346,14 @@ function registerTabHandlers(win2) {
   });
   ipcMain.handle("history:get", async () => {
     return getHistory();
+  });
+  ipcMain.handle("history:clear", async () => {
+    clearHistory();
+    return true;
+  });
+  ipcMain.handle("history:delete", async (_event, id) => {
+    deleteHistory(id);
+    return true;
   });
 }
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));

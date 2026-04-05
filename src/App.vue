@@ -108,6 +108,11 @@ const handleGoBack = () => {
 const handleGoForward = () => {
   window.ipcRenderer.send('tabs:goForward')
 }
+
+const openHistory = async () => {
+  await window.ipcRenderer.invoke('tabs:createHistory')
+  await getTabsData()
+}
 </script>
 
 <template>
@@ -126,6 +131,7 @@ const handleGoForward = () => {
       @submit="addTab"
       @goBack="handleGoBack"
       @goForward="handleGoForward"
+      @openHistory="openHistory"
     />
   </div>
 </template>
