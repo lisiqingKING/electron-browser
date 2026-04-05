@@ -72,7 +72,6 @@ const emit = defineEmits<{
   padding: 0 12px;
   height: 40px;
   background: #2d2d2d;
-  /* border-radius: 8px 8px 0 0; */
   cursor: pointer;
   flex-shrink: 0;
   gap: 8px;
@@ -80,6 +79,11 @@ const emit = defineEmits<{
   min-width: 120px;
   max-width: 200px;
   transition: background 0.15s ease;
+  border-left: 1px solid #444;
+}
+
+.tab:first-child {
+  border-left: none;
 }
 
 .tab::before {
@@ -95,7 +99,6 @@ const emit = defineEmits<{
 
 .tab:hover {
   background: #3d3d3d;
-  border-radius: 10px 10px 0 0;
 }
 
 .tab:hover .close-btn {

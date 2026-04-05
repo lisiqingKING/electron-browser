@@ -41,7 +41,7 @@ function createWindow() {
   const webContentView = createTab({
     title: '新建标签页',
     url: path.join(process.env.APP_ROOT, 'default.html')
-  })
+  }, win)
 
   win.contentView.addChildView(webContentView)
 

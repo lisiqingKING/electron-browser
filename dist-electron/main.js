@@ -1,4 +1,4 @@
-import { WebContentsView, shell, ipcMain, app, BrowserWindow, Menu } from "electron";
+import { WebContentsView, ipcMain, app, BrowserWindow, Menu } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 function isUrl(input) {
@@ -11,13 +11,37 @@ const DEFAULT_TAB = {
 const tabs = [];
 let curTabId;
 const webContentViewMap = /* @__PURE__ */ new Map();
-function createTab(tabInfo) {
+function createTab(tabInfo, win2) {
   const view = new WebContentsView({
     webPreferences: {
       preload: void 0,
       contextIsolation: true
     }
   });
+  view.webContents.setWindowOpenHandler((event) => {
+    console.log("[setWindowOpenHandler] 拦截到 window.open, url:", event.url);
+    const curTab = getCurTab();
+    if (curTab == null ? void 0 : curTab.view) {
+      win2.contentView.removeChildView(curTab.view);
+    }
+    const popupView = createTab({
+      url: event.url,
+      title: "新窗口"
+    }, win2);
+    win2.contentView.addChildView(popupView);
+    updateCurTabBounds(win2);
+    win2.webContents.send("ipcMain:tabs:update");
+    return { action: "deny" };
+  });
+  if (tabInfo.title !== "新建标签页") {
+    view.webContents.once("page-title-updated", () => {
+      console.log("123");
+      const tab = getCurTab();
+      if (!tab) return;
+      tab.info.title = tab.view.webContents.getTitle();
+      win2.webContents.send("tab:updated", tab.info);
+    });
+  }
   if (isUrl(tabInfo.url)) {
     view.webContents.loadURL(tabInfo.url);
   } else {
@@ -35,10 +59,6 @@ function createTab(tabInfo) {
   webContentViewMap.set(_id, {
     info: _tabInfo,
     view
-  });
-  view.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: "deny" };
   });
   return view;
 }
@@ -116,7 +136,7 @@ function registerTabHandlers(win2) {
     if (tab == null ? void 0 : tab.view) {
       win2.contentView.removeChildView(tab.view);
     }
-    const _view = createTab(tabInfo);
+    const _view = createTab(tabInfo, win2);
     win2.contentView.addChildView(_view);
     updateCurTabBounds(win2);
     return true;
@@ -129,7 +149,7 @@ function registerTabHandlers(win2) {
     const _view = createTab({
       title: DEFAULT_TAB.title,
       url: path.join(process.env.APP_ROOT, DEFAULT_TAB.url)
-    });
+    }, win2);
     win2.contentView.addChildView(_view);
     updateCurTabBounds(win2);
     return true;
@@ -177,7 +197,7 @@ function createWindow() {
   const webContentView = createTab({
     title: "新建标签页",
     url: path.join(process.env.APP_ROOT, "default.html")
-  });
+  }, win);
   win.contentView.addChildView(webContentView);
   win.on("resize", () => updateCurTabBounds(win));
   updateCurTabBounds(win);

@@ -81,6 +81,10 @@ window.ipcRenderer.on('tab:updated', (_event, tabInfo: TabInfo) => {
     tabs.value[index] = tabInfo
   }
 })
+
+window.ipcRenderer.on('ipcMain:tabs:update', () => {
+  getTabsData()
+})
 </script>
 
 <template>

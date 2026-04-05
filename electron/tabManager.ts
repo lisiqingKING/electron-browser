@@ -1,4 +1,4 @@
-import { WebContentsView, shell, BrowserWindow, ipcMain } from 'electron'
+import { WebContentsView, BrowserWindow, ipcMain } from 'electron'
 import { isUrl } from '../src/utils'
 import path from 'node:path'
 
@@ -23,7 +23,7 @@ export let curTabId: string | null
 export const webContentViewMap = new Map<string, { info: TabInfo, view: WebContentsView }>()
 
 
-export function createTab(tabInfo: TabInfo): WebContentsView {
+export function createTab(tabInfo: TabInfo, win: BrowserWindow): WebContentsView {
   const view = new WebContentsView({
     webPreferences: {
       preload: undefined,
@@ -31,10 +31,45 @@ export function createTab(tabInfo: TabInfo): WebContentsView {
     },
   })
 
+  // 在 loadURL 之前设置 handler！
+  view.webContents.setWindowOpenHandler((event) => {
+    console.log('[setWindowOpenHandler] 拦截到 window.open, url:', event.url)
+
+       // 切换到新 tab
+    const curTab = getCurTab()
+    if (curTab?.view) {
+      win.contentView.removeChildView(curTab.view)
+    }
+
+    // 创建新 tab
+    const popupView = createTab({
+      url: event.url,
+      title: '新窗口'
+    }, win)
+
+    win.contentView.addChildView(popupView)
+    updateCurTabBounds(win)
+    win.webContents.send('ipcMain:tabs:update')
+    
+    return { action: 'deny' }
+  })
+
+
+  if(tabInfo.title !== '新建标签页') {
+     view.webContents.once('page-title-updated', () => {
+      console.log('123')
+      const tab = getCurTab() 
+      if(!tab) return
+      tab.info.title = tab.view.webContents.getTitle()
+      win.webContents.send('tab:updated', tab.info)
+    })
+  }
+ 
+
   if(isUrl(tabInfo.url)) {
     view.webContents.loadURL(tabInfo.url)
   } else {
-  view.webContents.loadFile(tabInfo.url)
+    view.webContents.loadFile(tabInfo.url)
   }
 
   const _time = new Date().getTime()
@@ -44,19 +79,13 @@ export function createTab(tabInfo: TabInfo): WebContentsView {
     time: _time,
     id: _id
   }
-  
+
   tabs.push(_tabInfo)
   curTabId = _id
   webContentViewMap.set(_id, {
     info: _tabInfo,
     view
   })
-
-  view.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
-    return { action: 'deny' }
-  })
-
 
   return view
 }
@@ -152,7 +181,7 @@ export function registerTabHandlers(win: BrowserWindow) {
       win.contentView.removeChildView(tab.view)
     }
 
-    const _view = createTab(tabInfo)
+    const _view = createTab(tabInfo, win)
     win.contentView.addChildView(_view)
     updateCurTabBounds(win)
 
@@ -168,7 +197,7 @@ export function registerTabHandlers(win: BrowserWindow) {
     const _view = createTab({
       title: DEFAULT_TAB.title,
       url: path.join(process.env.APP_ROOT!, DEFAULT_TAB.url)
-    })
+    }, win)
     win.contentView.addChildView(_view)
     updateCurTabBounds(win)
 
