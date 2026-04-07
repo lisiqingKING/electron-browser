@@ -3,6 +3,9 @@
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "lsq",
   "asar": true,
+  "asarUnpack": [
+    "**/node_modules/better-sqlite3/**"
+  ],
   "productName": "lsq的浏览器",
   "directories": {
     "output": "release/${version}"
