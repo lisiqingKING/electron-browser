@@ -73,8 +73,11 @@ const switchTab = async (tabId: string) => {
 }
 
 const closeTab = async (tabId: string) => {
-  await window.ipcRenderer.invoke('tabs:close', tabId)
+  const newCurTabId = await window.ipcRenderer.invoke('tabs:close', tabId)
   await getTabsData()
+  if (newCurTabId) {
+    currentTabId.value = newCurTabId
+  }
 }
 
 window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {

@@ -1,7 +1,9 @@
 import {
   getAllHistory as getAllHistoryFromDb,
-  saveHistory as saveHistoryToDb,
+  addHistory as addHistoryToDb,
+  deleteHistoryById as deleteHistoryByIdFromDb,
   clearAll as clearAllFromDb,
+  trimHistory as trimHistoryFromDb,
   type HistoryItem
 } from './historyDb'
 
@@ -28,30 +30,29 @@ export function getHistory(): HistoryItem[] {
 
 // 记录访问
 export function recordVisit(title: string, url: string): void {
-  // 添加新记录到开头
-  historyCache.unshift({
-    title,
-    url,
-    visitedAt: Date.now()
-  })
+  const visitedAt = Date.now()
+
+  // 添加到数据库
+  const id = addHistoryToDb({ title, url, visitedAt })
+
+  // 添加到内存缓存开头
+  historyCache.unshift({ id, title, url, visitedAt })
 
   // 限制最多 100 条
   if (historyCache.length > 100) {
+    const removed = historyCache.splice(100)
     historyCache.length = 100
+    // 从数据库删除多余记录
+    trimHistoryFromDb(100)
   }
-
-  // 持久化到数据库
-  saveHistoryToDb(historyCache)
 }
 
-// 删除单条记录（通过 url + visitedAt 定位）
-export function deleteRecord(url: string, visitedAt: number): void {
-  const index = historyCache.findIndex(
-    item => item.url === url && item.visitedAt === visitedAt
-  )
+// 删除单条记录（通过 id）
+export function deleteRecord(id: number): void {
+  const index = historyCache.findIndex(item => item.id === id)
   if (index !== -1) {
     historyCache.splice(index, 1)
-    saveHistoryToDb(historyCache)
+    deleteHistoryByIdFromDb(id)
   }
 }
 

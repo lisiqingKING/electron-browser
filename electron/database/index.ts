@@ -23,8 +23,10 @@ function initTabsTable(): void {
 function initHistoryTable(): void {
   getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS history (
-      data TEXT NOT NULL,
-      updatedAt INTEGER NOT NULL
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      visitedAt INTEGER NOT NULL
     )
   `)
 }

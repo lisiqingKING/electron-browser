@@ -84,24 +84,29 @@ export function switchTab(id: string, win: BrowserWindow) {
   return true
 }
 
-export function closeTab(id: string, win: BrowserWindow) {
-  if (!webContentViewMap.has(id)) return false
+export function closeTab(id: string, win: BrowserWindow): string | null {
+  if (!webContentViewMap.has(id)) return null
 
   const tab = webContentViewMap.get(id)!
   win.contentView.removeChildView(tab.view)
   webContentViewMap.delete(id)
-  tabs.splice(tabs.findIndex(t => t.id === id), 1)
+  const closedIndex = tabs.findIndex(t => t.id === id)
+  tabs.splice(closedIndex, 1)
 
+  let newCurTabId: string | null = null
   if (curTabId === id) {
-    const firstTab = webContentViewMap.values().next().value
-    if (firstTab) {
-      switchTab(firstTab.info.id!, win)
+    // 优先切换到前一个 tab，如果不存在则切换到后一个
+    const targetIndex = closedIndex > 0 ? closedIndex - 1 : 0
+    const targetTab = tabs[targetIndex]
+    if (targetTab?.id) {
+      switchTab(targetTab.id, win)
+      newCurTabId = targetTab.id
     } else {
       curTabId = null
     }
   }
 
-  return true
+  return newCurTabId
 }
 
 export function updateCurTabBounds(tab: { info: TabInfo, view: WebContentsView }, win: BrowserWindow) {

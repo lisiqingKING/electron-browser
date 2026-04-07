@@ -109,9 +109,9 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   // 关闭标签
   ipcMain.handle('tabs:close', async (_event, tabId: string) => {
-    closeTab(tabId, win)
-    win.webContents.send('tab:list-changed')
-    return true
+    const newCurTabId = closeTab(tabId, win)
+    win.webContents.send('tab:list-changed', newCurTabId)
+    return newCurTabId
   })
 
   // 后退
@@ -134,8 +134,8 @@ export function registerTabHandlers(win: BrowserWindow) {
     return true
   })
 
-  ipcMain.handle('history:delete', async (_event, url: string, visitedAt: number) => {
-    deleteRecord(url, visitedAt)
+  ipcMain.handle('history:delete', async (_event, id: number) => {
+    deleteRecord(id)
     return true
   })
 }
