@@ -21,8 +21,6 @@ function initTabsTable(): void {
 }
 
 function initHistoryTable(): void {
-  // 先删除旧表（如果存在），再创建新表
-  getDatabase().exec('DROP TABLE IF EXISTS history')
   getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS history (
       data TEXT NOT NULL,
