@@ -1,9 +1,9 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "lsq",
   "asar": true,
-  "productName": "浏览器",
+  "productName": "lsq的浏览器",
   "directories": {
     "output": "release/${version}"
   },
@@ -20,6 +20,7 @@
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {
+    "icon": "build/logo.ico",
     "target": [
       {
         "target": "nsis",
