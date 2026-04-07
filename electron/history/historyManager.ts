@@ -40,9 +40,7 @@ export function recordVisit(title: string, url: string): void {
 
   // 限制最多 100 条
   if (historyCache.length > 100) {
-    const removed = historyCache.splice(100)
-    historyCache.length = 100
-    // 从数据库删除多余记录
+    historyCache.splice(100)
     trimHistoryFromDb(100)
   }
 }
