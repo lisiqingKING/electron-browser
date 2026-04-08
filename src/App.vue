@@ -94,8 +94,13 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
   }
 })
 
-window.ipcRenderer.on('tab:list-changed', () => {
-  getTabsData()
+window.ipcRenderer.on('tab:list-changed', async () => {
+  const prevCount = tabs.value.length
+  await getTabsData()
+  // 如果 tab 数量增加了，说明是新打开的标签，切换到最后一个
+  if (tabs.value.length > prevCount) {
+    currentTabId.value = tabs.value[tabs.value.length - 1]?.id || null
+  }
 })
 
 window.ipcRenderer.on('tab:can-navigate', (_event, data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
