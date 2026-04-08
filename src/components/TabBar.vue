@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 
 const props = defineProps<{
   tabs: { title: string; url: string; id?: string; isLoading?: boolean }[]
@@ -13,92 +13,102 @@ const emit = defineEmits<{
 }>()
 
 const tabsContainer = ref<HTMLDivElement | null>(null)
-const showLeftArrow = ref(false)
-const showRightArrow = ref(false)
 
-const checkOverflow = () => {
-  if (!tabsContainer.value) return
-  const { scrollLeft, scrollWidth, clientWidth } = tabsContainer.value
-  showLeftArrow.value = scrollLeft > 0
-  showRightArrow.value = scrollLeft + clientWidth < scrollWidth - 1
-}
+// 第一个tab固定，其余可滚动
+const firstTab = computed(() => props.tabs[0])
+const scrollableTabs = computed(() => props.tabs.slice(1))
 
-const scrollLeft = () => {
-  if (!tabsContainer.value) return
-  tabsContainer.value.scrollBy({ left: -200, behavior: 'smooth' })
-}
-
-const scrollRight = () => {
-  if (!tabsContainer.value) return
-  tabsContainer.value.scrollBy({ left: 200, behavior: 'smooth' })
-}
-
-const onScroll = () => {
-  checkOverflow()
-}
+// 切换 tab 时确保可见
+watch(() => props.currentTabId, () => {
+  nextTick(() => {
+    if (!tabsContainer.value || !props.currentTabId) return
+    const activeTab = tabsContainer.value.querySelector('.tab.active') as HTMLElement
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  })
+})
 
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
   nextTick(() => {
-    checkOverflow()
+    if (!tabsContainer.value || !props.currentTabId) return
+    const activeTab = tabsContainer.value.querySelector('.tab.active') as HTMLElement
+    if (activeTab) {
+      activeTab.scrollIntoView({ block: 'nearest', inline: 'center' })
+    }
   })
 
   if (tabsContainer.value) {
     resizeObserver = new ResizeObserver(() => {
-      checkOverflow()
+      if (!tabsContainer.value || !props.currentTabId) return
+      const activeTab = tabsContainer.value.querySelector('.tab.active') as HTMLElement
+      if (activeTab) {
+        activeTab.scrollIntoView({ block: 'nearest', inline: 'center' })
+      }
     })
     resizeObserver.observe(tabsContainer.value)
   }
-
-  window.addEventListener('resize', checkOverflow)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', checkOverflow)
   resizeObserver?.disconnect()
 })
 </script>
 
 <template>
   <div class="tab-bar">
-    <button v-if="showLeftArrow" class="scroll-btn left" @click="scrollLeft">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-      </svg>
-    </button>
-    <div class="tabs" ref="tabsContainer" @scroll="onScroll">
-      <div
-        v-for="(tab, index) in tabs"
-        :key="index"
-        class="tab"
-        :class="{ active: tab.id === currentTabId }"
-        @click="emit('switch', tab.id!)"
-      >
-        <div class="tab-favicon">
-          <svg v-if="tab.isLoading" class="loading-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8zm8 16a8 8 0 0 1-8 8v-2a10 10 0 0 0 10-10h-2a8 8 0 0 1-8 8v2a8 8 0 0 1-8-8v-2a10 10 0 0 1 10-10h2a8 8 0 0 1 8 8z"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-          </svg>
-        </div>
-        <span class="tab-title">{{ tab.title }}</span>
-        <button v-if="index !== 0" class="close-btn" @click.stop="emit('close', tab.id!)">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
-        </button>
-      </div>
-      <button class="add-btn" @click="emit('add')">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+    <!-- 固定第一个 tab -->
+    <div
+      v-if="firstTab"
+      class="tab pinned-first"
+      :class="{ active: firstTab.id === currentTabId }"
+      @click="emit('switch', firstTab.id!)"
+    >
+      <div class="tab-favicon">
+        <svg v-if="firstTab.isLoading" class="loading-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8zm8 16a8 8 0 0 1-8 8v-2a10 10 0 0 0 10-10h-2a8 8 0 0 1-8 8v2a8 8 0 0 1-8-8v-2a10 10 0 0 1 10-10h2a8 8 0 0 1 8 8z"/>
         </svg>
-      </button>
+        <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        </svg>
+      </div>
+      <span class="tab-title">{{ firstTab.title }}</span>
     </div>
-    <button v-if="showRightArrow" class="scroll-btn right" @click="scrollRight">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-        <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
+
+    <!-- 可滚动区域 -->
+    <div class="tabs-scroll-container" ref="tabsContainer">
+      <div class="tabs-scroll">
+        <div
+          v-for="tab in scrollableTabs"
+          :key="tab.id"
+          class="tab scrollable-tab"
+          :class="{ active: tab.id === currentTabId }"
+          @click="emit('switch', tab.id!)"
+        >
+          <div class="tab-favicon">
+            <svg v-if="tab.isLoading" class="loading-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8zm8 16a8 8 0 0 1-8 8v-2a10 10 0 0 0 10-10h-2a8 8 0 0 1-8 8v2a8 8 0 0 1-8-8v-2a10 10 0 0 1 10-10h2a8 8 0 0 1 8 8z"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+          </div>
+          <span class="tab-title">{{ tab.title }}</span>
+          <button class="close-btn" @click.stop="emit('close', tab.id!)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 固定添加按钮 -->
+    <button class="add-btn" @click="emit('add')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
       </svg>
     </button>
   </div>
@@ -106,26 +116,12 @@ onUnmounted(() => {
 
 <style scoped>
 .tab-bar {
-  position: relative;
   height: 40px;
   display: flex;
   align-items: flex-end;
   box-sizing: border-box;
   flex-shrink: 0;
   background: #1a1a1a;
-}
-
-.tabs {
-  display: flex;
-  gap: 0;
-  flex: 1;
-  overflow-x: auto;
-  height: 100%;
-  align-items: flex-end;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
 }
 
 .tab {
@@ -142,10 +138,6 @@ onUnmounted(() => {
   max-width: 200px;
   transition: background 0.15s ease;
   border-left: 1px solid #444;
-}
-
-.tab:first-child {
-  border-left: none;
 }
 
 .tab::before {
@@ -234,7 +226,41 @@ onUnmounted(() => {
   opacity: 1;
 }
 
+/* 固定第一个 tab */
+.pinned-first {
+  border-left: none;
+  border-right: 1px solid #444;
+}
+
+/* 滚动容器 */
+.tabs-scroll-container {
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.tabs-scroll {
+  display: flex;
+  overflow-x: auto;
+  height: 100%;
+  align-items: flex-end;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollable-tab {
+  border-left: 1px solid #444;
+}
+
+/* 添加按钮 */
 .add-btn {
+  flex-shrink: 0;
   width: 28px;
   height: 28px;
   border: none;
@@ -245,46 +271,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  margin-left: 4px;
   align-self: center;
   transition: background 0.15s ease, color 0.15s ease;
+  margin-left: 4px;
 }
 
 .add-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #e8eaed;
-}
-
-.scroll-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: #9aa0a6;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  transition: background 0.15s ease, color 0.15s ease;
-  backdrop-filter: blur(4px);
-}
-
-.scroll-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #e8eaed;
-}
-
-.scroll-btn.left {
-  left: 4px;
-}
-
-.scroll-btn.right {
-  right: 4px;
 }
 </style>
