@@ -164,7 +164,6 @@ const openBookmark = async (url: string) => {
     <TabBar
       :tabs="tabs"
       :current-tab-id="currentTabId"
-      @add="addTabByButton"
       @switch="switchTab"
       @close="closeTab"
     />
@@ -176,6 +175,7 @@ const openBookmark = async (url: string) => {
       @goBack="handleGoBack"
       @goForward="handleGoForward"
       @openHistory="openHistory"
+      @add="addTabByButton"
     />
     <div class="bookmarks-bar">
       <button

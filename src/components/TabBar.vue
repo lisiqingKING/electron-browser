@@ -7,7 +7,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'add'): void
   (e: 'switch', tabId: string): void
   (e: 'close', tabId: string): void
 }>()
@@ -104,13 +103,6 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-
-    <!-- 固定添加按钮 -->
-    <button class="add-btn" @click="emit('add')">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-      </svg>
-    </button>
   </div>
 </template>
 
