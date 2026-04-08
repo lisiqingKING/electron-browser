@@ -34,7 +34,7 @@ export function registerTabHandlers(win: BrowserWindow) {
     win.contentView.addChildView(view)
     updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
     win.webContents.send('tab:list-changed')
-    return true
+    return enrichedTabInfo.id
   })
 
   // 创建默认页
@@ -55,7 +55,8 @@ export function registerTabHandlers(win: BrowserWindow) {
 
     win.contentView.addChildView(view)
     updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-    return true
+    win.webContents.send('tab:list-changed')
+    return enrichedTabInfo.id
   })
 
   // 创建历史页
@@ -76,7 +77,8 @@ export function registerTabHandlers(win: BrowserWindow) {
 
     win.contentView.addChildView(view)
     updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-    return true
+    win.webContents.send('tab:list-changed')
+    return enrichedTabInfo.id
   })
 
   // 刷新

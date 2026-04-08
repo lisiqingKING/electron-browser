@@ -52,17 +52,20 @@ const addTab = async () => {
 }
 
 const addTabByButton = async () => {
-  await window.ipcRenderer.invoke('tabs:createDefault')
+  const newTabId = await window.ipcRenderer.invoke('tabs:createDefault')
   await getTabsData()
+  if (newTabId) {
+    currentTabId.value = newTabId
+  }
 }
 
 const getTabsData = async () => {
   const res = await window.ipcRenderer.invoke('tabs:list')
   tabs.value = res || []
-  if (res && res.length > 0) {
-    currentTabId.value = res[res.length - 1].id || null
+  // 初始化时 或 当前tab不在列表中时，设置 currentTabId
+  if (!currentTabId.value || (res && !res.some((t: TabInfo) => t.id === currentTabId.value))) {
+    currentTabId.value = res?.[res.length - 1]?.id || null
   }
-  console.log(res)
 }
 
 getTabsData()
@@ -117,8 +120,11 @@ const handleGoForward = () => {
 }
 
 const openHistory = async () => {
-  await window.ipcRenderer.invoke('tabs:createHistory')
+  const newTabId = await window.ipcRenderer.invoke('tabs:createHistory')
   await getTabsData()
+  if (newTabId) {
+    currentTabId.value = newTabId
+  }
 }
 
 const bookmarks = [
@@ -140,8 +146,11 @@ const bookmarks = [
 ]
 
 const openBookmark = async (url: string) => {
-  await window.ipcRenderer.invoke('tabs:create', { title: '', url })
+  const newTabId = await window.ipcRenderer.invoke('tabs:create', { title: '', url })
   await getTabsData()
+  if (newTabId) {
+    currentTabId.value = newTabId
+  }
 }
 </script>
 
