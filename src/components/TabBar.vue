@@ -1,5 +1,7 @@
 <script setup lang="ts">
-defineProps<{
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+
+const props = defineProps<{
   tabs: { title: string; url: string; id?: string; isLoading?: boolean }[]
   currentTabId: string | null
 }>()
@@ -9,11 +11,63 @@ const emit = defineEmits<{
   (e: 'switch', tabId: string): void
   (e: 'close', tabId: string): void
 }>()
+
+const tabsContainer = ref<HTMLDivElement | null>(null)
+const showLeftArrow = ref(false)
+const showRightArrow = ref(false)
+
+const checkOverflow = () => {
+  if (!tabsContainer.value) return
+  const { scrollLeft, scrollWidth, clientWidth } = tabsContainer.value
+  showLeftArrow.value = scrollLeft > 0
+  showRightArrow.value = scrollLeft + clientWidth < scrollWidth - 1
+}
+
+const scrollLeft = () => {
+  if (!tabsContainer.value) return
+  tabsContainer.value.scrollBy({ left: -200, behavior: 'smooth' })
+}
+
+const scrollRight = () => {
+  if (!tabsContainer.value) return
+  tabsContainer.value.scrollBy({ left: 200, behavior: 'smooth' })
+}
+
+const onScroll = () => {
+  checkOverflow()
+}
+
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  nextTick(() => {
+    checkOverflow()
+  })
+
+  if (tabsContainer.value) {
+    resizeObserver = new ResizeObserver(() => {
+      checkOverflow()
+    })
+    resizeObserver.observe(tabsContainer.value)
+  }
+
+  window.addEventListener('resize', checkOverflow)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkOverflow)
+  resizeObserver?.disconnect()
+})
 </script>
 
 <template>
   <div class="tab-bar">
-    <div class="tabs">
+    <button v-if="showLeftArrow" class="scroll-btn left" @click="scrollLeft">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+      </svg>
+    </button>
+    <div class="tabs" ref="tabsContainer" @scroll="onScroll">
       <div
         v-for="(tab, index) in tabs"
         :key="index"
@@ -42,18 +96,23 @@ const emit = defineEmits<{
         </svg>
       </button>
     </div>
+    <button v-if="showRightArrow" class="scroll-btn right" @click="scrollRight">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+        <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
+      </svg>
+    </button>
   </div>
 </template>
 
 <style scoped>
 .tab-bar {
+  position: relative;
   height: 40px;
   display: flex;
   align-items: flex-end;
   box-sizing: border-box;
   flex-shrink: 0;
   background: #1a1a1a;
-  /* padding: 0 4px; */
 }
 
 .tabs {
@@ -188,12 +247,44 @@ const emit = defineEmits<{
   justify-content: center;
   flex-shrink: 0;
   margin-left: 4px;
-  align-self: flex-end;
+  align-self: center;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .add-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #e8eaed;
+}
+
+.scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #9aa0a6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background 0.15s ease, color 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+
+.scroll-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #e8eaed;
+}
+
+.scroll-btn.left {
+  left: 4px;
+}
+
+.scroll-btn.right {
+  right: 4px;
 }
 </style>
