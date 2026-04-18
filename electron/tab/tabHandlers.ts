@@ -1,12 +1,27 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import path from 'node:path'
-import { getCurTab, createTabCore, webContentViewMap, updateCurTabBounds, DEFAULT_TAB, TabInfo, closeTab, setCurTabId } from './tabCore'
+import { getCurTab, createTabCore, webContentViewMap, updateCurTabBounds, DEFAULT_TAB, TabInfo, closeTab, setCurTabId, openDevToolsForCurTab } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
-import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, updateNavigationState } from './tabNavigation'
+import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
+import { env } from '../env'
+import { getSubappUrl } from '../subappServer'
+
+function resolveAppsUrl(url: string): string | null {
+  if (!url.startsWith('apps://')) return null
+  try {
+    const parsed = new URL(url)
+    const subapp = parsed.hostname
+    const route = parsed.pathname || '/'
+    // apps://app/home -> http://localhost:端口/app/index.html#/home
+    const fullPath = route === '/' ? '' : route
+    return getSubappUrl(subapp, `index.html#${fullPath}`)
+  } catch {
+    return null
+  }
+}
 
 // Re-export for external use
-export { webContentViewMap, updateCurTabBounds, getCurTab } from './tabCore'
+export { webContentViewMap, updateCurTabBounds, getCurTab, openDevToolsForCurTab } from './tabCore'
 export { createTabAndShow }
 
 export function registerTabHandlers(win: BrowserWindow) {
@@ -25,7 +40,11 @@ export function registerTabHandlers(win: BrowserWindow) {
     const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
     registerWebContentsEvents(view, enrichedTabInfo, win)
 
-    if (tabInfo.url.startsWith('http')) {
+    // 解析 ligbox:// 协议
+    const ligboxUrl = resolveAppsUrl(tabInfo.url)
+    if (ligboxUrl) {
+      view.webContents.loadURL(ligboxUrl)
+    } else if (tabInfo.url.startsWith('http')) {
       view.webContents.loadURL(tabInfo.url)
     } else {
       view.webContents.loadFile(tabInfo.url)
@@ -39,6 +58,9 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   // 创建默认页
   ipcMain.handle('tabs:createDefault', async () => {
+    const url = env.getAppUrl()
+    console.log('[createDefault] 加载 URL:', url)
+
     const curTab = getCurTab()
     if (curTab?.view) {
       win.contentView.removeChildView(curTab.view)
@@ -46,12 +68,13 @@ export function registerTabHandlers(win: BrowserWindow) {
 
     const tabInfo: TabInfo = {
       title: DEFAULT_TAB.title,
-      url: path.join(process.env.APP_ROOT!, DEFAULT_TAB.url)
+      url: url
     }
 
     const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
     registerWebContentsEvents(view, enrichedTabInfo, win)
-    view.webContents.loadFile(tabInfo.url)
+
+    view.webContents.loadURL(url)
 
     win.contentView.addChildView(view)
     updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
@@ -61,6 +84,9 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   // 创建历史页
   ipcMain.handle('tabs:createHistory', async () => {
+    const url = env.getHistoryUrl()
+    console.log('[createHistory] 加载 URL:', url)
+
     const curTab = getCurTab()
     if (curTab?.view) {
       win.contentView.removeChildView(curTab.view)
@@ -68,12 +94,13 @@ export function registerTabHandlers(win: BrowserWindow) {
 
     const tabInfo: TabInfo = {
       title: '历史记录',
-      url: path.join(process.env.APP_ROOT!, 'history.html')
+      url: url
     }
 
     const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
     registerWebContentsEvents(view, enrichedTabInfo, win)
-    view.webContents.loadFile(tabInfo.url)
+
+    view.webContents.loadURL(url)
 
     win.contentView.addChildView(view)
     updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
@@ -88,7 +115,9 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   // 更新URL
   ipcMain.on('tabs:updateUrl', (_event, url: string) => {
-    updateCurTabUrl(url, win)
+    // 解析 ligbox:// 协议
+    const resolvedUrl = resolveAppsUrl(url) || url
+    updateCurTabUrl(resolvedUrl, win)
     updateCurTabBounds(webContentViewMap.get(getCurTab()?.info.id!)!, win)
   })
 
@@ -103,8 +132,14 @@ export function registerTabHandlers(win: BrowserWindow) {
     if (targetTab) {
       win.contentView.addChildView(targetTab.view)
       updateCurTabBounds(targetTab, win)
-      setCurTabId(tabId) // 更新当前 tab id
-      updateNavigationState(tabId, win) // 发送导航状态
+      setCurTabId(tabId)
+      // 直接在 targetTab 上更新状态并发送
+      const canGoBack = targetTab.view.webContents.canGoBack()
+      const canGoForward = targetTab.view.webContents.canGoForward()
+      targetTab.info.canGoBack = canGoBack
+      targetTab.info.canGoForward = canGoForward
+      console.log('[tabs:switch] tabId:', tabId, 'canGoBack:', canGoBack, 'canGoForward:', canGoForward)
+      win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
     }
     return true
   })
@@ -139,5 +174,10 @@ export function registerTabHandlers(win: BrowserWindow) {
   ipcMain.handle('history:delete', async (_event, id: number) => {
     deleteRecord(id)
     return true
+  })
+
+  // 打开当前 Tab 的开发者工具
+  ipcMain.on('tabs:openDevTools', () => {
+    openDevToolsForCurTab()
   })
 }

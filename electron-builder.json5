@@ -12,9 +12,14 @@
   },
   "files": [
     "dist",
-    "dist-electron",
-    "default.html",
-    "history.html"
+    "dist-electron"
+  ],
+  "extraResources": [
+    {
+      "from": "apps",
+      "to": "apps",
+      "filter": ["**/*"]
+    }
   ],
   "mac": {
     "target": [
@@ -24,6 +29,12 @@
   },
   "win": {
     "icon": "build/logo.ico",
+    "protocols": [
+      {
+        "name": "Open LSQApp",
+        "schemes": ["open-lsqapp"]
+      }
+    ],
     "target": [
       {
         "target": "nsis",

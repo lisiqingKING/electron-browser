@@ -14,6 +14,13 @@ dist-electron
 *.local
 release
 
+# apps (frontend project)
+apps/
+
+# Environment
+.env
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

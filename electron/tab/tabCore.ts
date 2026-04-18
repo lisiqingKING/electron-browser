@@ -1,12 +1,14 @@
 import { WebContentsView, BrowserWindow } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { env } from '../env'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export interface TabInfo {
   title: string
-  url: string
+  url: string           // 协议 URL，用于显示
+  actualUrl?: string    // 真实加载的 URL
   time?: number
   id?: string
   canGoBack?: boolean
@@ -14,9 +16,61 @@ export interface TabInfo {
   isLoading?: boolean
 }
 
+export interface TabHistoryEntry {
+  url: string       // 协议 URL（用于显示）
+  actualUrl: string // 真实 URL（用于加载）
+}
+
+export interface TabHistory {
+  entries: TabHistoryEntry[]
+  currentIndex: number
+}
+
+export const tabHistoryMap = new Map<string, TabHistory>()
+
+export function pushHistory(tabId: string, url: string, actualUrl: string) {
+  let history = tabHistoryMap.get(tabId)
+  if (!history) {
+    history = { entries: [], currentIndex: -1 }
+    tabHistoryMap.set(tabId, history)
+  }
+  // 清除当前 index 之后的历史（访问新页面时）
+  history.entries = history.entries.slice(0, history.currentIndex + 1)
+  history.entries.push({ url, actualUrl })
+  history.currentIndex = history.entries.length - 1
+}
+
+export function goBackInHistory(tabId: string): TabHistoryEntry | null {
+  const history = tabHistoryMap.get(tabId)
+  if (!history || history.currentIndex <= 0) return null
+  history.currentIndex--
+  return history.entries[history.currentIndex]
+}
+
+export function goForwardInHistory(tabId: string): TabHistoryEntry | null {
+  const history = tabHistoryMap.get(tabId)
+  if (!history || history.currentIndex >= history.entries.length - 1) return null
+  history.currentIndex++
+  return history.entries[history.currentIndex]
+}
+
+export function canGoBackInHistory(tabId: string): boolean {
+  const history = tabHistoryMap.get(tabId)
+  return !!history && history.currentIndex > 0
+}
+
+export function canGoForwardInHistory(tabId: string): boolean {
+  const history = tabHistoryMap.get(tabId)
+  return !!history && history.currentIndex < history.entries.length - 1
+}
+
+export function removeHistory(tabId: string) {
+  tabHistoryMap.delete(tabId)
+}
+
 const DEFAULT_TAB = {
   title: '新建标签页',
-  url: 'default.html'
+  get url() { return env.getAppUrl() }
 }
 
 export const tabs: TabInfo[] = []
@@ -38,9 +92,15 @@ export function getTabInfoList() {
 }
 
 export function createTabCore(tabInfo: TabInfo): { view: WebContentsView; tabInfo: TabInfo } {
+  // All webview tabs use preload-app.mjs which exposes bridge API
+  // In dev mode, __dirname is electron/, in prod it's dist-electron/
+  const isDev = !!process.env.VITE_DEV_SERVER_URL
+  const preloadPath = isDev
+    ? path.join(__dirname, '..', 'dist-electron', 'preload-app.mjs')
+    : path.join(__dirname, 'preload-app.mjs')
   const view = new WebContentsView({
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: preloadPath,
       contextIsolation: true,
     },
   })
@@ -92,6 +152,7 @@ export function closeTab(id: string, win: BrowserWindow): string | null {
   webContentViewMap.delete(id)
   const closedIndex = tabs.findIndex(t => t.id === id)
   tabs.splice(closedIndex, 1)
+  removeHistory(id)
 
   let newCurTabId: string | null = null
   if (curTabId === id) {
@@ -117,6 +178,20 @@ export function updateCurTabBounds(tab: { info: TabInfo, view: WebContentsView }
     width,
     height: height - 110
   })
+}
+
+export function openDevToolsForTab(tabId: string) {
+  const tab = webContentViewMap.get(tabId)
+  if (tab) {
+    tab.view.webContents.openDevTools()
+  }
+}
+
+export function openDevToolsForCurTab() {
+  const tab = getCurTab()
+  if (tab) {
+    tab.view.webContents.openDevTools()
+  }
 }
 
 export { DEFAULT_TAB }

@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron'
 import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '../../src/utils'
+import { env } from '../env'
 
 export function updateNavigationState(tabId: string, win: BrowserWindow) {
   const tab = webContentViewMap.get(tabId)
@@ -10,54 +11,81 @@ export function updateNavigationState(tabId: string, win: BrowserWindow) {
     const canGoForward = tab.view.webContents.canGoForward()
     tab.info.canGoBack = canGoBack
     tab.info.canGoForward = canGoForward
+    console.log('[updateNavigationState] sending tab:can-navigate', { id: tabId, canGoBack, canGoForward })
     win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
   }
 }
 
 export function goBack(win: BrowserWindow) {
   const tab = getCurTab()
-  if (tab?.view.webContents.canGoBack()) {
-    const handler = () => {
-      tab.view.webContents.removeListener('did-navigate', handler)
-      updateTabInfo(tab.info.id!, win)
-    }
-    tab.view.webContents.on('did-navigate', handler)
-    tab.view.webContents.goBack()
+  if (!tab) {
+    console.log('[goBack] no current tab')
+    return
   }
+
+  const canGoBack = tab.view.webContents.canGoBack()
+  console.log('[goBack] canGoBack:', canGoBack)
+
+  if (!canGoBack) {
+    console.log('[goBack] no back history in browser')
+    return
+  }
+
+  // 监听导航完成，导航完成后自动更新 URL
+  const finishHandler = () => {
+    console.log('[goBack] navigation finished, newUrl:', tab.view.webContents.getURL())
+    tab.info.url = tab.view.webContents.getURL()
+    tab.info.actualUrl = tab.info.url
+    win.webContents.send('tab:info-changed', tab.info)
+    updateNavigationState(tab.info.id!, win)
+  }
+
+  // 同时监听 did-navigate 和 did-navigate-in-page（SPA 客户端路由）
+  tab.view.webContents.once('did-navigate', finishHandler)
+  tab.view.webContents.once('did-navigate-in-page', finishHandler)
+  tab.view.webContents.goBack()
 }
 
 export function goForward(win: BrowserWindow) {
   const tab = getCurTab()
-  if (tab?.view.webContents.canGoForward()) {
-    const handler = () => {
-      tab.view.webContents.removeListener('did-navigate', handler)
-      updateTabInfo(tab.info.id!, win)
-    }
-    tab.view.webContents.on('did-navigate', handler)
-    tab.view.webContents.goForward()
+  if (!tab) {
+    console.log('[goForward] no current tab')
+    return
   }
+
+  const canGoForward = tab.view.webContents.canGoForward()
+  console.log('[goForward] canGoForward:', canGoForward)
+
+  if (!canGoForward) {
+    console.log('[goForward] no forward history in browser')
+    return
+  }
+
+  // 监听导航完成，导航完成后自动更新 URL
+  const finishHandler = () => {
+    console.log('[goForward] navigation finished, newUrl:', tab.view.webContents.getURL())
+    tab.info.url = tab.view.webContents.getURL()
+    tab.info.actualUrl = tab.info.url
+    win.webContents.send('tab:info-changed', tab.info)
+    updateNavigationState(tab.info.id!, win)
+  }
+
+  // 同时监听 did-navigate 和 did-navigate-in-page（SPA 客户端路由）
+  tab.view.webContents.once('did-navigate', finishHandler)
+  tab.view.webContents.once('did-navigate-in-page', finishHandler)
+  tab.view.webContents.goForward()
 }
 
-function isDefaultPageUrl(url: string): boolean {
-  return url.includes('default.html') || url.endsWith('/default.html')
+function isAppUrl(url: string): boolean {
+  const devUrl = env.getAppUrl()
+  return url.includes(devUrl) || url.includes('localhost') || url.includes('../app/index.html')
 }
 
 function getTitleForUrl(tab: { info: { url: string }, view: { webContents: { getTitle: () => string } } }, pageTitle?: string): string {
-  if (isDefaultPageUrl(tab.info.url)) {
+  if (isAppUrl(tab.info.url)) {
     return '新建标签页'
   }
   return pageTitle || tab.view.webContents.getTitle()
-}
-
-function updateTabInfo(tabId: string, win: BrowserWindow) {
-  const tab = webContentViewMap.get(tabId)
-  if (tab) {
-    const newUrl = tab.view.webContents.getURL()
-    tab.info.url = newUrl
-    tab.info.title = getTitleForUrl(tab, tab.view.webContents.getTitle())
-    updateNavigationState(tabId, win)
-    win.webContents.send('tab:info-changed', tab.info)
-  }
 }
 
 export function refreshCurTab(win: BrowserWindow) {
@@ -66,8 +94,12 @@ export function refreshCurTab(win: BrowserWindow) {
     tab.view.webContents.once('did-finish-load', () => {
       if (tab.info.id) {
         const newUrl = tab.view.webContents.getURL()
-        tab.info.url = newUrl
-        tab.info.title = getTitleForUrl(tab)
+        if (tab.info.url.startsWith('lsqapp://')) {
+          tab.info.actualUrl = newUrl
+        } else {
+          tab.info.url = newUrl
+          tab.info.title = getTitleForUrl(tab)
+        }
         win.webContents.send('tab:info-changed', tab.info)
       }
     })

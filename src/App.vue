@@ -18,17 +18,22 @@ const currentUrl = ref('')
 const canGoBack = ref(false)
 const canGoForward = ref(false)
 
+// 用于避免竞态：追踪当前 tab 的最新版本号
+let currentTabVersion = 0
+
 
 const updateCurrentUrl = () => {
    if(typeof currentTabId.value === 'string') {
       const curTabInfo = tabs.value.find(item => item.id === currentTabId.value)
       if(!curTabInfo) return
 
-      // 如果是网址则更新，否则（本地文件）清空
-      if(isUrl(curTabInfo?.url)) {
-        currentUrl.value = curTabInfo.url
-      } else {
+      const url = curTabInfo.url
+
+      // 内置子应用默认页（internal-app）不显示 URL
+      if (url === 'lsqapp://internal-app') {
         currentUrl.value = ''
+      } else {
+        currentUrl.value = url
       }
     }
 }
@@ -43,7 +48,8 @@ const addTab = async () => {
 
   let url = input
 
-  if (!isUrl(input)) {
+  // apps:// 协议直接发送，不走搜索
+  if (!input.startsWith('apps://') && !isUrl(input)) {
     url = `https://www.baidu.com/s?wd=${encodeURIComponent(input)}`
     currentUrl.value = url
   }
@@ -71,8 +77,9 @@ const getTabsData = async () => {
 getTabsData()
 
 const switchTab = async (tabId: string) => {
-  await window.ipcRenderer.invoke('tabs:switch', tabId)
   currentTabId.value = tabId
+  await window.ipcRenderer.invoke('tabs:switch', tabId)
+  currentTabVersion++  // 切换完成后版本号+1，忽略切换过程中的旧事件
 }
 
 const closeTab = async (tabId: string) => {
@@ -90,7 +97,12 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
     tabs.value[index] = tabInfo
   }
   if (tabInfo.id === currentTabId.value) {
-    currentUrl.value = isUrl(tabInfo.url) ? tabInfo.url : ''
+    // 内置子应用默认页（internal-app）不显示 URL
+    if (tabInfo.url === 'lsqapp://internal-app') {
+      currentUrl.value = ''
+    } else {
+      currentUrl.value = tabInfo.url
+    }
   }
 })
 
@@ -104,9 +116,17 @@ window.ipcRenderer.on('tab:list-changed', async () => {
 })
 
 window.ipcRenderer.on('tab:can-navigate', (_event, data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
-  // 切换 tab 时，事件先于 currentTabId 更新到达，所以直接更新
-  canGoBack.value = data.canGoBack
-  canGoForward.value = data.canGoForward
+  // 只有当前 tab 的导航状态才更新
+  // 用闭包捕获当前的 version，如果后续有新的 switch，version 会变化，这个旧事件就会被忽略
+  const expectedTabId = currentTabId.value
+  const expectedVersion = currentTabVersion
+  if (data.id === expectedTabId) {
+    canGoBack.value = data.canGoBack
+    canGoForward.value = data.canGoForward
+    console.log('[tab:can-navigate] updated, version:', expectedVersion, 'canGoBack:', data.canGoBack)
+  } else {
+    console.log('[tab:can-navigate] ignored, event tabId:', data.id, 'expected tabId:', expectedTabId)
+  }
 })
 
 window.ipcRenderer.on('tab:loading', (_event, data: { id: string; isLoading: boolean }) => {

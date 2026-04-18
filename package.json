@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc && vite build && electron-builder",
+    "dev": "npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && vite",
+    "build": "vue-tsc && vite build && npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && electron-builder",
     "preview": "vite preview",
     "postinstall": "electron-rebuild"
   },

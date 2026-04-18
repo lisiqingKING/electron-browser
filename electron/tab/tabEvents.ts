@@ -1,15 +1,17 @@
-import { WebContentsView, BrowserWindow } from 'electron'
+import { WebContentsView, BrowserWindow, Menu } from 'electron'
 import { recordVisit } from '../history/historyManager'
 import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds } from './tabCore'
 import { updateNavigationState } from './tabNavigation'
 import { isUrl } from '../../src/utils'
+import { env } from '../env'
 
-function isDefaultPageUrl(url: string): boolean {
-  return url.includes('default.html')
+function isAppUrl(url: string): boolean {
+  const devUrl = env.getAppUrl()
+  return url.includes(devUrl) || url.includes('localhost') || url.includes('../app/index.html')
 }
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
-  if (isDefaultPageUrl(tab.info.url)) {
+  if (isAppUrl(tab.info.url)) {
     return '新建标签页'
   }
   return pageTitle
@@ -62,13 +64,18 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
   // 页面加载完成
   view.webContents.on('did-finish-load', () => {
     const tab = webContentViewMap.get(tabId)
-    if (tab && !tab.info.url.includes('history.html') && !tab.info.url.includes('default.html')) {
+    if (tab) {
       const newUrl = view.webContents.getURL()
-      const title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title)
-      tab.info.url = newUrl
-      tab.info.title = title
-      recordVisit(title, newUrl)
-      win.webContents.send('tab:info-changed', tab.info)
+      if (tab.info.url.startsWith('lsqapp://')) {
+        // 协议 URL 不更新，显示用 url，实际加载用 actualUrl
+        tab.info.actualUrl = newUrl
+        recordVisit(tab.info.title, newUrl)
+      } else if (!isAppUrl(tab.info.url)) {
+        tab.info.url = newUrl
+        tab.info.title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title)
+        recordVisit(tab.info.title, newUrl)
+        win.webContents.send('tab:info-changed', tab.info)
+      }
       updateNavigationState(tabId, win)
     }
   })
@@ -78,7 +85,11 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     if (isMainFrame) {
       const tab = webContentViewMap.get(tabId)
       if (tab) {
-        tab.info.url = url
+        if (tab.info.url.startsWith('lsqapp://')) {
+          tab.info.actualUrl = url
+        } else {
+          tab.info.url = url
+        }
         updateNavigationState(tabId, win)
       }
     }
@@ -88,8 +99,12 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
   view.webContents.on('did-navigate', (_event, url) => {
     const tab = webContentViewMap.get(tabId)
     if (tab) {
-      tab.info.url = url
-      tab.info.title = getTitleForUrl(tab, view.webContents.getTitle())
+      if (tab.info.url.startsWith('lsqapp://')) {
+        tab.info.actualUrl = url
+      } else {
+        tab.info.url = url
+        tab.info.title = getTitleForUrl(tab, view.webContents.getTitle())
+      }
       win.webContents.send('tab:info-changed', tab.info)
       updateNavigationState(tabId, win)
     }
@@ -105,5 +120,25 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         win.webContents.send('tab:info-changed', tab.info)
       }
     }
+  })
+
+  // 右键菜单
+  view.webContents.on('context-menu', (_event, params) => {
+    const menuItems: Electron.MenuItemConstructorOptions[] = []
+
+    if (params.isEditable) {
+      menuItems.push({ label: '剪切', role: 'cut' })
+      menuItems.push({ label: '复制', role: 'copy' })
+      menuItems.push({ label: '粘贴', role: 'paste' })
+      menuItems.push({ type: 'separator' })
+    }
+
+    menuItems.push(
+      { label: '刷新', role: 'reload' },
+      { label: '开发者工具', click: () => view.webContents.openDevTools() }
+    )
+
+    const menu = Menu.buildFromTemplate(menuItems)
+    menu.popup()
   })
 }

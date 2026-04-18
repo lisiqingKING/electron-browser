@@ -1,8 +1,10 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, Menu, protocol } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
 import { initDatabase, closeDatabase } from './database/index'
+import { env } from './env'
+import { startSubappServer, stopSubappServer, getSubappUrl } from './subappServer'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -36,9 +38,11 @@ function createWindow() {
   }
 
   // 创建初始标签页
+  const appUrl = env.getAppUrl()
+  console.log('[createWindow] 加载 app URL:', appUrl)
   createTabAndShow({
     title: '新建标签页',
-    url: path.join(process.env.APP_ROOT, 'default.html')
+    url: appUrl
   }, win)
 
   // 统一在 window 层面处理 resize
@@ -63,6 +67,7 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   closeDatabase()
+  stopSubappServer()
 })
 
 app.on('activate', () => {
@@ -71,7 +76,30 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await startSubappServer()
+
+  // 注册 lsqapp:// 协议（内部导航，不注册到系统）
+  protocol.handle('lsqapp', async (request) => {
+    const url = request.url // lsqapp://internal-app/settings
+    const parsed = new URL(url)
+    const appName = parsed.hostname // internal-app
+    const route = parsed.pathname.slice(1) || '' // settings
+    // lsqapp://internal-app/settings -> http://localhost:端口/internal-app/index.html#/settings
+    const redirectUrl = getSubappUrl(appName, `index.html#/${route}`)
+    return Response.redirect(redirectUrl, 302)
+  })
+
+  // 注册 open-lsqapp:// 协议（外部唤醒，注册到系统）
+  protocol.handle('open-lsqapp', async (request) => {
+    const url = request.url // open-lsqapp://open/settings
+    const parsed = new URL(url)
+    const target = parsed.pathname.slice(1) // open/settings
+    // 直接重定向到 HTTP URL
+    const redirectUrl = getSubappUrl('internal-app', `index.html#/${target}`)
+    return Response.redirect(redirectUrl, 302)
+  })
+
   initDatabase()
   createWindow()
 })
