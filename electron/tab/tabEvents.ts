@@ -69,7 +69,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       if (tab.info.url.startsWith('lsqapp://')) {
         // 协议 URL 不更新，显示用 url，实际加载用 actualUrl
         tab.info.actualUrl = newUrl
-        recordVisit(tab.info.title, newUrl)
+        // 不记录内部协议到历史记录
       } else if (!isAppUrl(tab.info.url)) {
         tab.info.url = newUrl
         tab.info.title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title)
