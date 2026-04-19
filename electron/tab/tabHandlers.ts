@@ -3,6 +3,13 @@ import { getCurTab, createTabCore, webContentViewMap, updateCurTabBounds, DEFAUL
 import { registerWebContentsEvents } from './tabEvents'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
+import {
+  getAllChatSessions,
+  createChatSession,
+  updateTitle,
+  updateMessages,
+  deleteChatSession,
+} from '../ai/aiConversationManager'
 import { env } from '../env'
 import { getSubappUrl } from '../subappServer'
 
@@ -173,6 +180,30 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   ipcMain.handle('history:delete', async (_event, id: number) => {
     deleteRecord(id)
+    return true
+  })
+
+  // AI 会话相关
+  ipcMain.handle('ai:list', async () => {
+    return getAllChatSessions()
+  })
+
+  ipcMain.handle('ai:create', async (_event, title?: string) => {
+    return createChatSession(title)
+  })
+
+  ipcMain.handle('ai:updateTitle', async (_event, convId: string, title: string) => {
+    updateTitle(convId, title)
+    return true
+  })
+
+  ipcMain.handle('ai:updateMessages', async (_event, convId: string, messages: any[]) => {
+    updateMessages(convId, messages)
+    return true
+  })
+
+  ipcMain.handle('ai:delete', async (_event, convId: string) => {
+    deleteChatSession(convId)
     return true
   })
 

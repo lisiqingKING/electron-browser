@@ -31,6 +31,18 @@ function initHistoryTable(): void {
   `)
 }
 
+function initAIConversationTable(): void {
+  getDatabase().exec(`
+    CREATE TABLE IF NOT EXISTS ai_conversation (
+      convId TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '新会话',
+      messages TEXT NOT NULL DEFAULT '[]',
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    )
+  `)
+}
+
 // ============ 核心导出 ============
 
 export function initDatabase(): Database.Database {
@@ -43,6 +55,7 @@ export function initDatabase(): Database.Database {
   // 初始化所有表
   initTabsTable()
   initHistoryTable()
+  initAIConversationTable()
 
   console.log('[Database] Initialized at:', DB_PATH)
 

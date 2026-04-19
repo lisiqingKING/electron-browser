@@ -1,11 +1,13 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import { createTabsProxy } from './modules/tabs'
 import { createHistoryProxy } from './modules/history'
+import { createAIConversationProxy } from './modules/aiConversation'
 
 // 模块注册表 - 可以动态添加新模块
 const moduleRegistry: Record<string, () => Record<string, Function>> = {
   tabs: () => createTabsProxy(ipcRenderer),
   history: () => createHistoryProxy(ipcRenderer),
+  ai: () => createAIConversationProxy(ipcRenderer),
 }
 
 // 构建所有模块
