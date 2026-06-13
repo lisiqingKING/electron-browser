@@ -11,7 +11,7 @@ import {
   deleteChatSession,
 } from '../ai/aiConversationManager'
 import { env } from '../env'
-import { getSubappUrl } from '../subappServer'
+import { getSubappUrl } from '../subapp'
 
 function resolveAppsUrl(url: string): string | null {
   if (!url.startsWith('apps://')) return null
@@ -51,7 +51,7 @@ export function registerTabHandlers(win: BrowserWindow) {
     const ligboxUrl = resolveAppsUrl(tabInfo.url)
     if (ligboxUrl) {
       view.webContents.loadURL(ligboxUrl)
-    } else if (tabInfo.url.startsWith('http')) {
+    } else if (tabInfo.url.startsWith('http') || tabInfo.url.startsWith('lsqapp://')) {
       view.webContents.loadURL(tabInfo.url)
     } else {
       view.webContents.loadFile(tabInfo.url)

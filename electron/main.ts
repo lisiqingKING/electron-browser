@@ -4,7 +4,7 @@ import path from 'node:path'
 import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
 import { initDatabase, closeDatabase } from './database/index'
 import { env } from './env'
-import { startSubappServer, stopSubappServer, getSubappUrl } from './subappServer'
+import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
