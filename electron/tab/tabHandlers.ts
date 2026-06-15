@@ -12,6 +12,7 @@ import {
 } from '../ai/aiConversationManager'
 import { env } from '../env'
 import { getSubappUrl } from '../subapp'
+import { registerDownloadHandlers } from '../downloads/downloadHandlers'
 
 function resolveAppsUrl(url: string): string | null {
   if (!url.startsWith('apps://')) return null
@@ -101,6 +102,32 @@ export function registerTabHandlers(win: BrowserWindow) {
 
     const tabInfo: TabInfo = {
       title: '历史记录',
+      url: url
+    }
+
+    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
+    registerWebContentsEvents(view, enrichedTabInfo, win)
+
+    view.webContents.loadURL(url)
+
+    win.contentView.addChildView(view)
+    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
+    win.webContents.send('tab:list-changed')
+    return enrichedTabInfo.id
+  })
+
+  // 创建下载管理页 (dev 走 Vite, packaged 走 lsqapp:// 协议)
+  ipcMain.handle('tabs:createDownloads', async () => {
+    const url = env.getDownloadsUrl()
+    console.log('[createDownloads] 加载 URL:', url)
+
+    const curTab = getCurTab()
+    if (curTab?.view) {
+      win.contentView.removeChildView(curTab.view)
+    }
+
+    const tabInfo: TabInfo = {
+      title: '下载管理',
       url: url
     }
 
@@ -211,4 +238,7 @@ export function registerTabHandlers(win: BrowserWindow) {
   ipcMain.on('tabs:openDevTools', () => {
     openDevToolsForCurTab()
   })
+
+  // 下载管理器 IPC handlers
+  registerDownloadHandlers()
 }

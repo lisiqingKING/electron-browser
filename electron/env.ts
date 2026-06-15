@@ -15,5 +15,12 @@ export const env = {
       return `http://localhost:5273/#/history`
     }
     return 'lsqapp://internal-app/history'
+  },
+
+  getDownloadsUrl(): string {
+    if (!app.isPackaged) {
+      return `http://localhost:5273/#/downloads`
+    }
+    return 'lsqapp://internal-app/downloads'
   }
 }

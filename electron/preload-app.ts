@@ -2,12 +2,14 @@ import { ipcRenderer, contextBridge } from 'electron'
 import { createTabsProxy } from './modules/tabs'
 import { createHistoryProxy } from './modules/history'
 import { createAIConversationProxy } from './modules/aiConversation'
+import { createDownloadsProxy } from './downloads/ipc'
 
 // 模块注册表 - 可以动态添加新模块
 const moduleRegistry: Record<string, () => Record<string, Function>> = {
   tabs: () => createTabsProxy(ipcRenderer),
   history: () => createHistoryProxy(ipcRenderer),
   ai: () => createAIConversationProxy(ipcRenderer),
+  downloads: () => createDownloadsProxy(ipcRenderer),
 }
 
 // 构建所有模块
@@ -34,5 +36,14 @@ contextBridge.exposeInMainWorld('bridge', {
   // 获取所有模块名称
   getModuleNames() {
     return Object.keys(moduleRegistry)
+  },
+
+  // 订阅主进程推送事件 (镜像 preload.ts 的 ipcRenderer.on/off)
+  on(channel: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
+    return ipcRenderer.on(channel, listener)
+  },
+
+  off(channel: string, listener: (...args: any[]) => void) {
+    return ipcRenderer.off(channel, listener)
   }
 })

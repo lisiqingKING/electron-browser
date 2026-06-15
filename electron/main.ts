@@ -5,6 +5,8 @@ import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } 
 import { initDatabase, closeDatabase } from './database/index'
 import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
+import { getDownloadManager } from './downloads/downloadManager'
+import { initWebviewSource } from './downloads/sources/webviewSource'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -68,6 +70,7 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   closeDatabase()
   stopSubappServer()
+  void getDownloadManager().shutdown()
 })
 
 app.on('activate', () => {
@@ -101,5 +104,7 @@ app.whenReady().then(async () => {
   })
 
   initDatabase()
+  initWebviewSource()
+  getDownloadManager().init()
   createWindow()
 })
