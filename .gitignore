@@ -17,6 +17,9 @@ release
 # apps (frontend project)
 apps/
 
+# Documentation
+docs/
+
 # Environment
 .env
 !.env.example
