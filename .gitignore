@@ -24,6 +24,10 @@ docs/
 .env
 !.env.example
 
+# Local config
+.mcp.json
+settings.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
