@@ -9,6 +9,7 @@ interface TabInfo {
   url: string
   time?: number
   id?: string
+  wcId?: number
   isLoading?: boolean
 }
 
@@ -98,7 +99,6 @@ const closeTab = async (tabId: string) => {
 }
 
 window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
-  console.log('[tab:info-changed] tabInfo:', tabInfo)
   const index = tabs.value.findIndex(t => t.id === tabInfo.id)
   if (index !== -1) {
     tabs.value[index] = tabInfo

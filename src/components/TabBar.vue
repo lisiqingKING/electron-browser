@@ -2,9 +2,40 @@
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 
 const props = defineProps<{
-  tabs: { title: string; url: string; id?: string; isLoading?: boolean }[]
+  tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean }[]
   currentTabId: string | null
 }>()
+
+const hoveredTabId = ref<string | null>(null)
+const hoveredMemory = ref<{ usedJSHeapSize: number; totalJSHeapSize: number } | null>(null)
+const tooltipStyle = ref<Record<string, string>>({})
+const formatMB = (mb: number) => `${mb.toFixed(1)} MB`
+
+const onTabEnter = async (e: MouseEvent, tab: { id?: string; wcId?: number }) => {
+  hoveredTabId.value = tab.id || null
+  hoveredMemory.value = null
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  tooltipStyle.value = {
+    position: 'fixed',
+    left: `${rect.left + rect.width / 2}px`,
+    top: `${rect.bottom + 4}px`,
+    transform: 'translateX(-50%)',
+  }
+  // 主动请求内存数据
+  if (tab.wcId != null) {
+    try {
+      const info = await (window as any).ipcRenderer.invoke('memory:requestUpdate', tab.wcId)
+      if (info) {
+        hoveredMemory.value = { usedJSHeapSize: info.usedJSHeapSize, totalJSHeapSize: info.totalJSHeapSize }
+      }
+    } catch {}
+  }
+}
+
+const onTabLeave = () => {
+  hoveredTabId.value = null
+  hoveredMemory.value = null
+}
 
 const emit = defineEmits<{
   (e: 'switch', tabId: string): void
@@ -64,6 +95,8 @@ onUnmounted(() => {
       class="tab pinned-first"
       :class="{ active: firstTab.id === currentTabId }"
       @click="emit('switch', firstTab.id!)"
+      @mouseenter="onTabEnter($event, firstTab)"
+      @mouseleave="onTabLeave"
     >
       <div class="tab-favicon">
         <svg v-if="firstTab.isLoading" class="loading-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -76,6 +109,12 @@ onUnmounted(() => {
       <span class="tab-title">{{ firstTab.title }}</span>
     </div>
 
+    <Transition name="fade">
+      <div v-if="hoveredTabId && hoveredMemory" class="memory-tooltip" :style="tooltipStyle">
+        <span>Heap {{ formatMB(hoveredMemory.usedJSHeapSize) }} / {{ formatMB(hoveredMemory.totalJSHeapSize) }}</span>
+      </div>
+    </Transition>
+
     <!-- 可滚动区域 -->
     <div class="tabs-scroll-container" ref="tabsContainer">
       <div class="tabs-scroll">
@@ -85,6 +124,8 @@ onUnmounted(() => {
           class="tab scrollable-tab"
           :class="{ active: tab.id === currentTabId }"
           @click="emit('switch', tab.id!)"
+          @mouseenter="onTabEnter($event, tab)"
+          @mouseleave="onTabLeave"
         >
           <div class="tab-favicon">
             <svg v-if="tab.isLoading" class="loading-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -271,5 +312,29 @@ onUnmounted(() => {
 .add-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #e8eaed;
+}
+
+.memory-tooltip {
+  position: fixed;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #9aa0a6;
+  white-space: nowrap;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

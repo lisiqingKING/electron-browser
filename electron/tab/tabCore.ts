@@ -11,6 +11,7 @@ export interface TabInfo {
   actualUrl?: string    // 真实加载的 URL
   time?: number
   id?: string
+  wcId?: number         // webContents id，用于匹配渲染进程内存数据
   canGoBack?: boolean
   canGoForward?: boolean
   isLoading?: boolean
@@ -111,7 +112,8 @@ export function createTabCore(tabInfo: TabInfo): { view: WebContentsView; tabInf
   const _tabInfo: TabInfo = {
     ...tabInfo,
     time: _time,
-    id: _id
+    id: _id,
+    wcId: view.webContents.id
   }
 
   tabs.push(_tabInfo)

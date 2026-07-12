@@ -7,6 +7,7 @@ import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
 import { getDownloadManager } from './downloads/downloadManager'
 import { initWebviewSource } from './downloads/sources/webviewSource'
+import { registerMemoryMonitorHandler } from './modules/memoryMonitor'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -105,6 +106,7 @@ app.whenReady().then(async () => {
 
   initDatabase()
   initWebviewSource()
+  registerMemoryMonitorHandler()
   getDownloadManager().init()
   createWindow()
 })
