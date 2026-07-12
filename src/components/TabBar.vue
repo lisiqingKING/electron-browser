@@ -21,7 +21,6 @@ const onTabEnter = async (e: MouseEvent, tab: { id?: string; wcId?: number }) =>
     top: `${rect.bottom + 4}px`,
     transform: 'translateX(-50%)',
   }
-  // 主动请求内存数据
   if (tab.wcId != null) {
     try {
       const info = await (window as any).ipcRenderer.invoke('memory:requestUpdate', tab.wcId)

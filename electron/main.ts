@@ -7,7 +7,7 @@ import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
 import { getDownloadManager } from './downloads/downloadManager'
 import { initWebviewSource } from './downloads/sources/webviewSource'
-import { registerMemoryMonitorHandler } from './modules/memoryMonitor'
+import { registerMemoryMonitorHandler, getMemoryMonitor } from './modules/memoryMonitor'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -69,6 +69,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('will-quit', () => {
+  getMemoryMonitor().stopMonitor()
   closeDatabase()
   stopSubappServer()
   void getDownloadManager().shutdown()
@@ -109,4 +110,5 @@ app.whenReady().then(async () => {
   registerMemoryMonitorHandler()
   getDownloadManager().init()
   createWindow()
+  getMemoryMonitor().startMonitor()
 })
