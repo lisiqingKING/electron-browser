@@ -7,7 +7,7 @@ import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
 import { getDownloadManager } from './downloads/downloadManager'
 import { initWebviewSource } from './downloads/sources/webviewSource'
-import { registerMemoryMonitorHandler, getMemoryMonitor } from './modules/memoryMonitor'
+import { registerMemoryMonitorHandler, getMemoryMonitor } from './memory/memoryMonitor'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

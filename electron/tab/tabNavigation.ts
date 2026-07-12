@@ -1,8 +1,21 @@
 import { BrowserWindow } from 'electron'
-import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds } from './tabCore'
+import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '../../src/utils'
-import { env } from '../env'
+import { getSubappUrl } from '../subapp'
+
+export function resolveAppsUrl(url: string): string | null {
+  if (!url.startsWith('apps://')) return null
+  try {
+    const parsed = new URL(url)
+    const subapp = parsed.hostname
+    const route = parsed.pathname || '/'
+    const fullPath = route === '/' ? '' : route
+    return getSubappUrl(subapp, `index.html#${fullPath}`)
+  } catch {
+    return null
+  }
+}
 
 export function updateNavigationState(tabId: string, win: BrowserWindow) {
   const tab = webContentViewMap.get(tabId)
@@ -76,11 +89,6 @@ export function goForward(win: BrowserWindow) {
   tab.view.webContents.goForward()
 }
 
-function isAppUrl(url: string): boolean {
-  const devUrl = env.getAppUrl()
-  return url.includes(devUrl) || url.includes('localhost') || url.includes('../app/index.html')
-}
-
 function getTitleForUrl(tab: { info: { url: string }, view: { webContents: { getTitle: () => string } } }, pageTitle?: string): string {
   if (isAppUrl(tab.info.url)) {
     return '新建标签页'
@@ -132,10 +140,12 @@ export function createTabAndShow(tabInfo: { title: string; url: string }, win: B
 
   const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
 
-  if (isUrl(tabInfo.url)) {
-    view.webContents.loadURL(tabInfo.url)
+  // 解析 apps:// 协议
+  const resolvedUrl = resolveAppsUrl(tabInfo.url) || tabInfo.url
+  if (isUrl(resolvedUrl)) {
+    view.webContents.loadURL(resolvedUrl)
   } else {
-    view.webContents.loadFile(tabInfo.url)
+    view.webContents.loadFile(resolvedUrl)
   }
 
   registerWebContentsEvents(view, enrichedTabInfo, win)
@@ -143,5 +153,5 @@ export function createTabAndShow(tabInfo: { title: string; url: string }, win: B
   updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
   win.webContents.send('tab:list-changed')
 
-  return view
+  return enrichedTabInfo.id
 }

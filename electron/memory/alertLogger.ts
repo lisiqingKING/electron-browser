@@ -3,13 +3,7 @@
  * 使用 electron-log 将内存告警写入日志文件
  */
 
-import { app } from 'electron'
 import log from 'electron-log'
-import path from 'node:path'
-
-// 配置日志文件路径
-log.transports.file.file = path.join(app.getPath('logs'), 'memory-alerts.log')
-log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}] [{level}] {text}'
 
 interface AlertSnapshot {
   timestamp: number

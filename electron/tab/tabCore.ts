@@ -196,4 +196,9 @@ export function openDevToolsForCurTab() {
   }
 }
 
+export function isAppUrl(url: string): boolean {
+  const devUrl = env.getAppUrl()
+  return url.includes(devUrl) || url.includes('localhost') || url.includes('../app/index.html')
+}
+
 export { DEFAULT_TAB }

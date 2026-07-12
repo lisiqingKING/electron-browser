@@ -1,14 +1,8 @@
 import { WebContentsView, BrowserWindow, Menu } from 'electron'
 import { recordVisit } from '../history/historyManager'
-import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds } from './tabCore'
+import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl } from './tabCore'
 import { updateNavigationState } from './tabNavigation'
 import { isUrl } from '../../src/utils'
-import { env } from '../env'
-
-function isAppUrl(url: string): boolean {
-  const devUrl = env.getAppUrl()
-  return url.includes(devUrl) || url.includes('localhost') || url.includes('../app/index.html')
-}
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
   if (isAppUrl(tab.info.url)) {

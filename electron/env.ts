@@ -2,25 +2,22 @@
 import { app } from 'electron'
 
 export const env = {
-  getAppUrl(): string {
+  getUrl(route?: string): string {
     if (!app.isPackaged) {
-      return `http://localhost:5273/#/`
+      return route ? `http://localhost:5273/#/${route}` : `http://localhost:5273/#/`
     }
-    // 打包后用 lsqapp:// 协议加载内置子应用
-    return 'lsqapp://internal-app'
+    return route ? `lsqapp://internal-app/${route}` : 'lsqapp://internal-app'
+  },
+
+  getAppUrl(): string {
+    return this.getUrl()
   },
 
   getHistoryUrl(): string {
-    if (!app.isPackaged) {
-      return `http://localhost:5273/#/history`
-    }
-    return 'lsqapp://internal-app/history'
+    return this.getUrl('history')
   },
 
   getDownloadsUrl(): string {
-    if (!app.isPackaged) {
-      return `http://localhost:5273/#/downloads`
-    }
-    return 'lsqapp://internal-app/downloads'
+    return this.getUrl('downloads')
   }
 }

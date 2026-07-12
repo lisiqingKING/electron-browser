@@ -1,9 +1,8 @@
 import { ipcMain, BrowserWindow, app } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { getCurTab, createTabCore, webContentViewMap, updateCurTabBounds, DEFAULT_TAB, TabInfo, closeTab, setCurTabId, openDevToolsForCurTab } from './tabCore'
-import { registerWebContentsEvents } from './tabEvents'
-import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow } from './tabNavigation'
+import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab } from './tabCore'
+import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
 import {
   getAllChatSessions,
@@ -13,24 +12,8 @@ import {
   deleteChatSession,
 } from '../ai/aiConversationManager'
 import { env } from '../env'
-import { getSubappUrl } from '../subapp'
 import { registerDownloadHandlers } from '../downloads/downloadHandlers'
 
-function resolveAppsUrl(url: string): string | null {
-  if (!url.startsWith('apps://')) return null
-  try {
-    const parsed = new URL(url)
-    const subapp = parsed.hostname
-    const route = parsed.pathname || '/'
-    // apps://app/home -> http://localhost:端口/app/index.html#/home
-    const fullPath = route === '/' ? '' : route
-    return getSubappUrl(subapp, `index.html#${fullPath}`)
-  } catch {
-    return null
-  }
-}
-
-// Re-export for external use
 export { webContentViewMap, updateCurTabBounds, getCurTab, openDevToolsForCurTab } from './tabCore'
 export { createTabAndShow }
 
@@ -42,106 +25,28 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   // 创建普通标签页
   ipcMain.handle('tabs:create', async (_event, tabInfo: { title: string; url: string }) => {
-    const curTab = getCurTab()
-    if (curTab?.view) {
-      win.contentView.removeChildView(curTab.view)
-    }
-
-    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
-    registerWebContentsEvents(view, enrichedTabInfo, win)
-
-    // 解析 ligbox:// 协议
-    const ligboxUrl = resolveAppsUrl(tabInfo.url)
-    if (ligboxUrl) {
-      view.webContents.loadURL(ligboxUrl)
-    } else if (tabInfo.url.startsWith('http') || tabInfo.url.startsWith('lsqapp://')) {
-      view.webContents.loadURL(tabInfo.url)
-    } else {
-      view.webContents.loadFile(tabInfo.url)
-    }
-
-    win.contentView.addChildView(view)
-    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-    win.webContents.send('tab:list-changed')
-    return enrichedTabInfo.id
+    return createTabAndShow(tabInfo, win)
   })
 
   // 创建默认页
   ipcMain.handle('tabs:createDefault', async () => {
     const url = env.getAppUrl()
     console.log('[createDefault] 加载 URL:', url)
-
-    const curTab = getCurTab()
-    if (curTab?.view) {
-      win.contentView.removeChildView(curTab.view)
-    }
-
-    const tabInfo: TabInfo = {
-      title: DEFAULT_TAB.title,
-      url: url
-    }
-
-    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
-    registerWebContentsEvents(view, enrichedTabInfo, win)
-
-    view.webContents.loadURL(url)
-
-    win.contentView.addChildView(view)
-    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-    win.webContents.send('tab:list-changed')
-    return enrichedTabInfo.id
+    return createTabAndShow({ title: '新建标签页', url }, win)
   })
 
   // 创建历史页
   ipcMain.handle('tabs:createHistory', async () => {
     const url = env.getHistoryUrl()
     console.log('[createHistory] 加载 URL:', url)
-
-    const curTab = getCurTab()
-    if (curTab?.view) {
-      win.contentView.removeChildView(curTab.view)
-    }
-
-    const tabInfo: TabInfo = {
-      title: '历史记录',
-      url: url
-    }
-
-    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
-    registerWebContentsEvents(view, enrichedTabInfo, win)
-
-    view.webContents.loadURL(url)
-
-    win.contentView.addChildView(view)
-    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-    win.webContents.send('tab:list-changed')
-    return enrichedTabInfo.id
+    return createTabAndShow({ title: '历史记录', url }, win)
   })
 
   // 创建下载管理页 (dev 走 Vite, packaged 走 lsqapp:// 协议)
   ipcMain.handle('tabs:createDownloads', async () => {
     const url = env.getDownloadsUrl()
     console.log('[createDownloads] 加载 URL:', url)
-
-    const curTab = getCurTab()
-    if (curTab?.view) {
-      win.contentView.removeChildView(curTab.view)
-    }
-
-    const tabInfo: TabInfo = {
-      title: '下载管理',
-      url: url
-    }
-
-    const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
-    registerWebContentsEvents(view, enrichedTabInfo, win)
-
-    view.webContents.loadURL(url)
-
-    win.contentView.addChildView(view)
-    updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-    win.webContents.send('tab:list-changed')
-    return enrichedTabInfo.id
+    return createTabAndShow({ title: '下载管理', url }, win)
   })
 
   // 刷新
