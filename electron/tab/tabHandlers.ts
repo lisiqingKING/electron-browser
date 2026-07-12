@@ -1,4 +1,6 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
+import fs from 'node:fs'
+import path from 'node:path'
 import { getCurTab, createTabCore, webContentViewMap, updateCurTabBounds, DEFAULT_TAB, TabInfo, closeTab, setCurTabId, openDevToolsForCurTab } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow } from './tabNavigation'
@@ -237,6 +239,34 @@ export function registerTabHandlers(win: BrowserWindow) {
   // 打开当前 Tab 的开发者工具
   ipcMain.on('tabs:openDevTools', () => {
     openDevToolsForCurTab()
+  })
+
+  // 日志文件相关
+  ipcMain.handle('logs:list', () => {
+    const logDir = app.getPath('logs')
+    try {
+      const files = fs.readdirSync(logDir).filter(f => f.endsWith('.log'))
+      return files
+    } catch {
+      return []
+    }
+  })
+
+  ipcMain.handle('logs:read', (_event, filename: string, limit?: number) => {
+    const logDir = app.getPath('logs')
+    const filePath = path.join(logDir, filename)
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8')
+      const lines = content.split('\n')
+      const maxLines = limit ?? 200
+      return lines.slice(-maxLines).join('\n')
+    } catch {
+      return ''
+    }
+  })
+
+  ipcMain.handle('logs:dir', () => {
+    return app.getPath('logs')
   })
 
   // 下载管理器 IPC handlers
