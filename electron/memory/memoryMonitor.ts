@@ -1,12 +1,22 @@
 /**
  * 内存监控模块
- * - hover 采集：按需采集目标 tab 内存
- * - 生产监控：周期采集所有 tab + 主进程，趋势分析，阈值告警
+ *
+ * 分层采集架构：
+ * - 常态轮询(60s)：仅采集主进程 process.memoryUsage()，零开销
+ * - 当主进程Heap/RSS增量超出阈值 → 触发全Tab深度采集（通过 app.getAppMetrics）；无异常则复用旧Tab数据
+ *
+ * 采集方式：
+ * - 主进程：process.memoryUsage()（Node.js 原生）
+ * - 渲染进程：app.getAppMetrics()（Electron 原生，OS 级数据，零 IPC 开销）
+ *
+ * 解耦设计：
+ * - 通过依赖注入与日志模块解耦
+ * - memoryMonitor 不依赖任何具体实现，只依赖接口
  */
 
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import { webContentViewMap, getCurTab } from '../tab/tabCore'
-import { writeAlertLog } from './alertLogger'
+import { memoryConfig } from './memoryConfig'
 
 // --------- 类型定义 ---------
 
@@ -30,7 +40,7 @@ interface MainProcessMemoryInfo {
 
 type AlertLevel = 'normal' | 'warning' | 'critical'
 
-interface PeriodicSnapshot {
+export interface PeriodicSnapshot {
   timestamp: number
   level: AlertLevel
   main: MainProcessMemoryInfo
@@ -45,16 +55,16 @@ interface LeakDetectionResult {
   level: AlertLevel
 }
 
-// --------- 阈值配置 ---------
+interface MonitorStats {
+  totalCollections: number
+  totalCollectionTime: number
+  failedCollections: number
+}
 
-const CONFIG = {
-  snapshotInterval: 60_000,       // 60s 采集一次
-  maxSnapshots: 100,              // 内存保留最近 100 个快照
-  leakThresholdWarning: 1,        // 1 MB/min → 轻微泄漏
-  leakThresholdCritical: 5,       // 5 MB/min → 严重泄漏
-  alertMainHeapMB: 500,           // 主进程 Heap > 500MB 告警
-  alertMainRssMB: 800,            // 主进程 RSS > 800MB 告警
-  alertTabHeapMB: 200,            // 任意 tab Heap > 200MB 告警
+// --------- 依赖注入接口 ---------
+
+export interface AlertHandler {
+  (snapshot: PeriodicSnapshot): void
 }
 
 // --------- 监控类 ---------
@@ -62,11 +72,26 @@ const CONFIG = {
 class MemoryMonitor {
   private snapshots: PeriodicSnapshot[] = []
   private intervalId: NodeJS.Timeout | null = null
+  private lastMainSnapshot: MainProcessMemoryInfo | null = null
+  private lastRendererSnapshot: PeriodicSnapshot['renderers'] = []
+  private enabled = true
+
+  private stats: MonitorStats = {
+    totalCollections: 0,
+    totalCollectionTime: 0,
+    failedCollections: 0,
+  }
+
+  private alertHandler: AlertHandler | null = null
+
+  setAlertHandler(handler: AlertHandler): void {
+    this.alertHandler = handler
+  }
 
   // --- hover 采集 ---
 
-  async collectMemory(targetWcId: number): Promise<RendererMemoryInfo | null> {
-    return await this.collectRendererMemory(targetWcId)
+  collectMemory(targetWcId: number): RendererMemoryInfo | null {
+    return this.collectRendererMemory(targetWcId)
   }
 
   // --- 生产监控 ---
@@ -74,47 +99,89 @@ class MemoryMonitor {
   startMonitor(): void {
     if (this.intervalId) return
 
-    const collect = async () => {
-      const main = this.takeMainSnapshot()
-      const renderers = await this.collectAllRenderers()
-      let { level, alerts } = this.checkThresholds(main, renderers)
+    const collect = () => {
+      if (!this.enabled) return
 
-      // 泄漏检测
-      if (this.snapshots.length >= 10) {
-        const trend = this.detectLeak()
-        if (trend.isLeaking) {
-          const tag = trend.level === 'critical' ? '⚠️ 严重' : '⚡ 轻微'
-          const msg = `${tag}泄漏: ${trend.growthRate.toFixed(2)} MB/min (${trend.samples} 个样本)`
-          alerts.push(msg)
-          if (trend.level === 'critical' && level !== 'critical') {
-            level = 'critical'
+      const startTime = Date.now()
+
+      try {
+        const main = this.takeMainSnapshot()
+
+        // 判断是否需要 Tab 深采集
+        let needTabCollect = false
+        let tabDeltaInfo = ''
+        if (!this.lastMainSnapshot) {
+          needTabCollect = true
+        } else {
+          const heapDelta = main.heapUsed - this.lastMainSnapshot.heapUsed
+          const rssDelta = main.rss - this.lastMainSnapshot.rss
+          if (heapDelta > memoryConfig.tabCollectHeapDeltaMB || rssDelta > memoryConfig.tabCollectRssDeltaMB) {
+            needTabCollect = true
+            tabDeltaInfo = ` (Heap +${heapDelta.toFixed(0)}MB, RSS +${rssDelta.toFixed(0)}MB)`
           }
         }
-      }
 
-      const snapshot: PeriodicSnapshot = {
-        timestamp: Date.now(),
-        level,
-        main,
-        renderers,
-        alerts
-      }
-      this.snapshots.push(snapshot)
-      if (this.snapshots.length > CONFIG.maxSnapshots) {
-        this.snapshots.shift()
-      }
+        let renderers = this.lastRendererSnapshot
+        if (needTabCollect) {
+          renderers = this.collectAllRenderers()
+          this.findBiggestGrowth(renderers)
+        }
 
-      this.printSummary(main, renderers)
+        this.lastMainSnapshot = main
+        this.lastRendererSnapshot = renderers
 
-      // 只有告警才写入日志文件
-      if (level !== 'normal') {
-        writeAlertLog(snapshot)
+        let { level, alerts } = this.checkThresholds(main, renderers)
+
+        // 单次内存突增检测
+        const spikeResult = this.detectMemorySpike(main)
+        if (spikeResult) {
+          alerts.push(spikeResult)
+          if (level !== 'critical') level = 'warning'
+        }
+
+        // 泄漏检测（线性回归）
+        if (this.snapshots.length >= memoryConfig.minSamplesForLeak) {
+          const trend = this.detectLeak()
+          if (trend.isLeaking) {
+            const tag = trend.level === 'critical' ? '严重' : '轻微'
+            const msg = `${tag}泄漏: ${trend.growthRate.toFixed(2)} MB/min (${trend.samples} 个样本)`
+            alerts.push(msg)
+            if (trend.level === 'critical' && level !== 'critical') {
+              level = 'critical'
+            }
+          }
+        }
+
+        const snapshot: PeriodicSnapshot = {
+          timestamp: Date.now(),
+          level,
+          main,
+          renderers,
+          alerts
+        }
+        this.snapshots.push(snapshot)
+        if (this.snapshots.length > memoryConfig.maxSnapshots) {
+          this.snapshots.shift()
+        }
+
+        this.printSummary(main, renderers, tabDeltaInfo)
+
+        // 只有告警才调用处理器
+        if (level !== 'normal' && this.alertHandler) {
+          this.alertHandler(snapshot)
+        }
+      } catch (err) {
+        console.error('[MemoryMonitor] 采集异常:', err)
+        this.stats.failedCollections++
+      } finally {
+        this.stats.totalCollections++
+        this.stats.totalCollectionTime += Date.now() - startTime
       }
     }
 
     collect()
-    this.intervalId = setInterval(collect, CONFIG.snapshotInterval)
-    console.log('[MemoryMonitor] 生产监控已启动，采集间隔 60s')
+    this.intervalId = setInterval(collect, memoryConfig.snapshotInterval)
+    console.log(`[MemoryMonitor] 生产监控已启动，采集间隔 ${memoryConfig.snapshotInterval / 1000}s`)
   }
 
   stopMonitor(): void {
@@ -123,6 +190,32 @@ class MemoryMonitor {
       this.intervalId = null
       console.log('[MemoryMonitor] 监控已停止')
     }
+  }
+
+  enable(): void {
+    this.enabled = true
+    if (!this.intervalId) {
+      this.startMonitor()
+    }
+    console.log('[MemoryMonitor] 已启用')
+  }
+
+  disable(): void {
+    this.enabled = false
+    this.stopMonitor()
+    console.log('[MemoryMonitor] 已禁用')
+  }
+
+  isEnabled(): boolean {
+    return this.enabled
+  }
+
+  getStats(): MonitorStats {
+    return { ...this.stats }
+  }
+
+  getRecentSnapshots(count: number = 10): PeriodicSnapshot[] {
+    return this.snapshots.slice(-count)
   }
 
   // --- 内部方法 ---
@@ -138,97 +231,131 @@ class MemoryMonitor {
     }
   }
 
-  private async collectRendererMemory(targetWcId: number): Promise<RendererMemoryInfo | null> {
+  private collectRendererMemory(targetWcId: number): RendererMemoryInfo | null {
+    const metrics = app.getAppMetrics().filter(m => m.type === 'Tab')
     for (const [, tab] of webContentViewMap) {
       const wc = tab.view.webContents
       if (wc.isDestroyed() || wc.id !== targetWcId) continue
-      try {
-        const info = await wc.executeJavaScript(`(() => {
-          const m = performance.memory
-          if (!m) return null
-          return { usedJSHeapSize: m.usedJSHeapSize, totalJSHeapSize: m.totalJSHeapSize, jsHeapSizeLimit: m.jsHeapSizeLimit }
-        })()`)
-        if (info) {
-          return {
-            id: wc.id,
-            url: wc.getURL(),
-            title: tab.info.title,
-            usedJSHeapSize: info.usedJSHeapSize / 1024 / 1024,
-            totalJSHeapSize: info.totalJSHeapSize / 1024 / 1024,
-            jsHeapSizeLimit: info.jsHeapSizeLimit / 1024 / 1024,
-            timestamp: Date.now()
-          }
+      const pid = wc.getOSProcessId()
+      const proc = metrics.find(m => m.pid === pid)
+      if (proc) {
+        return {
+          id: wc.id,
+          url: wc.getURL(),
+          title: tab.info.title,
+          usedJSHeapSize: (proc.memory.privateBytes ?? proc.memory.workingSetSize) / 1024,
+          totalJSHeapSize: proc.memory.workingSetSize / 1024,
+          jsHeapSizeLimit: 0,
+          timestamp: Date.now()
         }
-      } catch {}
+      }
     }
     return null
   }
 
-  private async collectAllRenderers(): Promise<PeriodicSnapshot['renderers']> {
+  private collectAllRenderers(): PeriodicSnapshot['renderers'] {
+    const metrics = app.getAppMetrics().filter(m => m.type === 'Tab')
     const result: PeriodicSnapshot['renderers'] = []
+
     for (const [, tab] of webContentViewMap) {
       const wc = tab.view.webContents
       if (wc.isDestroyed()) continue
       try {
-        const info = await wc.executeJavaScript(`(() => {
-          const m = performance.memory
-          if (!m) return null
-          return { usedJSHeapSize: m.usedJSHeapSize, totalJSHeapSize: m.totalJSHeapSize }
-        })()`)
-        if (info) {
+        const pid = wc.getOSProcessId()
+        const proc = metrics.find(m => m.pid === pid)
+        if (proc) {
           result.push({
             title: tab.info.title || wc.getURL(),
-            usedJSHeapSize: info.usedJSHeapSize / 1024 / 1024,
-            totalJSHeapSize: info.totalJSHeapSize / 1024 / 1024
+            usedJSHeapSize: (proc.memory.privateBytes ?? proc.memory.workingSetSize) / 1024,
+            totalJSHeapSize: proc.memory.workingSetSize / 1024
           })
         }
-      } catch {}
+      } catch {
+        // 单个 Tab 采集失败不影响整体
+      }
     }
     return result
   }
 
-  private printSummary(main: MainProcessMemoryInfo, renderers: PeriodicSnapshot['renderers']): void {
+  private printSummary(main: MainProcessMemoryInfo, renderers: PeriodicSnapshot['renderers'], tabDeltaInfo: string = ''): void {
     const curTab = getCurTab()
     const curRenderer = curTab ? renderers.find(r => r.title === curTab.info.title) : null
-    const curInfo = curRenderer ? `${curRenderer.title} ${curRenderer.usedJSHeapSize.toFixed(1)}/${curRenderer.totalJSHeapSize.toFixed(1)} MB` : '无'
+    const curInfo = curRenderer ? `${curRenderer.title} 内存${curRenderer.totalJSHeapSize.toFixed(1)}MB` : '无'
 
     console.log(
-      `[MemoryMonitor] 主进程: Heap ${main.heapUsed.toFixed(1)}/${main.heapTotal.toFixed(1)} MB | RSS ${main.rss.toFixed(1)} MB | ` +
+      `[MemoryMonitor] 主进程: Heap ${main.heapUsed.toFixed(1)}/${main.heapTotal.toFixed(1)} MB | RSS ${main.rss.toFixed(1)} MB${tabDeltaInfo} | ` +
       `当前Tab: ${curInfo}`
     )
+  }
+
+  private findBiggestGrowth(current: PeriodicSnapshot['renderers']): void {
+    if (this.lastRendererSnapshot.length === 0) return
+
+    let maxGrowth = 0
+    let maxGrowthTab = ''
+
+    for (const curr of current) {
+      const prev = this.lastRendererSnapshot.find(p => p.title === curr.title)
+      if (prev) {
+        const growth = curr.usedJSHeapSize - prev.usedJSHeapSize
+        if (growth > maxGrowth) {
+          maxGrowth = growth
+          maxGrowthTab = curr.title
+        }
+      }
+    }
+
+    if (maxGrowth > 10) {
+      console.log(`[MemoryMonitor] Tab "${maxGrowthTab}" 增长最多: +${maxGrowth.toFixed(1)} MB`)
+    }
   }
 
   private checkThresholds(main: MainProcessMemoryInfo, renderers: PeriodicSnapshot['renderers']): { level: AlertLevel; alerts: string[] } {
     let level: AlertLevel = 'normal'
     const alerts: string[] = []
 
-    if (main.heapUsed > CONFIG.alertMainHeapMB) {
-      alerts.push(`主进程 Heap 超限: ${main.heapUsed.toFixed(1)} MB > ${CONFIG.alertMainHeapMB} MB`)
+    if (main.heapUsed > memoryConfig.alertMainHeapMB) {
+      alerts.push(`主进程 Heap 超限: ${main.heapUsed.toFixed(1)} MB > ${memoryConfig.alertMainHeapMB} MB`)
       level = 'critical'
     }
-    if (main.rss > CONFIG.alertMainRssMB) {
-      alerts.push(`主进程 RSS 超限: ${main.rss.toFixed(1)} MB > ${CONFIG.alertMainRssMB} MB`)
+    if (main.rss > memoryConfig.alertMainRssMB) {
+      alerts.push(`主进程 RSS 超限: ${main.rss.toFixed(1)} MB > ${memoryConfig.alertMainRssMB} MB`)
       level = 'critical'
     }
 
     for (const r of renderers) {
-      if (r.usedJSHeapSize > CONFIG.alertTabHeapMB) {
-        alerts.push(`Tab "${r.title}" Heap 超限: ${r.usedJSHeapSize.toFixed(1)} MB > ${CONFIG.alertTabHeapMB} MB`)
+      if (r.usedJSHeapSize > memoryConfig.alertTabHeapMB) {
+        alerts.push(`Tab "${r.title}" 私有内存超限: ${r.usedJSHeapSize.toFixed(1)} MB > ${memoryConfig.alertTabHeapMB} MB`)
         if (level !== 'critical') level = 'warning'
       }
     }
 
-    // 输出告警日志
     for (const msg of alerts) {
-      console.warn(`[MemoryMonitor] ⚠️ ${msg}`)
+      console.warn(`[MemoryMonitor] ${msg}`)
     }
 
     return { level, alerts }
   }
 
+  private detectMemorySpike(main: MainProcessMemoryInfo): string | null {
+    if (!this.lastMainSnapshot) return null
+
+    const heapDelta = main.heapUsed - this.lastMainSnapshot.heapUsed
+    const rssDelta = main.rss - this.lastMainSnapshot.rss
+
+    if (heapDelta > memoryConfig.tabCollectHeapDeltaMB * 3) {
+      return `单次 Heap 突增: +${heapDelta.toFixed(1)} MB`
+    }
+    if (rssDelta > memoryConfig.tabCollectRssDeltaMB * 3) {
+      return `单次 RSS 突增: +${rssDelta.toFixed(1)} MB`
+    }
+
+    return null
+  }
+
   private detectLeak(): LeakDetectionResult {
     const n = this.snapshots.length
-    if (n < 10) {
+    if (n < memoryConfig.minSamplesForLeak) {
       return { isLeaking: false, growthRate: 0, samples: n, level: 'normal' }
     }
 
@@ -242,10 +369,10 @@ class MemoryMonitor {
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
 
-    if (slope > CONFIG.leakThresholdCritical) {
+    if (slope > memoryConfig.leakThresholdCritical) {
       return { isLeaking: true, growthRate: slope, samples: n, level: 'critical' }
     }
-    if (slope > CONFIG.leakThresholdWarning) {
+    if (slope > memoryConfig.leakThresholdWarning) {
       return { isLeaking: true, growthRate: slope, samples: n, level: 'warning' }
     }
     return { isLeaking: false, growthRate: slope, samples: n, level: 'normal' }
@@ -267,6 +394,24 @@ export function getMemoryMonitor(): MemoryMonitor {
 
 export function registerMemoryMonitorHandler(): void {
   ipcMain.handle('memory:requestUpdate', async (_event, wcId: number) => {
-    return await getMemoryMonitor().collectMemory(wcId)
+    return getMemoryMonitor().collectMemory(wcId)
+  })
+
+  ipcMain.handle('memory:getStats', () => {
+    return getMemoryMonitor().getStats()
+  })
+
+  ipcMain.handle('memory:getSnapshots', (_event, count?: number) => {
+    return getMemoryMonitor().getRecentSnapshots(count)
+  })
+
+  ipcMain.handle('memory:toggle', (_event, enabled: boolean) => {
+    const monitor = getMemoryMonitor()
+    if (enabled) {
+      monitor.enable()
+    } else {
+      monitor.disable()
+    }
+    return monitor.isEnabled()
   })
 }

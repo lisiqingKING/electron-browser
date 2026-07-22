@@ -110,7 +110,7 @@ onUnmounted(() => {
 
     <Transition name="fade">
       <div v-if="hoveredTabId && hoveredMemory" class="memory-tooltip" :style="tooltipStyle">
-        <span>Heap {{ formatMB(hoveredMemory.usedJSHeapSize) }} / {{ formatMB(hoveredMemory.totalJSHeapSize) }}</span>
+        <span>内存 {{ formatMB(hoveredMemory.totalJSHeapSize) }}</span>
       </div>
     </Transition>
 

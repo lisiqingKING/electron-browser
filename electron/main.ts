@@ -8,6 +8,7 @@ import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
 import { getDownloadManager } from './downloads/downloadManager'
 import { initWebviewSource } from './downloads/sources/webviewSource'
 import { registerMemoryMonitorHandler, getMemoryMonitor } from './memory/memoryMonitor'
+import { createAlertHandler } from './memory/alertLogger'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -108,7 +109,12 @@ app.whenReady().then(async () => {
   initDatabase()
   initWebviewSource()
   registerMemoryMonitorHandler()
+
+  // 依赖注入：将日志处理器注入给内存监控
+  const monitor = getMemoryMonitor()
+  monitor.setAlertHandler(createAlertHandler())
+
   getDownloadManager().init()
   createWindow()
-  getMemoryMonitor().startMonitor()
+  monitor.startMonitor()
 })
