@@ -212,6 +212,7 @@ const openBookmark = async (url: string) => {
       :current-tab-id="currentTabId"
       @switch="switchTab"
       @close="closeTab"
+      @add="addTabByButton"
     />
     <UrlBar
       v-model="currentUrl"
@@ -251,7 +252,6 @@ const openBookmark = async (url: string) => {
   padding: 0 16px;
   height: 30px;
   background: #1a1a1a;
-  border-top: 1px solid #2d2d2d;
   flex-shrink: 0;
   overflow-x: auto;
 }

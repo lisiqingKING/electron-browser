@@ -92,7 +92,9 @@ const handleGoForward = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1a1a1a;
+  background: #35363a;
+  position: relative;
+  z-index: 0;
 }
 
 .url-bar-container {
