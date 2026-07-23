@@ -11,6 +11,7 @@ interface TabInfo {
   id?: string
   wcId?: number
   isLoading?: boolean
+  favicon?: string
 }
 
 interface Bookmark {

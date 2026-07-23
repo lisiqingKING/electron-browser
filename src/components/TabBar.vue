@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 
 const props = defineProps<{
-  tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean }[]
+  tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string }[]
   currentTabId: string | null
 }>()
 
@@ -10,6 +10,15 @@ const hoveredTabId = ref<string | null>(null)
 const hoveredMemory = ref<{ usedJSHeapSize: number; totalJSHeapSize: number } | null>(null)
 const tooltipStyle = ref<Record<string, string>>({})
 const formatMB = (mb: number) => `${mb.toFixed(1)} MB`
+const failedFavicons = ref<Set<string>>(new Set())
+
+const onFaviconError = (url: string) => {
+  failedFavicons.value.add(url)
+}
+
+const onFaviconLoad = (url: string) => {
+  failedFavicons.value.delete(url)
+}
 
 const onTabEnter = async (e: MouseEvent, tab: { id?: string; wcId?: number }) => {
   hoveredTabId.value = tab.id || null
@@ -104,9 +113,13 @@ onUnmounted(() => {
           @mouseleave="onTabLeave"
         >
           <div class="tab-favicon">
-            <svg v-if="tab.isLoading" class="loading-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8zm8 16a8 8 0 0 1-8 8v-2a10 10 0 0 0 10-10h-2a8 8 0 0 1-8 8v2a8 8 0 0 1-8-8v-2a10 10 0 0 1 10-10h2a8 8 0 0 1 8 8z"/>
+            <!-- 加载中：环状动画 -->
+            <svg v-if="tab.isLoading" class="loading-spinner" viewBox="0 0 24 24" width="16" height="16">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
             </svg>
+            <!-- 有 favicon 且未加载失败 -->
+            <img v-else-if="tab.favicon && !failedFavicons.has(tab.favicon)" :src="tab.favicon" class="favicon-img" @error="onFaviconError(tab.favicon!)" @load="onFaviconLoad(tab.favicon!)" />
+            <!-- 默认图标 -->
             <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
             </svg>
@@ -213,13 +226,20 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.loading-icon {
+.loading-spinner {
   animation: spin 1s linear infinite;
+  color: #8ab4f8;
 }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.favicon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 .tab-title {

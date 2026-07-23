@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl } from './tabCore'
+import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '../../src/utils'
 import { getSubappUrl } from '../subapp'
@@ -118,12 +118,28 @@ export function refreshCurTab(win: BrowserWindow) {
 export function updateCurTabUrl(url: string, win: BrowserWindow) {
   const tab = getCurTab()
   if (tab) {
+    // 先设置 URL，再加载，确保 did-start-loading 触发时 URL 已更新
+    tab.info.url = url
+
+    // 立即设置加载中的标题
+    let newTitle: string | null = null
+    if (url.startsWith('lsqapp://')) {
+      newTitle = getTitleForInternalUrl(url)
+    } else if (!isAppUrl(url)) {
+      newTitle = getDomainFromUrl(url)
+    }
+    if (newTitle) {
+      tab.info.title = newTitle
+    }
+    win.webContents.send('tab:info-changed', tab.info)
+
     if (isUrl(url)) {
       tab.view.webContents.loadURL(url)
     } else {
       tab.view.webContents.loadFile(url)
     }
-    tab.info.url = url
+
+    // isLoading 由 did-start-loading / did-stop-loading 事件统一管理
 
     tab.view.webContents.once('page-title-updated', () => {
       tab.info.title = tab.view.webContents.getTitle()
@@ -138,7 +154,20 @@ export function createTabAndShow(tabInfo: { title: string; url: string }, win: B
     win.contentView.removeChildView(curTab.view)
   }
 
-  const { view, tabInfo: enrichedTabInfo } = createTabCore(tabInfo)
+  // 根据 URL 设置标题（如果传入的标题为空）
+  let title = tabInfo.title
+  if (!title) {
+    if (tabInfo.url.startsWith('lsqapp://')) {
+      title = getTitleForInternalUrl(tabInfo.url) || '新建标签页'
+    } else if (!isAppUrl(tabInfo.url)) {
+      title = getDomainFromUrl(tabInfo.url) || '新建标签页'
+    } else {
+      title = '新建标签页'
+    }
+  }
+
+  const { view, tabInfo: enrichedTabInfo } = createTabCore({ ...tabInfo, title })
+  enrichedTabInfo.isLoading = true
 
   // 解析 apps:// 协议
   const resolvedUrl = resolveAppsUrl(tabInfo.url) || tabInfo.url
@@ -152,6 +181,7 @@ export function createTabAndShow(tabInfo: { title: string; url: string }, win: B
   win.contentView.addChildView(view)
   updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
   win.webContents.send('tab:list-changed')
+  win.webContents.send('tab:loading', { id: enrichedTabInfo.id, isLoading: true })
 
   return enrichedTabInfo.id
 }

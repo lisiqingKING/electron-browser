@@ -15,6 +15,7 @@ export interface TabInfo {
   canGoBack?: boolean
   canGoForward?: boolean
   isLoading?: boolean
+  favicon?: string      // 网页 favicon URL
 }
 
 export interface TabHistoryEntry {
@@ -199,6 +200,40 @@ export function openDevToolsForCurTab() {
 export function isAppUrl(url: string): boolean {
   const devUrl = env.getAppUrl()
   return url.includes(devUrl) || url.includes('localhost') || url.includes('../app/index.html')
+}
+
+export function getDomainFromUrl(url: string): string | null {
+  try {
+    const { protocol, hostname } = new URL(url)
+    if (protocol === 'file:' || !hostname) {
+      return '本地文件'
+    }
+    return hostname.replace(/^www\./, '')
+  } catch {
+    return null
+  }
+}
+
+// 内部子应用页面标题映射
+const INTERNAL_PAGE_TITLES: Record<string, string> = {
+  '': '新建标签页',
+  'default': '新建标签页',
+  'ai': 'AI 助手',
+  'history': '历史记录',
+  'downloads': '下载管理',
+  'logs': '日志查看',
+  'memory': '内存监控',
+}
+
+export function getTitleForInternalUrl(url: string): string | null {
+  if (!url.startsWith('lsqapp://')) return null
+  try {
+    const parsed = new URL(url)
+    const route = parsed.hash?.replace('#/', '') || ''
+    return INTERNAL_PAGE_TITLES[route] || null
+  } catch {
+    return null
+  }
 }
 
 export { DEFAULT_TAB }

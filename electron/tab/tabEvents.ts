@@ -1,6 +1,6 @@
 import { WebContentsView, BrowserWindow, Menu } from 'electron'
 import { recordVisit } from '../history/historyManager'
-import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl } from './tabCore'
+import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
 import { updateNavigationState } from './tabNavigation'
 import { isUrl } from '../../src/utils'
 
@@ -43,6 +43,21 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     if (tab) {
       tab.info.isLoading = true
       win.webContents.send('tab:loading', { id: tabId, isLoading: true })
+
+      // 设置加载中的标题
+      let newTitle: string | null = null
+      if (tab.info.url.startsWith('lsqapp://')) {
+        // 内部页面显示固定标题
+        newTitle = getTitleForInternalUrl(tab.info.url)
+      } else if (!isAppUrl(tab.info.url)) {
+        // 外部 URL 显示域名
+        newTitle = getDomainFromUrl(tab.info.url)
+      }
+
+      if (newTitle && newTitle !== tab.info.title) {
+        tab.info.title = newTitle
+        win.webContents.send('tab:info-changed', tab.info)
+      }
     }
   })
 
@@ -115,6 +130,26 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       }
     }
   })
+
+  // 获取 favicon
+  view.webContents.on('page-favicon-updated', (_event, favicons) => {
+    const tab = webContentViewMap.get(tabId)
+    if (tab && favicons.length > 0) {
+      tab.info.favicon = favicons[0]
+      win.webContents.send('tab:info-changed', tab.info)
+    }
+  })
+
+  // 为图片请求自动添加 Referer 头（模拟 Chrome 行为）
+  view.webContents.session.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*/*'] },
+    (details, callback) => {
+      if (details.resourceType === 'image') {
+        details.requestHeaders['Referer'] = view.webContents.getURL()
+      }
+      callback({ requestHeaders: details.requestHeaders })
+    }
+  )
 
   // 右键菜单
   view.webContents.on('context-menu', (_event, params) => {
