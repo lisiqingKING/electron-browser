@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, protocol } from 'electron'
+import { app, BrowserWindow, Menu, protocol, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
@@ -27,6 +27,7 @@ function createWindow() {
 
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
@@ -57,6 +58,14 @@ function createWindow() {
 
   // 注册 tab 相关 handlers
   registerTabHandlers(win)
+
+  // 最大化状态变化时通知渲染进程
+  win.on('maximize', () => {
+    win?.webContents.send('window:maximize-changed', true)
+  })
+  win.on('unmaximize', () => {
+    win?.webContents.send('window:maximize-changed', false)
+  })
 
   if (VITE_DEV_SERVER_URL) {
     win.webContents.openDevTools()
@@ -105,6 +114,18 @@ app.whenReady().then(async () => {
     const redirectUrl = getSubappUrl('internal-app', `index.html#/${target}`)
     return Response.redirect(redirectUrl, 302)
   })
+
+  // 窗口控制 IPC（全局注册，不依赖具体窗口）
+  ipcMain.handle('window:minimize', () => win?.minimize())
+  ipcMain.handle('window:maximize', () => {
+    if (win?.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win?.maximize()
+    }
+  })
+  ipcMain.handle('window:close', () => win?.close())
+  ipcMain.handle('window:isMaximized', () => win?.isMaximized() ?? false)
 
   initDatabase()
   initWebviewSource()

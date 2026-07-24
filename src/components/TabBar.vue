@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import WindowControls from './WindowControls.vue'
 
 const props = defineProps<{
   tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string }[]
@@ -53,35 +54,31 @@ const emit = defineEmits<{
 
 const tabsContainer = ref<HTMLDivElement | null>(null)
 
+// 滚动到当前激活的 tab
+const scrollToActiveTab = () => {
+  if (!tabsContainer.value || !props.currentTabId) return
+  const activeTab = tabsContainer.value.querySelector('.tab.active') as HTMLElement
+  if (activeTab) {
+    activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  }
+}
+
 // 切换 tab 时确保可见
-watch(() => props.currentTabId, () => {
-  nextTick(() => {
-    if (!tabsContainer.value || !props.currentTabId) return
-    const activeTab = tabsContainer.value.querySelector('.tab.active') as HTMLElement
-    if (activeTab) {
-      activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-    }
-  })
-})
+watch(() => props.currentTabId, () => nextTick(scrollToActiveTab))
 
 let resizeObserver: ResizeObserver | null = null
+let resizeRaf: number | null = null
 
 onMounted(() => {
-  nextTick(() => {
-    if (!tabsContainer.value || !props.currentTabId) return
-    const activeTab = tabsContainer.value.querySelector('.tab.active') as HTMLElement
-    if (activeTab) {
-      activeTab.scrollIntoView({ block: 'nearest', inline: 'center' })
-    }
-  })
+  nextTick(scrollToActiveTab)
 
   if (tabsContainer.value) {
     resizeObserver = new ResizeObserver(() => {
-      if (!tabsContainer.value || !props.currentTabId) return
-      const activeTab = tabsContainer.value.querySelector('.tab.active') as HTMLElement
-      if (activeTab) {
-        activeTab.scrollIntoView({ block: 'nearest', inline: 'center' })
-      }
+      if (resizeRaf != null) return
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = null
+        scrollToActiveTab()
+      })
     })
     resizeObserver.observe(tabsContainer.value)
   }
@@ -89,6 +86,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   resizeObserver?.disconnect()
+  if (resizeRaf != null) cancelAnimationFrame(resizeRaf)
 })
 </script>
 
@@ -140,6 +138,9 @@ onUnmounted(() => {
         </button>
       </div>
     </div>
+
+    <!-- 窗口控制按钮 -->
+    <WindowControls />
   </div>
 </template>
 
@@ -151,6 +152,7 @@ onUnmounted(() => {
   box-sizing: border-box;
   flex-shrink: 0;
   background: #202124;
+  -webkit-app-region: drag;
 }
 
 .tab {
@@ -167,6 +169,7 @@ onUnmounted(() => {
   max-width: 220px;
   transition: background 0.15s ease;
   margin-right: 1px;
+  -webkit-app-region: no-drag;
 }
 
 .tab::after {
@@ -320,6 +323,7 @@ onUnmounted(() => {
   align-self: flex-end;
   margin: 0 4px 4px 8px;
   transition: background 0.15s ease, color 0.15s ease;
+  -webkit-app-region: no-drag;
 }
 
 .add-btn:hover {
