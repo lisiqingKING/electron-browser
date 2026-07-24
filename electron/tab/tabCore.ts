@@ -177,9 +177,9 @@ export function updateCurTabBounds(tab: { info: TabInfo, view: WebContentsView }
   const [width, height] = win.getContentSize()
   tab.view.setBounds({
     x: 0,
-    y: 110,
+    y: 96,
     width,
-    height: height - 110
+    height: height - 96
   })
 }
 
