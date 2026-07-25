@@ -135,12 +135,6 @@ window.ipcRenderer.on('tab:can-navigate', (_event, data: { id: string; canGoBack
   }
 })
 
-// 主进程通知 renderer 切换到指定标签页
-window.ipcRenderer.on('tab:switch-to', async (_event, tabId: string) => {
-  await getTabsData()
-  currentTabId.value = tabId
-})
-
 window.ipcRenderer.on('tab:loading', (_event, data: { id: string; isLoading: boolean }) => {
   const index = tabs.value.findIndex(t => t.id === data.id)
   if (index !== -1) {

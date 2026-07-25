@@ -184,8 +184,5 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
   win.webContents.send('tab:list-changed')
   win.webContents.send('tab:loading', { id: enrichedTabInfo.id, isLoading: true })
 
-  // 通知 renderer 切换到新标签页
-  win.webContents.send('tab:switch-to', enrichedTabInfo.id)
-
   return enrichedTabInfo.id
 }
