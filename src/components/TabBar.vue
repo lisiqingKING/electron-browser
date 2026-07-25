@@ -151,7 +151,7 @@ onUnmounted(() => {
   align-items: flex-end;
   box-sizing: border-box;
   flex-shrink: 0;
-  background: #202124;
+  background: var(--tabbar-bg);
   -webkit-app-region: drag;
 }
 
@@ -168,7 +168,6 @@ onUnmounted(() => {
   min-width: 40px;
   max-width: 220px;
   transition: background 0.15s ease;
-  margin-right: 1px;
   -webkit-app-region: no-drag;
 }
 
@@ -179,7 +178,7 @@ onUnmounted(() => {
   top: 30%;
   bottom: 30%;
   width: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--tabbar-divider);
 }
 
 .tab::before {
@@ -194,7 +193,7 @@ onUnmounted(() => {
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--tabbar-hover-bg);
   border-radius: 12px 12px 0 0;
 }
 
@@ -214,8 +213,10 @@ onUnmounted(() => {
 }
 
 .tab.active {
-  background: #35363a;
-  border-radius: 12px 12px 0 0;
+  background: var(--tabbar-active-bg);
+  border-radius: 12px 12px 0 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
   z-index: 1;
 }
 
@@ -225,13 +226,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #8ab4f8;
+  color: var(--color-accent);
   flex-shrink: 0;
 }
 
 .loading-spinner {
   animation: spin 1s linear infinite;
-  color: #8ab4f8;
+  color: var(--color-accent);
 }
 
 @keyframes spin {
@@ -246,7 +247,7 @@ onUnmounted(() => {
 }
 
 .tab-title {
-  color: #e8eaed;
+  color: var(--tabbar-text-active);
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
@@ -257,7 +258,7 @@ onUnmounted(() => {
 }
 
 .tab:not(.active) .tab-title {
-  color: #9aa0a6;
+  color: var(--tabbar-text);
 }
 
 .close-btn {
@@ -266,7 +267,7 @@ onUnmounted(() => {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #9aa0a6;
+  color: var(--tabbar-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -278,8 +279,8 @@ onUnmounted(() => {
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e8eaed;
+  background: var(--tabbar-hover-bg);
+  color: var(--tabbar-text-active);
 }
 
 .tab.active .close-btn {
@@ -315,7 +316,7 @@ onUnmounted(() => {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #9aa0a6;
+  color: var(--tabbar-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -327,18 +328,18 @@ onUnmounted(() => {
 }
 
 .add-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e8eaed;
+  background: var(--tabbar-hover-bg);
+  color: var(--tabbar-text-active);
 }
 
 .memory-tooltip {
   position: fixed;
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: var(--tooltip-bg);
+  border: 1px solid var(--tooltip-border);
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 11px;
-  color: #9aa0a6;
+  color: var(--tooltip-text);
   white-space: nowrap;
   z-index: 9999;
   pointer-events: none;

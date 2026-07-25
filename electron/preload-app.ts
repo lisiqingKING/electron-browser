@@ -4,6 +4,7 @@ import { createHistoryProxy } from './modules/history'
 import { createAIConversationProxy } from './modules/aiConversation'
 import { createDownloadsProxy } from './downloads/ipc'
 import { createLogsProxy } from './modules/logs'
+import { createSettingsProxy } from './modules/settings'
 
 // 模块注册表 - 可以动态添加新模块
 const moduleRegistry: Record<string, () => Record<string, Function>> = {
@@ -12,6 +13,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   ai: () => createAIConversationProxy(ipcRenderer),
   downloads: () => createDownloadsProxy(ipcRenderer),
   logs: () => createLogsProxy(ipcRenderer),
+  settings: () => createSettingsProxy(ipcRenderer),
 }
 
 // 构建所有模块

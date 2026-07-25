@@ -1,9 +1,10 @@
 import { ipcMain, BrowserWindow, app } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab } from './tabCore'
+import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab, isInternalTab } from './tabCore'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
+import { getSetting, setSetting, getAllSettings } from '../settings/settingsManager'
 import {
   getAllChatSessions,
   createChatSession,
@@ -58,6 +59,13 @@ export function registerTabHandlers(win: BrowserWindow) {
     const url = env.getDownloadsUrl()
     console.log('[createDownloads] 加载 URL:', url)
     return createTabAndShow({ title: '下载管理', url }, win)
+  })
+
+  // 创建设置页
+  ipcMain.handle('tabs:createSettings', async () => {
+    const url = env.getSettingsUrl()
+    console.log('[createSettings] 加载 URL:', url)
+    return createTabAndShow({ title: '设置', url }, win)
   })
 
   // 刷新
@@ -126,6 +134,29 @@ export function registerTabHandlers(win: BrowserWindow) {
   ipcMain.handle('history:delete', async (_event, id: number) => {
     deleteRecord(id)
     return true
+  })
+
+  // 设置相关
+  ipcMain.handle('settings:get', async (_event, key: string) => {
+    return getSetting(key)
+  })
+
+  ipcMain.handle('settings:set', async (_event, key: string, value: string) => {
+    setSetting(key, value)
+    // 主题变化时只广播给内部页面
+    if (key === 'theme') {
+      win.webContents.send('settings:theme-changed', value)
+      for (const [, tab] of webContentViewMap) {
+        if (isInternalTab(tab)) {
+          tab.view.webContents.send('settings:theme-changed', value)
+        }
+      }
+    }
+    return true
+  })
+
+  ipcMain.handle('settings:getAll', async () => {
+    return getAllSettings()
   })
 
   // AI 会话相关

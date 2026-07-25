@@ -231,6 +231,11 @@ export function isInternalUrl(url: string): boolean {
   return url.startsWith('lsqapp://') || url.startsWith(env.getAppUrl())
 }
 
+export function isInternalTab(tab: { info: { url: string; actualUrl?: string } }): boolean {
+  const url = tab.info.actualUrl || tab.info.url
+  return isInternalUrl(url) || isAppUrl(url)
+}
+
 export function getTitleForInternalUrl(url: string): string | null {
   if (!isInternalUrl(url)) return null
   try {

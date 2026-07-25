@@ -1,10 +1,14 @@
+@import './styles/tokens/primitive.css';
+@import './styles/tokens/light.css';
+@import './styles/tokens/dark.css';
+
 :root {
   font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f1220;
+  color-scheme: light dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -30,17 +34,17 @@ html, body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: var(--color-divider) !important;
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 120, 120, 0.6) !important;
+  background: var(--color-text-tertiary) !important;
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.8) !important;
+  background: var(--color-text-secondary) !important;
 }
 
 ::-webkit-scrollbar-corner {

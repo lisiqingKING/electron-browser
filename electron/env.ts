@@ -23,5 +23,9 @@ export const env = {
 
   getNewTabUrl(): string {
     return this.getUrl('newtab')
+  },
+
+  getSettingsUrl(): string {
+    return this.getUrl('settings')
   }
 }

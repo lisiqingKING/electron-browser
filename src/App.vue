@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
 import { isUrl } from './utils'
@@ -158,6 +158,42 @@ const openHistory = async () => {
   }
 }
 
+const openSettings = async () => {
+  const newTabId = await window.ipcRenderer.invoke('tabs:createSettings')
+  await getTabsData()
+  if (newTabId) {
+    currentTabId.value = newTabId
+  }
+}
+
+// 加载主题设置
+const loadTheme = async () => {
+  try {
+    const theme = await window.ipcRenderer.invoke('settings:get', 'theme')
+    if (theme === 'light') {
+      document.documentElement.classList.remove('dark')
+    } else {
+      document.documentElement.classList.add('dark')
+    }
+  } catch {
+    // 默认黑夜模式
+    document.documentElement.classList.add('dark')
+  }
+}
+
+// 监听主题变化
+window.ipcRenderer.on('settings:theme-changed', (_event, theme: string) => {
+  if (theme === 'light') {
+    document.documentElement.classList.remove('dark')
+  } else {
+    document.documentElement.classList.add('dark')
+  }
+})
+
+onMounted(() => {
+  loadTheme()
+})
+
 
 
 </script>
@@ -179,6 +215,7 @@ const openHistory = async () => {
       @goBack="handleGoBack"
       @goForward="handleGoForward"
       @openHistory="openHistory"
+      @openSettings="openSettings"
       @add="addTabByButton"
     />
   </div>

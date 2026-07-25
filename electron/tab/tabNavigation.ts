@@ -91,7 +91,8 @@ export function goForward(win: BrowserWindow) {
 
 function getTitleForUrl(tab: { info: { url: string }, view: { webContents: { getTitle: () => string } } }, pageTitle?: string): string {
   if (isAppUrl(tab.info.url)) {
-    return '新建标签页'
+    const webTitle = tab.view.webContents.getTitle()
+    return webTitle || '新建标签页'
   }
   return pageTitle || tab.view.webContents.getTitle()
 }

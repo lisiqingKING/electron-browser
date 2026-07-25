@@ -70,7 +70,7 @@ onUnmounted(() => {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #9aa0a6;
+  color: var(--window-btn-icon);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -79,12 +79,12 @@ onUnmounted(() => {
 }
 
 .window-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e8eaed;
+  background: var(--window-btn-hover);
+  color: var(--color-text-primary);
 }
 
 .window-btn.close:hover {
-  background: #c42b1c;
+  background: var(--window-btn-close-hover);
   color: white;
 }
 </style>

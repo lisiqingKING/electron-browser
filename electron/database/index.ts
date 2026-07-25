@@ -43,6 +43,15 @@ function initAIConversationTable(): void {
   `)
 }
 
+function initSettingsTable(): void {
+  getDatabase().exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    )
+  `)
+}
+
 function initDownloadsTable(): void {
   // 检查老 schema 是否有 source 列 (旧版本带 source/method/post_body/headers/http 路径)
   // 启动时把老表备份 + 重建, 把还在用的列拷过去, 删掉废弃列
@@ -128,6 +137,7 @@ export function initDatabase(): Database.Database {
   initTabsTable()
   initHistoryTable()
   initAIConversationTable()
+  initSettingsTable()
   initDownloadsTable()
 
   console.log('[Database] Initialized at:', DB_PATH)

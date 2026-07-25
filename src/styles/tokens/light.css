@@ -1,0 +1,41 @@
+/* Light Theme — 白天主题 */
+:root {
+  /* Semantic */
+  --color-bg-primary: var(--color-gray-50);
+  --color-bg-secondary: var(--color-gray-100);
+  --color-bg-tertiary: #ffffff;
+  --color-text-primary: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-700);
+  --color-text-tertiary: var(--color-gray-500);
+  --color-accent: var(--color-blue-500);
+  --color-accent-hover: var(--color-blue-400);
+  --color-border: var(--color-gray-300);
+  --color-divider: var(--color-gray-200);
+
+  /* Component — TabBar */
+  --tabbar-bg: var(--color-gray-100);
+  --tabbar-active-bg: #ffffff;
+  --tabbar-hover-bg: rgba(0, 0, 0, 0.04);
+  --tabbar-text: var(--color-gray-700);
+  --tabbar-text-active: var(--color-gray-900);
+  --tabbar-divider: rgba(0, 0, 0, 0.08);
+
+  /* Component — UrlBar */
+  --urlbar-bg: #ffffff;
+  --urlbar-input-bg: #ffffff;
+  --urlbar-input-border: var(--color-gray-200);
+  --urlbar-input-border-focus: var(--color-blue-500);
+  --urlbar-icon: var(--color-gray-600);
+  --urlbar-icon-hover: var(--color-gray-900);
+  --urlbar-icon-disabled: var(--color-gray-400);
+
+  /* Component — WindowControls */
+  --window-btn-icon: var(--color-gray-600);
+  --window-btn-hover: var(--color-gray-200);
+  --window-btn-close-hover: var(--color-red-500);
+
+  /* Component — Tooltip */
+  --tooltip-bg: var(--color-gray-800);
+  --tooltip-border: var(--color-gray-600);
+  --tooltip-text: var(--color-gray-400);
+}
