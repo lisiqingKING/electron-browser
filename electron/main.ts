@@ -9,6 +9,7 @@ import { getDownloadManager } from './downloads/downloadManager'
 import { initWebviewSource } from './downloads/sources/webviewSource'
 import { registerMemoryMonitorHandler, getMemoryMonitor } from './memory/memoryMonitor'
 import { createAlertHandler } from './memory/alertLogger'
+import { createTray, destroyTray } from './tray/trayManager'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -71,15 +72,16 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.webContents.openDevTools()
   }
+
+  createTray(win)
 }
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
+  // 不自动退出，让托盘保持应用运行
 })
 
 app.on('will-quit', () => {
+  destroyTray()
   getMemoryMonitor().stopMonitor()
   closeDatabase()
   stopSubappServer()
@@ -125,7 +127,7 @@ app.whenReady().then(async () => {
       win?.maximize()
     }
   })
-  ipcMain.handle('window:close', () => win?.close())
+  ipcMain.handle('window:close', () => win?.hide())
   ipcMain.handle('window:isMaximized', () => win?.isMaximized() ?? false)
 
   initDatabase()

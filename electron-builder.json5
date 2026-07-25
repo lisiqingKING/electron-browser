@@ -19,6 +19,10 @@
       "from": "apps",
       "to": "apps",
       "filter": ["**/*"]
+    },
+    {
+      "from": "build",
+      "to": "build"
     }
   ],
   "mac": {
