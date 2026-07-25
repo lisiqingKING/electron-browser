@@ -1,7 +1,8 @@
-import { WebContentsView, BrowserWindow, Menu } from 'electron'
+import { WebContentsView, BrowserWindow } from 'electron'
+import contextMenu from 'electron-context-menu'
 import { recordVisit, updateFaviconByTabUrl } from '../history/historyManager'
 import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
-import { updateNavigationState, tryRestoreLoadError } from './tabNavigation'
+import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
 import { isUrl } from '../../src/utils'
 import { env } from '../env'
 
@@ -238,22 +239,41 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
   )
 
   // 右键菜单
-  view.webContents.on('context-menu', (_event, params) => {
-    const menuItems: Electron.MenuItemConstructorOptions[] = []
+  contextMenu({
+    window: view.webContents,
+    menu: (_defaultActions, parameters) => {
+      const items: Electron.MenuItemConstructorOptions[] = []
 
-    if (params.isEditable) {
-      menuItems.push({ label: '剪切', role: 'cut' })
-      menuItems.push({ label: '复制', role: 'copy' })
-      menuItems.push({ label: '粘贴', role: 'paste' })
-      menuItems.push({ type: 'separator' })
+      // 刷新
+      items.push({ label: '刷新', click: () => view.webContents.reload() })
+      items.push({ type: 'separator' })
+
+      // 可编辑区域：剪切/复制/粘贴
+      if (parameters.isEditable) {
+        items.push({ label: '剪切', click: () => view.webContents.cut() })
+        items.push({ label: '复制', click: () => view.webContents.copy() })
+        items.push({ label: '粘贴', click: () => view.webContents.paste() })
+        items.push({ type: 'separator' })
+      }
+
+      // 链接：复制链接
+      if (parameters.linkURL) {
+        items.push({ label: '复制链接', click: () => view.webContents.copy() })
+      }
+
+      // 图片：复制图片 / 复制图片地址 / 在新标签页打开
+      if (parameters.mediaType === 'image') {
+        items.push({ label: '复制图片', click: () => view.webContents.copyImageAt(parameters.x, parameters.y) })
+        if (parameters.srcURL) {
+          items.push({ label: '在新标签页打开图片', click: () => createTabAndShow({ title: '图片', url: parameters.srcURL }, win) })
+        }
+      }
+
+      // 检查元素
+      items.push({ type: 'separator' })
+      items.push({ label: '检查元素', click: () => view.webContents.inspectElement(parameters.x, parameters.y) })
+
+      return items
     }
-
-    menuItems.push(
-      { label: '刷新', role: 'reload' },
-      { label: '开发者工具', click: () => view.webContents.openDevTools() }
-    )
-
-    const menu = Menu.buildFromTemplate(menuItems)
-    menu.popup()
   })
 }
