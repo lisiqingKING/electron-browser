@@ -1,5 +1,5 @@
 import { WebContentsView, BrowserWindow, Menu } from 'electron'
-import { recordVisit } from '../history/historyManager'
+import { recordVisit, updateFaviconByTabUrl } from '../history/historyManager'
 import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
 import { updateNavigationState, tryRestoreLoadError } from './tabNavigation'
 import { isUrl } from '../../src/utils'
@@ -151,7 +151,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       } else if (!isAppUrl(tab.info.url)) {
         tab.info.url = newUrl
         tab.info.title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title)
-        recordVisit(tab.info.title, newUrl)
+        recordVisit(tab.info.title, newUrl, tab.info.favicon)
         win.webContents.send('tab:info-changed', tab.info)
       }
       updateNavigationState(tabId, win)
@@ -221,6 +221,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     const tab = webContentViewMap.get(tabId)
     if (tab && favicons.length > 0) {
       tab.info.favicon = favicons[0]
+      updateFaviconByTabUrl(tab.info.url, favicons[0])
       win.webContents.send('tab:info-changed', tab.info)
     }
   })

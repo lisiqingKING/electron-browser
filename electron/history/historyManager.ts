@@ -4,6 +4,7 @@ import {
   deleteHistoryById as deleteHistoryByIdFromDb,
   clearAll as clearAllFromDb,
   trimHistory as trimHistoryFromDb,
+  updateFaviconByUrl as updateFaviconByUrlFromDb,
   type HistoryItem
 } from './historyDb'
 
@@ -29,14 +30,14 @@ export function getHistory(): HistoryItem[] {
 }
 
 // 记录访问
-export function recordVisit(title: string, url: string): void {
+export function recordVisit(title: string, url: string, favicon?: string): void {
   const visitedAt = Date.now()
 
   // 添加到数据库
-  const id = addHistoryToDb({ title, url, visitedAt })
+  const id = addHistoryToDb({ title, url, visitedAt, favicon })
 
   // 添加到内存缓存开头
-  historyCache.unshift({ id, title, url, visitedAt })
+  historyCache.unshift({ id, title, url, visitedAt, favicon })
 
   // 限制最多 100 条
   if (historyCache.length > 100) {
@@ -58,4 +59,14 @@ export function deleteRecord(id: number): void {
 export function clearAllHistory(): void {
   historyCache.length = 0
   clearAllFromDb()
+}
+
+// 更新最近一条历史记录的 favicon
+export function updateFaviconByTabUrl(url: string, favicon: string): void {
+  updateFaviconByUrlFromDb(url, favicon)
+  // 同步更新内存缓存
+  const item = historyCache.find(h => h.url === url)
+  if (item) {
+    item.favicon = favicon
+  }
 }

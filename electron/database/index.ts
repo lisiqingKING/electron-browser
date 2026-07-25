@@ -26,9 +26,17 @@ function initHistoryTable(): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       url TEXT NOT NULL,
-      visitedAt INTEGER NOT NULL
+      visitedAt INTEGER NOT NULL,
+      favicon TEXT
     )
   `)
+
+  // 给已存在的表添加 favicon 列（如果不存在）
+  try {
+    getDatabase().exec('ALTER TABLE history ADD COLUMN favicon TEXT')
+  } catch {
+    // 列已存在，忽略
+  }
 }
 
 function initAIConversationTable(): void {
