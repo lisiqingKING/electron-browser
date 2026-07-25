@@ -17,6 +17,11 @@ export interface TabInfo {
   isLoading?: boolean
   favicon?: string      // 网页 favicon URL
   isHome?: boolean      // 首页 tab，不可关闭
+  loadError?: {         // 页面加载错误信息
+    url: string
+    code: number
+    message: string
+  }
 }
 
 export interface TabHistoryEntry {

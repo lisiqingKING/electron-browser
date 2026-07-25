@@ -27,5 +27,18 @@ export const env = {
 
   getSettingsUrl(): string {
     return this.getUrl('settings')
+  },
+
+  getErrorUrl(params: { url: string; code: number; error: string }): string {
+    const query = new URLSearchParams({
+      url: params.url,
+      code: params.code.toString(),
+      error: params.error
+    }).toString()
+    const route = `error?${query}`
+    if (!app.isPackaged) {
+      return `http://localhost:5273/#/${route}`
+    }
+    return `lsqapp://internal-app/${route}`
   }
 }

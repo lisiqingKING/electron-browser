@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import WindowControls from './WindowControls.vue'
 
 const props = defineProps<{
-  tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string }[]
+  tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string; loadError?: { url: string; code: number; message: string } }[]
   currentTabId: string | null
 }>()
 
@@ -114,6 +114,10 @@ onUnmounted(() => {
             <!-- 加载中：环状动画 -->
             <svg v-if="tab.isLoading" class="loading-spinner" viewBox="0 0 24 24" width="16" height="16">
               <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="31.4 31.4" stroke-linecap="round"/>
+            </svg>
+            <!-- 加载失败：感叹号 -->
+            <svg v-else-if="tab.loadError" class="error-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
             </svg>
             <!-- 有 favicon 且未加载失败 -->
             <img v-else-if="tab.favicon && !failedFavicons.has(tab.favicon)" :src="tab.favicon" class="favicon-img" @error="onFaviconError(tab.favicon!)" @load="onFaviconLoad(tab.favicon!)" />
@@ -238,6 +242,10 @@ onUnmounted(() => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.error-icon {
+  color: var(--color-status-error, #dc2626);
 }
 
 .favicon-img {

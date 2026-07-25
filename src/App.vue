@@ -13,6 +13,11 @@ interface TabInfo {
   isLoading?: boolean
   favicon?: string
   isHome?: boolean
+  loadError?: {
+    url: string
+    code: number
+    message: string
+  }
 }
 
 const tabs = ref<TabInfo[]>([])
@@ -30,13 +35,17 @@ const updateCurrentUrl = () => {
       const curTabInfo = tabs.value.find(item => item.id === currentTabId.value)
       if(!curTabInfo) return
 
-      const url = curTabInfo.url
-
       // 新标签页不显示 URL
-      if (isNewTabUrl(url)) {
+      if (isNewTabUrl(curTabInfo.url)) {
         currentUrl.value = ''
+        return
+      }
+
+      // 加载失败时，显示原始 URL（非错误页面 URL）
+      if (curTabInfo.loadError) {
+        currentUrl.value = curTabInfo.loadError.url
       } else {
-        currentUrl.value = url
+        currentUrl.value = curTabInfo.url
       }
     }
 }
@@ -51,12 +60,20 @@ const addTab = async () => {
 
   let url = input
 
-  // apps:// 协议直接发送，不走搜索
-  if (!input.startsWith('apps://') && !isUrl(input)) {
+  // apps:// 协议直接发送
+  if (input.startsWith('apps://')) {
+    // 不处理
+  } else if (isUrl(input)) {
+    // 如果是 URL 但没有协议，补全 https://
+    if (!/^(https?:\/\/|lsqapp:\/\/|open-lsqapp:\/\/)/i.test(input)) {
+      url = `https://${input}`
+    }
+  } else {
+    // 作为搜索关键词
     url = `https://www.baidu.com/s?wd=${encodeURIComponent(input)}`
-    currentUrl.value = url
   }
 
+  currentUrl.value = url
   window.ipcRenderer.send('tabs:updateUrl', url)
 }
 
@@ -106,6 +123,9 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
     // 新标签页不显示 URL
     if (isNewTabUrl(tabInfo.url)) {
       currentUrl.value = ''
+    } else if (tabInfo.loadError) {
+      // 加载失败时，显示原始 URL
+      currentUrl.value = tabInfo.loadError.url
     } else {
       currentUrl.value = tabInfo.url
     }

@@ -29,6 +29,27 @@ export function updateNavigationState(tabId: string, win: BrowserWindow) {
   }
 }
 
+// 检测 URL 是否是错误页面 URL，如果是则恢复 loadError 状态（会修改 tab.info）
+export function tryRestoreLoadError(tab: { info: TabInfo }, newUrl: string): boolean {
+  if (tab.info.loadError || !newUrl.includes('/error?url=')) return false
+  try {
+    const hashPart = newUrl.split('#')[1] || ''
+    const queryString = hashPart.split('?')[1] || ''
+    const params = new URLSearchParams(queryString)
+    const failedUrl = params.get('url') || ''
+    const errorCode = parseInt(params.get('code') || '') || -1
+    const errorDesc = params.get('error') || ''
+
+    if (failedUrl) {
+      tab.info.loadError = { url: failedUrl, code: errorCode, message: errorDesc }
+      tab.info.url = failedUrl
+      tab.info.title = getDomainFromUrl(failedUrl) || failedUrl
+      return true
+    }
+  } catch {}
+  return false
+}
+
 export function goBack(win: BrowserWindow) {
   const tab = getCurTab()
   if (!tab) {
@@ -47,8 +68,19 @@ export function goBack(win: BrowserWindow) {
   // 监听导航完成，导航完成后自动更新 URL
   const finishHandler = () => {
     console.log('[goBack] navigation finished, newUrl:', tab.view.webContents.getURL())
-    tab.info.url = tab.view.webContents.getURL()
-    tab.info.actualUrl = tab.info.url
+    const newUrl = tab.view.webContents.getURL()
+
+    // 检测是否是错误页面 URL，恢复 loadError 状态
+    if (tryRestoreLoadError(tab, newUrl)) {
+      win.webContents.send('tab:info-changed', tab.info)
+      updateNavigationState(tab.info.id!, win)
+      return
+    }
+
+    // 正常页面，清除加载错误状态
+    tab.info.loadError = undefined
+    tab.info.url = newUrl
+    tab.info.actualUrl = newUrl
     win.webContents.send('tab:info-changed', tab.info)
     updateNavigationState(tab.info.id!, win)
   }
@@ -77,8 +109,19 @@ export function goForward(win: BrowserWindow) {
   // 监听导航完成，导航完成后自动更新 URL
   const finishHandler = () => {
     console.log('[goForward] navigation finished, newUrl:', tab.view.webContents.getURL())
-    tab.info.url = tab.view.webContents.getURL()
-    tab.info.actualUrl = tab.info.url
+    const newUrl = tab.view.webContents.getURL()
+
+    // 检测是否是错误页面 URL，恢复 loadError 状态
+    if (tryRestoreLoadError(tab, newUrl)) {
+      win.webContents.send('tab:info-changed', tab.info)
+      updateNavigationState(tab.info.id!, win)
+      return
+    }
+
+    // 正常页面，清除加载错误状态
+    tab.info.loadError = undefined
+    tab.info.url = newUrl
+    tab.info.actualUrl = newUrl
     win.webContents.send('tab:info-changed', tab.info)
     updateNavigationState(tab.info.id!, win)
   }
@@ -100,8 +143,17 @@ function getTitleForUrl(tab: { info: { url: string }, view: { webContents: { get
 export function refreshCurTab(win: BrowserWindow) {
   const tab = getCurTab()
   if (tab) {
+    // 如果有加载错误，重新加载原始 URL 而不是当前页面
+    const urlToLoad = tab.info.loadError ? tab.info.loadError.url : null
+
     tab.view.webContents.once('did-finish-load', () => {
       if (tab.info.id) {
+        // 如果 loadError 仍然存在，说明原始 URL 再次加载失败，不更新 URL
+        if (tab.info.loadError) {
+          updateNavigationState(tab.info.id, win)
+          return
+        }
+
         const newUrl = tab.view.webContents.getURL()
         if (tab.info.url.startsWith('lsqapp://')) {
           tab.info.actualUrl = newUrl
@@ -112,13 +164,23 @@ export function refreshCurTab(win: BrowserWindow) {
         win.webContents.send('tab:info-changed', tab.info)
       }
     })
-    tab.view.webContents.reload()
+
+    if (urlToLoad) {
+      // 有加载错误时，用 location.replace 加载原始 URL（不添加新历史记录）
+      const safeUrl = urlToLoad.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+      tab.view.webContents.executeJavaScript(`location.replace('${safeUrl}')`)
+    } else {
+      tab.view.webContents.reload()
+    }
   }
 }
 
 export function updateCurTabUrl(url: string, win: BrowserWindow) {
   const tab = getCurTab()
   if (tab) {
+    // 用户通过URL栏主动输入时，清除之前的加载错误状态
+    tab.info.loadError = undefined
+
     // 先设置 URL，再加载，确保 did-start-loading 触发时 URL 已更新
     tab.info.url = url
 
@@ -141,11 +203,7 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
     }
 
     // isLoading 由 did-start-loading / did-stop-loading 事件统一管理
-
-    tab.view.webContents.once('page-title-updated', () => {
-      tab.info.title = tab.view.webContents.getTitle()
-      win.webContents.send('tab:info-changed', tab.info)
-    })
+    // page-title-updated 由 tabEvents.ts 统一处理
   }
 }
 
