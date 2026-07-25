@@ -15,9 +15,17 @@ function initTabsTable(): void {
       title TEXT NOT NULL DEFAULT '',
       url TEXT NOT NULL DEFAULT '',
       createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL
+      updatedAt INTEGER NOT NULL,
+      isActive INTEGER NOT NULL DEFAULT 0
     )
   `)
+
+  // 兼容旧表：添加 isActive 列（如果不存在）
+  try {
+    getDatabase().exec('ALTER TABLE tabs ADD COLUMN isActive INTEGER NOT NULL DEFAULT 0')
+  } catch {
+    // 列已存在，忽略
+  }
 }
 
 function initHistoryTable(): void {
@@ -166,4 +174,84 @@ export function closeDatabase(): void {
     db = null
     console.log('[Database] Closed')
   }
+}
+
+// ============ 标签页持久化 ============
+
+interface TabRow {
+  id: string
+  title: string
+  url: string
+  createdAt: number
+  updatedAt: number
+  isActive: number
+}
+
+export function saveTabs(
+  tabList: { id?: string; title: string; url: string; time?: number; isHome?: boolean }[],
+  currentTabId: string | null
+): void {
+  const database = getDatabase()
+  const now = Date.now()
+
+  database.exec('DELETE FROM tabs')
+
+  const insert = database.prepare(
+    'INSERT INTO tabs (id, title, url, createdAt, updatedAt, isActive) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+
+  const insertMany = database.transaction(() => {
+    for (const tab of tabList) {
+      if (!tab.id || tab.isHome) continue
+      const isActive = tab.id === currentTabId ? 1 : 0
+      insert.run(tab.id, tab.title, tab.url, tab.time || now, now, isActive)
+    }
+  })
+
+  insertMany()
+  console.log('[Database] Saved', tabList.length, 'tabs')
+}
+
+export function loadTabs(excludeUrl?: string): { tabs: TabRow[]; currentTabId: string | null } {
+  const database = getDatabase()
+
+  const tabs = database
+    .prepare('SELECT * FROM tabs ORDER BY createdAt ASC')
+    .all() as TabRow[]
+
+  // 过滤掉首页标签（每次启动都会创建，不需要恢复）
+  const filtered = excludeUrl ? tabs.filter((t) => t.url !== excludeUrl) : tabs
+
+  const activeTab = filtered.find((t) => t.isActive === 1)
+  const currentTabId = activeTab?.id || filtered[0]?.id || null
+
+  console.log('[Database] Loaded', filtered.length, 'tabs')
+  return { tabs: filtered, currentTabId }
+}
+
+export function insertTab(tab: { id: string; title: string; url: string; time: number }): void {
+  const database = getDatabase()
+  database
+    .prepare(
+      'INSERT OR REPLACE INTO tabs (id, title, url, createdAt, updatedAt, isActive) VALUES (?, ?, ?, ?, ?, 0)'
+    )
+    .run(tab.id, tab.title, tab.url, tab.time, tab.time)
+}
+
+export function deleteTab(id: string): void {
+  const database = getDatabase()
+  database.prepare('DELETE FROM tabs WHERE id = ?').run(id)
+}
+
+export function updateTabUrl(id: string, url: string): void {
+  const database = getDatabase()
+  database
+    .prepare('UPDATE tabs SET url = ?, updatedAt = ? WHERE id = ?')
+    .run(url, Date.now(), id)
+}
+
+export function setActiveTab(id: string): void {
+  const database = getDatabase()
+  database.exec('UPDATE tabs SET isActive = 0')
+  database.prepare('UPDATE tabs SET isActive = 1 WHERE id = ?').run(id)
 }

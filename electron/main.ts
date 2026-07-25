@@ -2,7 +2,8 @@ import { app, BrowserWindow, Menu, protocol, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
-import { initDatabase, closeDatabase } from './database/index'
+import { tabs, curTabId, webContentViewMap, setCurTabId } from './tab/tabCore'
+import { initDatabase, closeDatabase, saveTabs, loadTabs } from './database/index'
 import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
 import { getDownloadManager } from './downloads/downloadManager'
@@ -47,11 +48,40 @@ function createWindow() {
   // 创建首页标签页（常驻不可关闭）
   const appUrl = env.getAppUrl()
   console.log('[createWindow] 加载 app URL:', appUrl)
-  createTabAndShow({
+  const homeTabId = createTabAndShow({
     title: '首页',
     url: appUrl,
     isHome: true
   }, win)
+
+  // 恢复上次保存的标签
+  const saved = loadTabs(env.getAppUrl())
+  if (saved.tabs.length > 0) {
+    const idMap = new Map<string, string>() // savedId → newId
+
+    for (const savedTab of saved.tabs) {
+      try {
+        const newId = createTabAndShow({ title: savedTab.title, url: savedTab.url }, win)
+        if (newId) idMap.set(savedTab.id, newId)
+      } catch (err) {
+        console.error('[createWindow] 恢复标签失败:', savedTab.url, err)
+      }
+    }
+
+    // 切换到最后活跃的标签
+    const targetNewId = idMap.get(saved.currentTabId!)
+    if (targetNewId) {
+      const targetTab = webContentViewMap.get(targetNewId)
+      if (targetTab) {
+        const homeTab = webContentViewMap.get(homeTabId!)
+        if (homeTab?.view) win.contentView.removeChildView(homeTab.view)
+        win.contentView.addChildView(targetTab.view)
+        updateCurTabBounds(targetTab, win)
+        setCurTabId(targetNewId)
+        win.webContents.send('tab:current-changed', { currentTabId: targetNewId })
+      }
+    }
+  }
 
   // 统一在 window 层面处理 resize
   win.on('resize', () => {
@@ -80,6 +110,10 @@ function createWindow() {
 
 app.on('window-all-closed', () => {
   // 不自动退出，让托盘保持应用运行
+})
+
+app.on('before-quit', () => {
+  saveTabs(tabs, curTabId)
 })
 
 app.on('will-quit', () => {

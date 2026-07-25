@@ -14,6 +14,7 @@ import {
 } from '../ai/aiConversationManager'
 import { env } from '../env'
 import { registerDownloadHandlers } from '../downloads/downloadHandlers'
+import { insertTab, deleteTab, updateTabUrl, setActiveTab } from '../database/index'
 
 export { webContentViewMap, updateCurTabBounds, getCurTab, openDevToolsForCurTab } from './tabCore'
 export { createTabAndShow }
@@ -25,8 +26,13 @@ export function registerTabHandlers(win: BrowserWindow) {
   })
 
   // 创建普通标签页
-  ipcMain.handle('tabs:create', async (_event, tabInfo: { title: string; url: string }, afterTabId?: string) => {
-    return createTabAndShow(tabInfo, win, afterTabId)
+  ipcMain.handle('tabs:create', async (_event, tabInfo: { title: string; url: string; isHome?: boolean }, afterTabId?: string) => {
+    const id = createTabAndShow(tabInfo, win, afterTabId)
+    if (id && !tabInfo.isHome) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
   })
 
   // 创建首页（常驻不可关闭）
@@ -44,28 +50,48 @@ export function registerTabHandlers(win: BrowserWindow) {
   ipcMain.handle('tabs:createDefault', async (_event, afterTabId?: string) => {
     const url = env.getNewTabUrl()
     console.log('[createDefault] 加载 URL:', url)
-    return createTabAndShow({ title: '新标签页', url }, win, afterTabId)
+    const id = createTabAndShow({ title: '新标签页', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
   })
 
   // 创建历史页
   ipcMain.handle('tabs:createHistory', async (_event, afterTabId?: string) => {
     const url = env.getHistoryUrl()
     console.log('[createHistory] 加载 URL:', url)
-    return createTabAndShow({ title: '历史记录', url }, win, afterTabId)
+    const id = createTabAndShow({ title: '历史记录', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
   })
 
   // 创建下载管理页 (dev 走 Vite, packaged 走 lsqapp:// 协议)
   ipcMain.handle('tabs:createDownloads', async (_event, afterTabId?: string) => {
     const url = env.getDownloadsUrl()
     console.log('[createDownloads] 加载 URL:', url)
-    return createTabAndShow({ title: '下载管理', url }, win, afterTabId)
+    const id = createTabAndShow({ title: '下载管理', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
   })
 
   // 创建设置页
   ipcMain.handle('tabs:createSettings', async (_event, afterTabId?: string) => {
     const url = env.getSettingsUrl()
     console.log('[createSettings] 加载 URL:', url)
-    return createTabAndShow({ title: '设置', url }, win, afterTabId)
+    const id = createTabAndShow({ title: '设置', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
   })
 
   // 刷新
@@ -79,6 +105,8 @@ export function registerTabHandlers(win: BrowserWindow) {
     const resolvedUrl = resolveAppsUrl(url) || url
     updateCurTabUrl(resolvedUrl, win)
     updateCurTabBounds(webContentViewMap.get(getCurTab()?.info.id!)!, win)
+    const curTab = getCurTab()
+    if (curTab) updateTabUrl(curTab.info.id!, resolvedUrl)
   })
 
   // 切换标签
@@ -101,6 +129,7 @@ export function registerTabHandlers(win: BrowserWindow) {
       console.log('[tabs:switch] tabId:', tabId, 'canGoBack:', canGoBack, 'canGoForward:', canGoForward)
       win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
       win.webContents.send('tab:current-changed', { currentTabId: tabId })
+      setActiveTab(tabId)
     }
     return true
   })
@@ -108,6 +137,7 @@ export function registerTabHandlers(win: BrowserWindow) {
   // 关闭标签
   ipcMain.handle('tabs:close', async (_event, tabId: string) => {
     const newCurTabId = closeTab(tabId, win)
+    deleteTab(tabId)
     win.webContents.send('tab:list-changed', getTabListData())
     return newCurTabId
   })
@@ -122,39 +152,31 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   // 关闭其他标签
   ipcMain.on('tabs:closeOthers', (_event, tabId: string) => {
-    for (const tab of tabs) {
-      if (tab.id !== tabId && !tab.isHome) {
-        closeTab(tab.id!, win)
-      }
-    }
+    const closedIds = tabs.filter((t) => t.id !== tabId && !t.isHome).map((t) => t.id!)
+    closedIds.forEach((id) => closeTab(id, win))
+    closedIds.forEach(deleteTab)
     win.webContents.send('tab:list-changed', getTabListData())
   })
 
   // 关闭左侧标签
   ipcMain.on('tabs:closeLeft', (_event, tabId: string) => {
-    const targetIndex = tabs.findIndex(t => t.id === tabId)
+    const targetIndex = tabs.findIndex((t) => t.id === tabId)
     if (targetIndex === -1) return
 
-    // 从后往前遍历，避免 splice 导致索引变化
-    for (let i = targetIndex - 1; i >= 0; i--) {
-      if (!tabs[i].isHome) {
-        closeTab(tabs[i].id!, win)
-      }
-    }
+    const closedIds = tabs.slice(0, targetIndex).filter((t) => !t.isHome).map((t) => t.id!)
+    closedIds.forEach((id) => closeTab(id, win))
+    closedIds.forEach(deleteTab)
     win.webContents.send('tab:list-changed', getTabListData())
   })
 
   // 关闭右侧标签
   ipcMain.on('tabs:closeRight', (_event, tabId: string) => {
-    const targetIndex = tabs.findIndex(t => t.id === tabId)
+    const targetIndex = tabs.findIndex((t) => t.id === tabId)
     if (targetIndex === -1) return
 
-    // 从后往前遍历，避免 splice 导致索引变化
-    for (let i = tabs.length - 1; i > targetIndex; i--) {
-      if (!tabs[i].isHome) {
-        closeTab(tabs[i].id!, win)
-      }
-    }
+    const closedIds = tabs.slice(targetIndex + 1).filter((t) => !t.isHome).map((t) => t.id!)
+    closedIds.forEach((id) => closeTab(id, win))
+    closedIds.forEach(deleteTab)
     win.webContents.send('tab:list-changed', getTabListData())
   })
 

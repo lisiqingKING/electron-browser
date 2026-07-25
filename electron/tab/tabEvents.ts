@@ -5,6 +5,7 @@ import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBound
 import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
 import { isUrl } from '../../src/utils'
 import { env } from '../env'
+import { insertTab, updateTabUrl } from '../database/index'
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
   if (isInternalUrl(tab.info.url)) {
@@ -37,6 +38,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     registerWebContentsEvents(newView, newTabInfo, win)
     win.contentView.addChildView(newView)
     updateCurTabBounds(webContentViewMap.get(newTabInfo.id!)!, win)
+    insertTab({ id: newTabInfo.id!, title: newTabInfo.title, url: newTabInfo.url, time: newTabInfo.time! })
     win.webContents.send('tab:list-changed', getTabListData())
 
     return { action: 'deny' }
@@ -153,6 +155,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         tab.info.url = newUrl
         tab.info.title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title)
         recordVisit(tab.info.title, newUrl, tab.info.favicon)
+        updateTabUrl(tabId, newUrl)
         win.webContents.send('tab:info-changed', tab.info)
       }
       updateNavigationState(tabId, win)
