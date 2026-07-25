@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import WindowControls from './WindowControls.vue'
+import { usePopup } from '../composables/usePopup'
 
 const props = defineProps<{
   tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string; loadError?: { url: string; code: number; message: string } }[]
@@ -54,6 +55,65 @@ const emit = defineEmits<{
 
 const tabsContainer = ref<HTMLDivElement | null>(null)
 
+// 右键菜单
+const { showMenu, hide: hidePopup, onAction } = usePopup()
+
+const tabMenuItems = [
+  { label: '刷新', action: 'reload', icon: '↻' },
+  { label: '在新标签页中打开', action: 'openInNewTab', icon: '+' },
+  { type: 'separator', action: 'sep1' },
+  { label: '关闭', action: 'close', icon: '×' },
+  { label: '关闭左侧标签页', action: 'closeLeft', icon: '←' },
+  { label: '关闭其他标签页', action: 'closeOthers', icon: '⊗' },
+  { label: '关闭右侧标签页', action: 'closeRight', icon: '→' },
+]
+
+const handleContextMenu = (event: MouseEvent, tabId: string) => {
+  const tab = props.tabs.find(t => t.id === tabId)
+  const isHome = tab?.isHome
+
+  const closeActions = ['close', 'closeLeft', 'openInNewTab']
+  const items = tabMenuItems.map(item => {
+    if (closeActions.includes(item.action)) {
+      return { ...item, disabled: isHome }
+    }
+    return item
+  })
+
+  showMenu(event, items, { tabId })
+}
+
+const cleanupOnAction = onAction(async (action, context) => {
+  const tabId = context?.tabId
+  if (!tabId) return
+
+  switch (action) {
+    case 'reload':
+      window.ipcRenderer.send('tabs:reload', tabId)
+      break
+    case 'openInNewTab': {
+      const tab = props.tabs.find(t => t.id === tabId)
+      if (tab) {
+        window.ipcRenderer.invoke('tabs:create', { title: tab.title, url: tab.url })
+      }
+      break
+    }
+    case 'close':
+      emit('close', tabId)
+      break
+    case 'closeOthers':
+      window.ipcRenderer.send('tabs:closeOthers', tabId)
+      break
+    case 'closeLeft':
+      window.ipcRenderer.send('tabs:closeLeft', tabId)
+      break
+    case 'closeRight':
+      window.ipcRenderer.send('tabs:closeRight', tabId)
+      break
+  }
+  hidePopup()
+})
+
 // 滚动到当前激活的 tab
 const scrollToActiveTab = () => {
   if (!tabsContainer.value || !props.currentTabId) return
@@ -85,6 +145,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  cleanupOnAction()
   resizeObserver?.disconnect()
   if (resizeRaf != null) cancelAnimationFrame(resizeRaf)
 })
@@ -109,6 +170,7 @@ onUnmounted(() => {
           @click="emit('switch', tab.id!)"
           @mouseenter="onTabEnter($event, tab)"
           @mouseleave="onTabLeave"
+          @contextmenu="handleContextMenu($event, tab.id!)"
         >
           <div class="tab-favicon">
             <!-- 加载中：环状动画 -->

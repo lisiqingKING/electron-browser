@@ -111,6 +111,59 @@ export function registerTabHandlers(win: BrowserWindow) {
     return newCurTabId
   })
 
+  // 刷新指定标签
+  ipcMain.on('tabs:reload', (_event, tabId: string) => {
+    const tab = webContentViewMap.get(tabId)
+    if (tab) {
+      tab.view.webContents.reload()
+    }
+  })
+
+  // 关闭其他标签
+  ipcMain.on('tabs:closeOthers', (_event, tabId: string) => {
+    const tabs = [...webContentViewMap.values()]
+    let newCurTabId: string | null = null
+    for (const tab of tabs) {
+      if (tab.info.id !== tabId && !tab.info.isHome) {
+        const result = closeTab(tab.info.id!, win)
+        if (result) newCurTabId = result
+      }
+    }
+    win.webContents.send('tab:list-changed', { newCurTabId: newCurTabId || tabId })
+  })
+
+  // 关闭左侧标签
+  ipcMain.on('tabs:closeLeft', (_event, tabId: string) => {
+    const tabs = [...webContentViewMap.values()]
+    const targetIndex = tabs.findIndex(t => t.info.id === tabId)
+    if (targetIndex === -1) return
+
+    let newCurTabId: string | null = null
+    for (let i = 0; i < targetIndex; i++) {
+      if (!tabs[i].info.isHome) {
+        const result = closeTab(tabs[i].info.id!, win)
+        if (result) newCurTabId = result
+      }
+    }
+    win.webContents.send('tab:list-changed', { newCurTabId: newCurTabId || tabId })
+  })
+
+  // 关闭右侧标签
+  ipcMain.on('tabs:closeRight', (_event, tabId: string) => {
+    const tabs = [...webContentViewMap.values()]
+    const targetIndex = tabs.findIndex(t => t.info.id === tabId)
+    if (targetIndex === -1) return
+
+    let newCurTabId: string | null = null
+    for (let i = targetIndex + 1; i < tabs.length; i++) {
+      if (!tabs[i].info.isHome) {
+        const result = closeTab(tabs[i].info.id!, win)
+        if (result) newCurTabId = result
+      }
+    }
+    win.webContents.send('tab:list-changed', { newCurTabId: newCurTabId || tabId })
+  })
+
   // 后退
   ipcMain.on('tabs:goBack', () => {
     goBack(win)

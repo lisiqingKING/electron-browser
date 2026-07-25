@@ -87,7 +87,15 @@ const addTabByButton = async () => {
 
 const getTabsData = async () => {
   const res = await window.ipcRenderer.invoke('tabs:list')
-  tabs.value = res || []
+  // 合并时保留已有的 favicon（DB 可能尚未更新）
+  const prev = tabs.value
+  tabs.value = (res || []).map((t: TabInfo) => {
+    if (!t.favicon) {
+      const old = prev.find(p => p.id === t.id)
+      if (old?.favicon) t.favicon = old.favicon
+    }
+    return t
+  })
   // 初始化时 或 当前tab不在列表中时，设置 currentTabId
   if (!currentTabId.value || (res && !res.some((t: TabInfo) => t.id === currentTabId.value))) {
     // 优先选中首页 tab，否则选最后一个
@@ -132,11 +140,14 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
   }
 })
 
-window.ipcRenderer.on('tab:list-changed', async () => {
+window.ipcRenderer.on('tab:list-changed', async (_event, data?: { newCurTabId?: string }) => {
   const prevCount = tabs.value.length
   await getTabsData()
-  // 如果 tab 数量增加了，说明是新打开的标签，切换到最后一个
-  if (tabs.value.length > prevCount) {
+  // 批量关闭操作附带 newCurTabId
+  if (data?.newCurTabId) {
+    currentTabId.value = data.newCurTabId
+  } else if (tabs.value.length > prevCount) {
+    // 如果 tab 数量增加了，说明是新打开的标签，切换到最后一个
     currentTabId.value = tabs.value[tabs.value.length - 1]?.id || null
   }
 })

@@ -10,6 +10,7 @@ import { initWebviewSource } from './downloads/sources/webviewSource'
 import { registerMemoryMonitorHandler, getMemoryMonitor } from './memory/memoryMonitor'
 import { createAlertHandler } from './memory/alertLogger'
 import { createTray, destroyTray } from './tray/trayManager'
+import { registerPopupHandlers, setMainWindow } from './popup'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -74,6 +75,7 @@ function createWindow() {
   }
 
   createTray(win)
+  setMainWindow(win)
 }
 
 app.on('window-all-closed', () => {
@@ -133,6 +135,7 @@ app.whenReady().then(async () => {
   initDatabase()
   initWebviewSource()
   registerMemoryMonitorHandler()
+  registerPopupHandlers()
 
   // 依赖注入：将日志处理器注入给内存监控
   const monitor = getMemoryMonitor()
