@@ -2,17 +2,19 @@
 export const tabsChannels = {
   create: 'tabs:create',
   createDefault: 'tabs:createDefault',
+  createHome: 'tabs:createHome',
   createHistory: 'tabs:createHistory',
   createDownloads: 'tabs:createDownloads',
   list: 'tabs:list',
   switch: 'tabs:switch',
   close: 'tabs:close',
   refresh: 'tabs:refresh',
+  updateUrl: 'tabs:updateUrl',
   openDevTools: 'tabs:openDevTools',
 }
 
 // 返回值的方法（invoke）
-const invokeMethods = ['create', 'createDefault', 'createHistory', 'createDownloads', 'list', 'switch', 'close']
+const invokeMethods = ['create', 'createDefault', 'createHome', 'createHistory', 'createDownloads', 'list', 'switch', 'close']
 
 // 无返回值的方法（send）
 // const sendMethods = ['refresh', 'openDevTools']

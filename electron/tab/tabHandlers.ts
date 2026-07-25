@@ -28,11 +28,22 @@ export function registerTabHandlers(win: BrowserWindow) {
     return createTabAndShow(tabInfo, win)
   })
 
-  // 创建默认页
-  ipcMain.handle('tabs:createDefault', async () => {
+  // 创建首页（常驻不可关闭）
+  ipcMain.handle('tabs:createHome', async () => {
+    // 已有首页则不重复创建
+    const existing = [...webContentViewMap.values()].find(t => t.info.isHome)
+    if (existing) return existing.info.id
+
     const url = env.getAppUrl()
+    console.log('[createHome] 加载 URL:', url)
+    return createTabAndShow({ title: '首页', url, isHome: true }, win)
+  })
+
+  // 创建新标签页（搜索页）
+  ipcMain.handle('tabs:createDefault', async () => {
+    const url = env.getNewTabUrl()
     console.log('[createDefault] 加载 URL:', url)
-    return createTabAndShow({ title: '新建标签页', url }, win)
+    return createTabAndShow({ title: '新标签页', url }, win)
   })
 
   // 创建历史页

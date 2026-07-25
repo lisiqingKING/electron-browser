@@ -1,12 +1,15 @@
 import { WebContentsView, BrowserWindow, Menu } from 'electron'
 import { recordVisit } from '../history/historyManager'
-import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
+import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
 import { updateNavigationState } from './tabNavigation'
 import { isUrl } from '../../src/utils'
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
+  if (isInternalUrl(tab.info.url)) {
+    return getTitleForInternalUrl(tab.info.url) || pageTitle || '首页'
+  }
   if (isAppUrl(tab.info.url)) {
-    return '新建标签页'
+    return '首页'
   }
   return pageTitle
 }
@@ -46,8 +49,8 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
 
       // 设置加载中的标题
       let newTitle: string | null = null
-      if (tab.info.url.startsWith('lsqapp://')) {
-        // 内部页面显示固定标题
+      if (isInternalUrl(tab.info.url)) {
+        // 内部页面（协议 URL 或 dev URL）显示固定标题
         newTitle = getTitleForInternalUrl(tab.info.url)
       } else if (!isAppUrl(tab.info.url)) {
         // 外部 URL 显示域名

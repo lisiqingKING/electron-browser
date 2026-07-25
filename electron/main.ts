@@ -42,12 +42,13 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 
-  // 创建初始标签页
+  // 创建首页标签页（常驻不可关闭）
   const appUrl = env.getAppUrl()
   console.log('[createWindow] 加载 app URL:', appUrl)
   createTabAndShow({
-    title: '新建标签页',
-    url: appUrl
+    title: '首页',
+    url: appUrl,
+    isHome: true
   }, win)
 
   // 统一在 window 层面处理 resize

@@ -12,6 +12,7 @@ interface TabInfo {
   wcId?: number
   isLoading?: boolean
   favicon?: string
+  isHome?: boolean
 }
 
 const tabs = ref<TabInfo[]>([])
@@ -31,8 +32,8 @@ const updateCurrentUrl = () => {
 
       const url = curTabInfo.url
 
-      // 内置子应用默认页（internal-app）不显示 URL
-      if (url === 'lsqapp://internal-app') {
+      // 内置子应用默认页不显示 URL
+      if (url === 'lsqapp://internal-app' || url === 'http://localhost:5273/#/') {
         currentUrl.value = ''
       } else {
         currentUrl.value = url
@@ -72,7 +73,9 @@ const getTabsData = async () => {
   tabs.value = res || []
   // 初始化时 或 当前tab不在列表中时，设置 currentTabId
   if (!currentTabId.value || (res && !res.some((t: TabInfo) => t.id === currentTabId.value))) {
-    currentTabId.value = res?.[res.length - 1]?.id || null
+    // 优先选中首页 tab，否则选最后一个
+    const homeTab = res?.find((t: TabInfo) => t.isHome)
+    currentTabId.value = homeTab?.id || res?.[res.length - 1]?.id || null
   }
 }
 
@@ -85,6 +88,8 @@ const switchTab = async (tabId: string) => {
 }
 
 const closeTab = async (tabId: string) => {
+  const tab = tabs.value.find(t => t.id === tabId)
+  if (tab?.isHome) return  // 首页不可关闭
   const newCurTabId = await window.ipcRenderer.invoke('tabs:close', tabId)
   await getTabsData()
   if (newCurTabId) {
@@ -98,8 +103,8 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
     tabs.value[index] = tabInfo
   }
   if (tabInfo.id === currentTabId.value) {
-    // 内置子应用默认页（internal-app）不显示 URL
-    if (tabInfo.url === 'lsqapp://internal-app') {
+    // 内置子应用默认页不显示 URL
+    if (tabInfo.url === 'lsqapp://internal-app' || tabInfo.url === 'http://localhost:5273/#/') {
       currentUrl.value = ''
     } else {
       currentUrl.value = tabInfo.url

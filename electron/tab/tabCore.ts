@@ -16,6 +16,7 @@ export interface TabInfo {
   canGoForward?: boolean
   isLoading?: boolean
   favicon?: string      // 网页 favicon URL
+  isHome?: boolean      // 首页 tab，不可关闭
 }
 
 export interface TabHistoryEntry {
@@ -71,7 +72,7 @@ export function removeHistory(tabId: string) {
 }
 
 const DEFAULT_TAB = {
-  title: '新建标签页',
+  title: '首页',
   get url() { return env.getAppUrl() }
 }
 
@@ -151,6 +152,7 @@ export function closeTab(id: string, win: BrowserWindow): string | null {
   if (!webContentViewMap.has(id)) return null
 
   const tab = webContentViewMap.get(id)!
+  if (tab.info.isHome) return null  // 首页不可关闭
   win.contentView.removeChildView(tab.view)
   webContentViewMap.delete(id)
   const closedIndex = tabs.findIndex(t => t.id === id)
@@ -216,17 +218,21 @@ export function getDomainFromUrl(url: string): string | null {
 
 // 内部子应用页面标题映射
 const INTERNAL_PAGE_TITLES: Record<string, string> = {
-  '': '新建标签页',
-  'default': '新建标签页',
+  '': '首页',
+  'default': '首页',
+  'newtab': '新标签页',
   'ai': 'AI 助手',
   'history': '历史记录',
   'downloads': '下载管理',
   'logs': '日志查看',
-  'memory': '内存监控',
+}
+
+export function isInternalUrl(url: string): boolean {
+  return url.startsWith('lsqapp://') || url.startsWith(env.getAppUrl())
 }
 
 export function getTitleForInternalUrl(url: string): string | null {
-  if (!url.startsWith('lsqapp://')) return null
+  if (!isInternalUrl(url)) return null
   try {
     const parsed = new URL(url)
     const route = parsed.hash?.replace('#/', '') || ''

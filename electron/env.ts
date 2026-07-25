@@ -19,5 +19,9 @@ export const env = {
 
   getDownloadsUrl(): string {
     return this.getUrl('downloads')
+  },
+
+  getNewTabUrl(): string {
+    return this.getUrl('newtab')
   }
 }

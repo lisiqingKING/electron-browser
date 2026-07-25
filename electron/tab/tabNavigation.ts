@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
+import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '../../src/utils'
 import { getSubappUrl } from '../subapp'
@@ -123,7 +123,7 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
 
     // 立即设置加载中的标题
     let newTitle: string | null = null
-    if (url.startsWith('lsqapp://')) {
+    if (isInternalUrl(url)) {
       newTitle = getTitleForInternalUrl(url)
     } else if (!isAppUrl(url)) {
       newTitle = getDomainFromUrl(url)
@@ -148,7 +148,7 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
   }
 }
 
-export function createTabAndShow(tabInfo: { title: string; url: string }, win: BrowserWindow) {
+export function createTabAndShow(tabInfo: { title: string; url: string; isHome?: boolean }, win: BrowserWindow) {
   const curTab = getCurTab()
   if (curTab?.view) {
     win.contentView.removeChildView(curTab.view)
@@ -157,12 +157,12 @@ export function createTabAndShow(tabInfo: { title: string; url: string }, win: B
   // 根据 URL 设置标题（如果传入的标题为空）
   let title = tabInfo.title
   if (!title) {
-    if (tabInfo.url.startsWith('lsqapp://')) {
-      title = getTitleForInternalUrl(tabInfo.url) || '新建标签页'
+    if (isInternalUrl(tabInfo.url)) {
+      title = getTitleForInternalUrl(tabInfo.url) || '首页'
     } else if (!isAppUrl(tabInfo.url)) {
       title = getDomainFromUrl(tabInfo.url) || '新建标签页'
     } else {
-      title = '新建标签页'
+      title = '首页'
     }
   }
 
