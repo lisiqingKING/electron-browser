@@ -208,8 +208,7 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
 }
 
 export function createTabAndShow(tabInfo: { title: string; url: string; isHome?: boolean }, win: BrowserWindow, afterTabId?: string) {
-  // 如果没有指定 afterTabId，默认在当前标签后面创建
-  const finalAfterTabId = afterTabId || getCurTab()?.info.id
+  const finalAfterTabId = afterTabId
 
   const curTab = getCurTab()
   if (curTab?.view) {

@@ -43,7 +43,13 @@ export function registerTabHandlers(win: BrowserWindow) {
 
     const url = env.getAppUrl()
     console.log('[createHome] 加载 URL:', url)
-    return createTabAndShow({ title: '首页', url, isHome: true }, win)
+    const id = createTabAndShow({ title: '首页', url, isHome: true }, win)
+    // 首页标记为 isHome，loadTabs 会自动过滤
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time!, isHome: true })
+    }
+    return id
   })
 
   // 创建新标签页（搜索页）

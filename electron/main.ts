@@ -2,7 +2,9 @@ import { app, BrowserWindow, Menu, protocol, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
-import { tabs, curTabId, webContentViewMap, setCurTabId } from './tab/tabCore'
+import { registerWebContentsEvents } from './tab/tabEvents'
+import { isUrl } from '../src/utils'
+import { tabs, curTabId, webContentViewMap, setCurTabId, createTabCore, getTabListData } from './tab/tabCore'
 import { initDatabase, closeDatabase, saveTabs, loadTabs } from './database/index'
 import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
@@ -55,30 +57,49 @@ function createWindow() {
   }, win)
 
   // 恢复上次保存的标签
-  const saved = loadTabs(env.getAppUrl())
+  const saved = loadTabs()
   if (saved.tabs.length > 0) {
     const idMap = new Map<string, string>() // savedId → newId
 
+    // 批量恢复：跳过 createTabAndShow 中的视图切换和事件发送，只创建 tab 数据和 WebContentsView
     for (const savedTab of saved.tabs) {
       try {
-        const newId = createTabAndShow({ title: savedTab.title, url: savedTab.url }, win)
-        if (newId) idMap.set(savedTab.id, newId)
+        const { view, tabInfo } = createTabCore({ title: savedTab.title, url: savedTab.url })
+        if (isUrl(savedTab.url)) {
+          view.webContents.loadURL(savedTab.url)
+        } else {
+          view.webContents.loadFile(savedTab.url)
+        }
+        registerWebContentsEvents(view, tabInfo, win)
+        idMap.set(savedTab.id, tabInfo.id!)
       } catch (err) {
         console.error('[createWindow] 恢复标签失败:', savedTab.url, err)
       }
     }
 
+    // 统一发送一次标签列表变化
+    win.webContents.send('tab:list-changed', getTabListData())
+
     // 切换到最后活跃的标签
     const targetNewId = idMap.get(saved.currentTabId!)
-    if (targetNewId) {
-      const targetTab = webContentViewMap.get(targetNewId)
+    const finalTabId = targetNewId || [...idMap.values()].pop()
+    if (finalTabId) {
+      const targetTab = webContentViewMap.get(finalTabId)
       if (targetTab) {
+        // 移除首页视图
         const homeTab = webContentViewMap.get(homeTabId!)
         if (homeTab?.view) win.contentView.removeChildView(homeTab.view)
+        // 添加所有恢复的标签视图，最后添加目标标签使其在最上层
+        for (const newId of idMap.values()) {
+          if (newId !== finalTabId) {
+            const tab = webContentViewMap.get(newId)
+            if (tab) win.contentView.addChildView(tab.view)
+          }
+        }
         win.contentView.addChildView(targetTab.view)
         updateCurTabBounds(targetTab, win)
-        setCurTabId(targetNewId)
-        win.webContents.send('tab:current-changed', { currentTabId: targetNewId })
+        setCurTabId(finalTabId)
+        win.webContents.send('tab:current-changed', { currentTabId: finalTabId })
       }
     }
   }

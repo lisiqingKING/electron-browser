@@ -16,15 +16,18 @@ function initTabsTable(): void {
       url TEXT NOT NULL DEFAULT '',
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
-      isActive INTEGER NOT NULL DEFAULT 0
+      isActive INTEGER NOT NULL DEFAULT 0,
+      isHome INTEGER NOT NULL DEFAULT 0
     )
   `)
 
-  // 兼容旧表：添加 isActive 列（如果不存在）
-  try {
-    getDatabase().exec('ALTER TABLE tabs ADD COLUMN isActive INTEGER NOT NULL DEFAULT 0')
-  } catch {
-    // 列已存在，忽略
+  // 兼容旧表：添加缺失列（如果不存在）
+  for (const col of ['isActive INTEGER NOT NULL DEFAULT 0', 'isHome INTEGER NOT NULL DEFAULT 0']) {
+    try {
+      getDatabase().exec(`ALTER TABLE tabs ADD COLUMN ${col}`)
+    } catch {
+      // 列已存在，忽略
+    }
   }
 }
 
@@ -197,14 +200,14 @@ export function saveTabs(
   database.exec('DELETE FROM tabs')
 
   const insert = database.prepare(
-    'INSERT INTO tabs (id, title, url, createdAt, updatedAt, isActive) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO tabs (id, title, url, createdAt, updatedAt, isActive, isHome) VALUES (?, ?, ?, ?, ?, ?, ?)'
   )
 
   const insertMany = database.transaction(() => {
     for (const tab of tabList) {
       if (!tab.id || tab.isHome) continue
       const isActive = tab.id === currentTabId ? 1 : 0
-      insert.run(tab.id, tab.title, tab.url, tab.time || now, now, isActive)
+      insert.run(tab.id, tab.title, tab.url, tab.time || now, now, isActive, 0)
     }
   })
 
@@ -212,30 +215,27 @@ export function saveTabs(
   console.log('[Database] Saved', tabList.length, 'tabs')
 }
 
-export function loadTabs(excludeUrl?: string): { tabs: TabRow[]; currentTabId: string | null } {
+export function loadTabs(): { tabs: TabRow[]; currentTabId: string | null } {
   const database = getDatabase()
 
   const tabs = database
-    .prepare('SELECT * FROM tabs ORDER BY createdAt ASC')
+    .prepare('SELECT * FROM tabs WHERE isHome = 0 ORDER BY createdAt ASC')
     .all() as TabRow[]
 
-  // 过滤掉首页标签（每次启动都会创建，不需要恢复）
-  const filtered = excludeUrl ? tabs.filter((t) => t.url !== excludeUrl) : tabs
+  const activeTab = tabs.find((t) => t.isActive === 1)
+  const currentTabId = activeTab?.id || tabs[0]?.id || null
 
-  const activeTab = filtered.find((t) => t.isActive === 1)
-  const currentTabId = activeTab?.id || filtered[0]?.id || null
-
-  console.log('[Database] Loaded', filtered.length, 'tabs')
-  return { tabs: filtered, currentTabId }
+  console.log('[Database] Loaded', tabs.length, 'tabs')
+  return { tabs, currentTabId }
 }
 
-export function insertTab(tab: { id: string; title: string; url: string; time: number }): void {
+export function insertTab(tab: { id: string; title: string; url: string; time: number; isHome?: boolean }): void {
   const database = getDatabase()
   database
     .prepare(
-      'INSERT OR REPLACE INTO tabs (id, title, url, createdAt, updatedAt, isActive) VALUES (?, ?, ?, ?, ?, 0)'
+      'INSERT OR REPLACE INTO tabs (id, title, url, createdAt, updatedAt, isActive, isHome) VALUES (?, ?, ?, ?, ?, 0, ?)'
     )
-    .run(tab.id, tab.title, tab.url, tab.time, tab.time)
+    .run(tab.id, tab.title, tab.url, tab.time, tab.time, tab.isHome ? 1 : 0)
 }
 
 export function deleteTab(id: string): void {

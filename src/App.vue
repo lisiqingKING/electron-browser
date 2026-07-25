@@ -78,7 +78,7 @@ const addTab = async () => {
 }
 
 const addTabByButton = async () => {
-  await window.ipcRenderer.invoke('tabs:createDefault', currentTabId.value || undefined)
+  await window.ipcRenderer.invoke('tabs:createDefault')
   // 标签列表通过 tab:list-changed 事件更新
 }
 
