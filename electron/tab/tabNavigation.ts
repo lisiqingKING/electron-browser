@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
+import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, getTabListData } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '../../src/utils'
 import { getSubappUrl } from '../subapp'
@@ -207,7 +207,10 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
   }
 }
 
-export function createTabAndShow(tabInfo: { title: string; url: string; isHome?: boolean }, win: BrowserWindow) {
+export function createTabAndShow(tabInfo: { title: string; url: string; isHome?: boolean }, win: BrowserWindow, afterTabId?: string) {
+  // 如果没有指定 afterTabId，默认在当前标签后面创建
+  const finalAfterTabId = afterTabId || getCurTab()?.info.id
+
   const curTab = getCurTab()
   if (curTab?.view) {
     win.contentView.removeChildView(curTab.view)
@@ -225,7 +228,7 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
     }
   }
 
-  const { view, tabInfo: enrichedTabInfo } = createTabCore({ ...tabInfo, title })
+  const { view, tabInfo: enrichedTabInfo, insertIndex } = createTabCore({ ...tabInfo, title }, finalAfterTabId)
   enrichedTabInfo.isLoading = true
 
   // 解析 apps:// 协议
@@ -237,9 +240,10 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
   }
 
   registerWebContentsEvents(view, enrichedTabInfo, win)
-  win.contentView.addChildView(view)
+  // 在指定位置插入视图
+  win.contentView.addChildView(view, insertIndex)
   updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-  win.webContents.send('tab:list-changed')
+  win.webContents.send('tab:list-changed', getTabListData())
   win.webContents.send('tab:loading', { id: enrichedTabInfo.id, isLoading: true })
 
   return enrichedTabInfo.id

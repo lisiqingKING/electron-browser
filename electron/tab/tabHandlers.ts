@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, app } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab, isInternalTab } from './tabCore'
+import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab, isInternalTab, tabs, getTabListData } from './tabCore'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
 import { getSetting, setSetting, getAllSettings } from '../settings/settingsManager'
@@ -19,14 +19,14 @@ export { webContentViewMap, updateCurTabBounds, getCurTab, openDevToolsForCurTab
 export { createTabAndShow }
 
 export function registerTabHandlers(win: BrowserWindow) {
-  // 列表
+  // 列表 - 返回完整数据
   ipcMain.handle('tabs:list', async () => {
-    return [...webContentViewMap.values()].map(item => item.info)
+    return getTabListData()
   })
 
   // 创建普通标签页
-  ipcMain.handle('tabs:create', async (_event, tabInfo: { title: string; url: string }) => {
-    return createTabAndShow(tabInfo, win)
+  ipcMain.handle('tabs:create', async (_event, tabInfo: { title: string; url: string }, afterTabId?: string) => {
+    return createTabAndShow(tabInfo, win, afterTabId)
   })
 
   // 创建首页（常驻不可关闭）
@@ -41,31 +41,31 @@ export function registerTabHandlers(win: BrowserWindow) {
   })
 
   // 创建新标签页（搜索页）
-  ipcMain.handle('tabs:createDefault', async () => {
+  ipcMain.handle('tabs:createDefault', async (_event, afterTabId?: string) => {
     const url = env.getNewTabUrl()
     console.log('[createDefault] 加载 URL:', url)
-    return createTabAndShow({ title: '新标签页', url }, win)
+    return createTabAndShow({ title: '新标签页', url }, win, afterTabId)
   })
 
   // 创建历史页
-  ipcMain.handle('tabs:createHistory', async () => {
+  ipcMain.handle('tabs:createHistory', async (_event, afterTabId?: string) => {
     const url = env.getHistoryUrl()
     console.log('[createHistory] 加载 URL:', url)
-    return createTabAndShow({ title: '历史记录', url }, win)
+    return createTabAndShow({ title: '历史记录', url }, win, afterTabId)
   })
 
   // 创建下载管理页 (dev 走 Vite, packaged 走 lsqapp:// 协议)
-  ipcMain.handle('tabs:createDownloads', async () => {
+  ipcMain.handle('tabs:createDownloads', async (_event, afterTabId?: string) => {
     const url = env.getDownloadsUrl()
     console.log('[createDownloads] 加载 URL:', url)
-    return createTabAndShow({ title: '下载管理', url }, win)
+    return createTabAndShow({ title: '下载管理', url }, win, afterTabId)
   })
 
   // 创建设置页
-  ipcMain.handle('tabs:createSettings', async () => {
+  ipcMain.handle('tabs:createSettings', async (_event, afterTabId?: string) => {
     const url = env.getSettingsUrl()
     console.log('[createSettings] 加载 URL:', url)
-    return createTabAndShow({ title: '设置', url }, win)
+    return createTabAndShow({ title: '设置', url }, win, afterTabId)
   })
 
   // 刷新
@@ -100,6 +100,7 @@ export function registerTabHandlers(win: BrowserWindow) {
       targetTab.info.canGoForward = canGoForward
       console.log('[tabs:switch] tabId:', tabId, 'canGoBack:', canGoBack, 'canGoForward:', canGoForward)
       win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
+      win.webContents.send('tab:current-changed', { currentTabId: tabId })
     }
     return true
   })
@@ -107,7 +108,7 @@ export function registerTabHandlers(win: BrowserWindow) {
   // 关闭标签
   ipcMain.handle('tabs:close', async (_event, tabId: string) => {
     const newCurTabId = closeTab(tabId, win)
-    win.webContents.send('tab:list-changed', newCurTabId)
+    win.webContents.send('tab:list-changed', getTabListData())
     return newCurTabId
   })
 
@@ -121,47 +122,40 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   // 关闭其他标签
   ipcMain.on('tabs:closeOthers', (_event, tabId: string) => {
-    const tabs = [...webContentViewMap.values()]
-    let newCurTabId: string | null = null
     for (const tab of tabs) {
-      if (tab.info.id !== tabId && !tab.info.isHome) {
-        const result = closeTab(tab.info.id!, win)
-        if (result) newCurTabId = result
+      if (tab.id !== tabId && !tab.isHome) {
+        closeTab(tab.id!, win)
       }
     }
-    win.webContents.send('tab:list-changed', { newCurTabId: newCurTabId || tabId })
+    win.webContents.send('tab:list-changed', getTabListData())
   })
 
   // 关闭左侧标签
   ipcMain.on('tabs:closeLeft', (_event, tabId: string) => {
-    const tabs = [...webContentViewMap.values()]
-    const targetIndex = tabs.findIndex(t => t.info.id === tabId)
+    const targetIndex = tabs.findIndex(t => t.id === tabId)
     if (targetIndex === -1) return
 
-    let newCurTabId: string | null = null
-    for (let i = 0; i < targetIndex; i++) {
-      if (!tabs[i].info.isHome) {
-        const result = closeTab(tabs[i].info.id!, win)
-        if (result) newCurTabId = result
+    // 从后往前遍历，避免 splice 导致索引变化
+    for (let i = targetIndex - 1; i >= 0; i--) {
+      if (!tabs[i].isHome) {
+        closeTab(tabs[i].id!, win)
       }
     }
-    win.webContents.send('tab:list-changed', { newCurTabId: newCurTabId || tabId })
+    win.webContents.send('tab:list-changed', getTabListData())
   })
 
   // 关闭右侧标签
   ipcMain.on('tabs:closeRight', (_event, tabId: string) => {
-    const tabs = [...webContentViewMap.values()]
-    const targetIndex = tabs.findIndex(t => t.info.id === tabId)
+    const targetIndex = tabs.findIndex(t => t.id === tabId)
     if (targetIndex === -1) return
 
-    let newCurTabId: string | null = null
-    for (let i = targetIndex + 1; i < tabs.length; i++) {
-      if (!tabs[i].info.isHome) {
-        const result = closeTab(tabs[i].info.id!, win)
-        if (result) newCurTabId = result
+    // 从后往前遍历，避免 splice 导致索引变化
+    for (let i = tabs.length - 1; i > targetIndex; i--) {
+      if (!tabs[i].isHome) {
+        closeTab(tabs[i].id!, win)
       }
     }
-    win.webContents.send('tab:list-changed', { newCurTabId: newCurTabId || tabId })
+    win.webContents.send('tab:list-changed', getTabListData())
   })
 
   // 后退

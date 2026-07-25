@@ -96,10 +96,19 @@ export function setCurTabId(id: string) {
 }
 
 export function getTabInfoList() {
-  return [...webContentViewMap.values()].map(item => item.info)
+  return tabs
+    .map(tab => webContentViewMap.get(tab.id!)?.info)
+    .filter((info): info is TabInfo => info !== undefined)
 }
 
-export function createTabCore(tabInfo: TabInfo): { view: WebContentsView; tabInfo: TabInfo } {
+export function getTabListData() {
+  return {
+    tabs: getTabInfoList(),
+    currentTabId: curTabId
+  }
+}
+
+export function createTabCore(tabInfo: TabInfo, afterTabId?: string): { view: WebContentsView; tabInfo: TabInfo; insertIndex: number } {
   // All webview tabs use preload-app.mjs which exposes bridge API
   // In dev mode, __dirname is electron/, in prod it's dist-electron/
   const isDev = !!process.env.VITE_DEV_SERVER_URL
@@ -123,14 +132,23 @@ export function createTabCore(tabInfo: TabInfo): { view: WebContentsView; tabInf
     wcId: view.webContents.id
   }
 
-  tabs.push(_tabInfo)
+  // 计算插入位置：在 afterTabId 后面，如果没有指定则追加到末尾
+  let insertIndex = tabs.length
+  if (afterTabId) {
+    const afterIndex = tabs.findIndex(t => t.id === afterTabId)
+    if (afterIndex !== -1) {
+      insertIndex = afterIndex + 1
+    }
+  }
+
+  tabs.splice(insertIndex, 0, _tabInfo)
   curTabId = _id
   webContentViewMap.set(_id, {
     info: _tabInfo,
     view
   })
 
-  return { view, tabInfo: _tabInfo }
+  return { view, tabInfo: _tabInfo, insertIndex }
 }
 
 export function isLocalFile(url: string): boolean {

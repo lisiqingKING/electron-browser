@@ -78,48 +78,40 @@ const addTab = async () => {
 }
 
 const addTabByButton = async () => {
-  const newTabId = await window.ipcRenderer.invoke('tabs:createDefault')
-  await getTabsData()
-  if (newTabId) {
-    currentTabId.value = newTabId
+  await window.ipcRenderer.invoke('tabs:createDefault', currentTabId.value || undefined)
+  // 标签列表通过 tab:list-changed 事件更新
+}
+
+// 初始化获取标签数据
+const initTabs = async () => {
+  const data = await window.ipcRenderer.invoke('tabs:list')
+  if (data) {
+    // 合并已有 favicon（DB 可能尚未更新）
+    const prev = tabs.value
+    tabs.value = data.tabs.map((t: TabInfo) => {
+      if (!t.favicon) {
+        const old = prev.find(p => p.id === t.id)
+        if (old?.favicon) t.favicon = old.favicon
+      }
+      return t
+    })
+    currentTabId.value = data.currentTabId
   }
 }
 
-const getTabsData = async () => {
-  const res = await window.ipcRenderer.invoke('tabs:list')
-  // 合并时保留已有的 favicon（DB 可能尚未更新）
-  const prev = tabs.value
-  tabs.value = (res || []).map((t: TabInfo) => {
-    if (!t.favicon) {
-      const old = prev.find(p => p.id === t.id)
-      if (old?.favicon) t.favicon = old.favicon
-    }
-    return t
-  })
-  // 初始化时 或 当前tab不在列表中时，设置 currentTabId
-  if (!currentTabId.value || (res && !res.some((t: TabInfo) => t.id === currentTabId.value))) {
-    // 优先选中首页 tab，否则选最后一个
-    const homeTab = res?.find((t: TabInfo) => t.isHome)
-    currentTabId.value = homeTab?.id || res?.[res.length - 1]?.id || null
-  }
-}
-
-getTabsData()
+initTabs()
 
 const switchTab = async (tabId: string) => {
-  currentTabId.value = tabId
   await window.ipcRenderer.invoke('tabs:switch', tabId)
-  currentTabVersion++  // 切换完成后版本号+1，忽略切换过程中的旧事件
+  // 当前标签通过 tab:current-changed 事件更新
+  currentTabVersion++
 }
 
 const closeTab = async (tabId: string) => {
   const tab = tabs.value.find(t => t.id === tabId)
-  if (tab?.isHome) return  // 首页不可关闭
-  const newCurTabId = await window.ipcRenderer.invoke('tabs:close', tabId)
-  await getTabsData()
-  if (newCurTabId) {
-    currentTabId.value = newCurTabId
-  }
+  if (tab?.isHome) return
+  await window.ipcRenderer.invoke('tabs:close', tabId)
+  // 标签列表通过 tab:list-changed 事件更新
 }
 
 window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
@@ -140,16 +132,15 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
   }
 })
 
-window.ipcRenderer.on('tab:list-changed', async (_event, data?: { newCurTabId?: string }) => {
-  const prevCount = tabs.value.length
-  await getTabsData()
-  // 批量关闭操作附带 newCurTabId
-  if (data?.newCurTabId) {
-    currentTabId.value = data.newCurTabId
-  } else if (tabs.value.length > prevCount) {
-    // 如果 tab 数量增加了，说明是新打开的标签，切换到最后一个
-    currentTabId.value = tabs.value[tabs.value.length - 1]?.id || null
-  }
+window.ipcRenderer.on('tab:list-changed', (_event, data: { tabs: TabInfo[], currentTabId: string | null }) => {
+  // 标签列表变化，更新列表和当前标签
+  tabs.value = data.tabs
+  currentTabId.value = data.currentTabId
+})
+
+window.ipcRenderer.on('tab:current-changed', (_event, data: { currentTabId: string }) => {
+  // 只切换当前标签，列表不变
+  currentTabId.value = data.currentTabId
 })
 
 window.ipcRenderer.on('tab:can-navigate', (_event, data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
@@ -182,19 +173,13 @@ const handleGoForward = () => {
 }
 
 const openHistory = async () => {
-  const newTabId = await window.ipcRenderer.invoke('tabs:createHistory')
-  await getTabsData()
-  if (newTabId) {
-    currentTabId.value = newTabId
-  }
+  await window.ipcRenderer.invoke('tabs:createHistory', currentTabId.value || undefined)
+  // 标签列表通过 tab:list-changed 事件更新
 }
 
 const openSettings = async () => {
-  const newTabId = await window.ipcRenderer.invoke('tabs:createSettings')
-  await getTabsData()
-  if (newTabId) {
-    currentTabId.value = newTabId
-  }
+  await window.ipcRenderer.invoke('tabs:createSettings', currentTabId.value || undefined)
+  // 标签列表通过 tab:list-changed 事件更新
 }
 
 // 加载主题设置

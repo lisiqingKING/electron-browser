@@ -1,7 +1,7 @@
 import { WebContentsView, BrowserWindow } from 'electron'
 import contextMenu from 'electron-context-menu'
 import { recordVisit, updateFaviconByTabUrl } from '../history/historyManager'
-import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from './tabCore'
+import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, getTabListData } from './tabCore'
 import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
 import { isUrl } from '../../src/utils'
 import { env } from '../env'
@@ -37,7 +37,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     registerWebContentsEvents(newView, newTabInfo, win)
     win.contentView.addChildView(newView)
     updateCurTabBounds(webContentViewMap.get(newTabInfo.id!)!, win)
-    win.webContents.send('tab:list-changed')
+    win.webContents.send('tab:list-changed', getTabListData())
 
     return { action: 'deny' }
   })

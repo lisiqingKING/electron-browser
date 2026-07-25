@@ -94,7 +94,7 @@ const cleanupOnAction = onAction(async (action, context) => {
     case 'openInNewTab': {
       const tab = props.tabs.find(t => t.id === tabId)
       if (tab) {
-        window.ipcRenderer.invoke('tabs:create', { title: tab.title, url: tab.url })
+        window.ipcRenderer.invoke('tabs:create', { title: tab.title, url: tab.url }, tabId)
       }
       break
     }
