@@ -25,7 +25,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  window.ipcRenderer.removeListener('window:maximize-changed', onMaximizeChanged)
+  window.ipcRenderer.off('window:maximize-changed', onMaximizeChanged)
 })
 </script>
 

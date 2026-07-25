@@ -2,7 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
-import { isUrl } from './utils'
+import { isUrl, isNewTabUrl } from './utils'
 
 interface TabInfo {
   title: string
@@ -32,8 +32,8 @@ const updateCurrentUrl = () => {
 
       const url = curTabInfo.url
 
-      // 内置子应用默认页不显示 URL
-      if (url === 'lsqapp://internal-app' || url === 'http://localhost:5273/#/') {
+      // 新标签页不显示 URL
+      if (isNewTabUrl(url)) {
         currentUrl.value = ''
       } else {
         currentUrl.value = url
@@ -103,8 +103,8 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
     tabs.value[index] = tabInfo
   }
   if (tabInfo.id === currentTabId.value) {
-    // 内置子应用默认页不显示 URL
-    if (tabInfo.url === 'lsqapp://internal-app' || tabInfo.url === 'http://localhost:5273/#/') {
+    // 新标签页不显示 URL
+    if (isNewTabUrl(tabInfo.url)) {
       currentUrl.value = ''
     } else {
       currentUrl.value = tabInfo.url
@@ -133,6 +133,12 @@ window.ipcRenderer.on('tab:can-navigate', (_event, data: { id: string; canGoBack
   } else {
     console.log('[tab:can-navigate] ignored, event tabId:', data.id, 'expected tabId:', expectedTabId)
   }
+})
+
+// 主进程通知 renderer 切换到指定标签页
+window.ipcRenderer.on('tab:switch-to', async (_event, tabId: string) => {
+  await getTabsData()
+  currentTabId.value = tabId
 })
 
 window.ipcRenderer.on('tab:loading', (_event, data: { id: string; isLoading: boolean }) => {
