@@ -134,6 +134,23 @@ export function registerTabHandlers(win: BrowserWindow) {
     return id
   })
 
+  // 创建 AI 助手页（已存在则切换）
+  ipcMain.handle('tabs:createAI', async (_event, afterTabId?: string) => {
+    const url = env.getAIUrl()
+    console.log('[createAI] 加载 URL:', url)
+    const existing = findExistingInternalTab(url)
+    if (existing) {
+      console.log('[createAI] 已存在，切换到:', existing.info.id)
+      return switchToExistingTab(win, existing)
+    }
+    const id = createTabAndShow({ title: 'AI 助手', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
+  })
+
   // 刷新
   ipcMain.on('tabs:refresh', () => {
     refreshCurTab(win)

@@ -178,6 +178,7 @@ const internalPageActions: Record<string, string> = {
   openSettings: 'tabs:createSettings',
   openDownloads: 'tabs:createDownloads',
   openLogs: 'tabs:createLogs',
+  openAI: 'tabs:createAI',
 }
 
 const openInternalPage = async (channel: string) => {
@@ -243,6 +244,7 @@ onMounted(() => {
       @goBack="handleGoBack"
       @goForward="handleGoForward"
       @add="addTabByButton"
+      @openAI="openInternalPage('tabs:createAI')"
     />
   </div>
 </template>

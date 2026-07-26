@@ -13,6 +13,7 @@ const emit = defineEmits<{
   (e: 'goBack'): void
   (e: 'goForward'): void
   (e: 'add'): void
+  (e: 'openAI'): void
 }>()
 
 const { showMenu } = usePopup()
@@ -79,6 +80,11 @@ const handleMoreClick = (event: MouseEvent) => {
         />
       </div>
 
+      <button class="ai-btn" title="AI 助手" @click="emit('openAI')">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/>
+        </svg>
+      </button>
       <button class="more-btn" title="更多" @click="handleMoreClick">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
           <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
@@ -218,6 +224,31 @@ const handleMoreClick = (event: MouseEvent) => {
 }
 
 .more-btn:active {
+  background: var(--window-btn-hover);
+}
+
+/* ── AI 助手按钮 ── */
+.ai-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--urlbar-icon);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.ai-btn:hover {
+  background: var(--window-btn-hover);
+  color: var(--urlbar-icon-hover);
+}
+
+.ai-btn:active {
   background: var(--window-btn-hover);
 }
 </style>

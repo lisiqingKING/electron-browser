@@ -29,6 +29,10 @@ export const env = {
     return this.getUrl('settings')
   },
 
+  getAIUrl(): string {
+    return this.getUrl('ai')
+  },
+
   getLogsUrl(): string {
     return this.getUrl('logs')
   },
