@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import WindowControls from './WindowControls.vue'
 import { usePopup } from '../composables/usePopup'
+import { getInternalIconFromUrl } from '../utils/tabIcons'
 
 const props = defineProps<{
   tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string; loadError?: { url: string; code: number; message: string } }[]
@@ -180,6 +181,10 @@ onUnmounted(() => {
             <!-- 加载失败：感叹号 -->
             <svg v-else-if="tab.loadError" class="error-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <!-- 内部页面图标（优先于 favicon） -->
+            <svg v-else-if="getInternalIconFromUrl(tab.url)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path :d="getInternalIconFromUrl(tab.url)" />
             </svg>
             <!-- 有 favicon 且未加载失败 -->
             <img v-else-if="tab.favicon && !failedFavicons.has(tab.favicon)" :src="tab.favicon" class="favicon-img" @error="onFaviconError(tab.favicon!)" @load="onFaviconLoad(tab.favicon!)" />
