@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, protocol, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
+import { registerShortcuts } from './keyboard/shortcuts'
 import { registerWebContentsEvents } from './tab/tabEvents'
 import { isUrl } from '../src/utils'
 import { tabs, curTabId, webContentViewMap, setCurTabId, createTabCore, getTabListData } from './tab/tabCore'
@@ -114,6 +115,9 @@ function createWindow() {
 
   // 注册 tab 相关 handlers
   registerTabHandlers(win)
+
+  // 注册键盘快捷键
+  registerShortcuts(win)
 
   // 最大化状态变化时通知渲染进程
   win.on('maximize', () => {
