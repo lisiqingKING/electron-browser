@@ -24,7 +24,9 @@ export async function startSubappServer(): Promise<number> {
 
     server = http.createServer((req, res) => handleRequest(req, res, appsDir))
 
-    server.listen(0, () => {
+    // 开发模式使用固定端口，生产模式随机端口
+    const port = app.isPackaged ? 0 : 3456
+    server.listen(port, () => {
       const addr = server!.address()
       if (!addr || typeof addr !== 'object') {
         reject(new Error('Failed to get server port'))

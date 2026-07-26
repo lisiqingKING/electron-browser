@@ -7,10 +7,12 @@ import { getHistory, clearAllHistory, deleteRecord } from '../history/historyMan
 import { getSetting, setSetting, getAllSettings } from '../settings/settingsManager'
 import {
   getAllChatSessions,
+  getChatSessionsPage,
   createChatSession,
   updateTitle,
   updateMessages,
   deleteChatSession,
+  updatePinned,
 } from '../ai/aiConversationManager'
 import { env } from '../env'
 import { registerDownloadHandlers } from '../downloads/downloadHandlers'
@@ -235,7 +237,10 @@ export function registerTabHandlers(win: BrowserWindow) {
   })
 
   // AI 会话相关
-  ipcMain.handle('ai:list', async () => {
+  ipcMain.handle('ai:list', async (_event, options?: { limit?: number; offset?: number }) => {
+    if (options?.limit !== undefined) {
+      return getChatSessionsPage(options.limit, options.offset ?? 0)
+    }
     return getAllChatSessions()
   })
 
@@ -256,6 +261,25 @@ export function registerTabHandlers(win: BrowserWindow) {
   ipcMain.handle('ai:delete', async (_event, convId: string) => {
     deleteChatSession(convId)
     return true
+  })
+
+  ipcMain.handle('ai:updatePinned', async (_event, convId: string, pinned: number) => {
+    updatePinned(convId, pinned)
+    return true
+  })
+
+  ipcMain.handle('ai:getModel', async () => {
+    return getSetting('ai_model') || 'mimo-v2.5-pro'
+  })
+
+  ipcMain.handle('ai:saveFile', async (_event, content: string, filename: string) => {
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      throw new Error('非法文件名')
+    }
+    const saveDir = app.getPath('downloads')
+    const filePath = path.join(saveDir, filename)
+    await fs.promises.writeFile(filePath, content, 'utf-8')
+    return filePath
   })
 
   // 打开当前 Tab 的开发者工具

@@ -5,6 +5,9 @@ export const aiConversationChannels = {
   updateTitle: 'ai:updateTitle',
   updateMessages: 'ai:updateMessages',
   delete: 'ai:delete',
+  getModel: 'ai:getModel',
+  updatePinned: 'ai:updatePinned',
+  saveFile: 'ai:saveFile',
 }
 
 export interface Message {

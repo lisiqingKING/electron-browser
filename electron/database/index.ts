@@ -60,6 +60,11 @@ function initAIConversationTable(): void {
       updatedAt INTEGER NOT NULL
     )
   `)
+  // 迁移：添加 pinned 列
+  const cols = getDatabase().prepare(`PRAGMA table_info(ai_conversation)`).all() as { name: string }[]
+  if (!cols.some(c => c.name === 'pinned')) {
+    getDatabase().exec(`ALTER TABLE ai_conversation ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`)
+  }
 }
 
 function initSettingsTable(): void {

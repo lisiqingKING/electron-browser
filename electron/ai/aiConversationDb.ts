@@ -15,47 +15,72 @@ export interface ChatSession {
   messages: Message[]
   createdAt: number
   updatedAt: number
+  pinned: number
 }
 
 export type CreateChatSessionInput = Pick<ChatSession, 'title' | 'messages' | 'createdAt' | 'updatedAt'>
 
-// 获取所有 AI 会话（按更新时间倒序）
+// 获取所有 AI 会话（置顶优先，再按更新时间倒序）
 export function getAllChatSessions(): ChatSession[] {
   const stmt = getDatabase().prepare(
-    'SELECT convId, title, messages, createdAt, updatedAt FROM ai_conversation ORDER BY updatedAt DESC'
+    'SELECT convId, title, messages, createdAt, updatedAt, pinned FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC'
   )
-  const rows = stmt.all() as { convId: string; title: string; messages: string; createdAt: number; updatedAt: number }[]
+  const rows = stmt.all() as { convId: string; title: string; messages: string; createdAt: number; updatedAt: number; pinned: number }[]
   return rows.map(row => ({
     convId: row.convId,
     title: row.title,
     messages: JSON.parse(row.messages),
     createdAt: row.createdAt,
-    updatedAt: row.updatedAt
+    updatedAt: row.updatedAt,
+    pinned: row.pinned
+  }))
+}
+
+// 分页查询 AI 会话（置顶优先）
+export function getChatSessionsPage(limit: number, offset: number): ChatSession[] {
+  const stmt = getDatabase().prepare(
+    'SELECT convId, title, messages, createdAt, updatedAt, pinned FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC LIMIT ? OFFSET ?'
+  )
+  const rows = stmt.all(limit, offset) as { convId: string; title: string; messages: string; createdAt: number; updatedAt: number; pinned: number }[]
+  return rows.map(row => ({
+    convId: row.convId,
+    title: row.title,
+    messages: JSON.parse(row.messages),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    pinned: row.pinned
   }))
 }
 
 // 根据 convId 获取 AI 会话
 export function getChatSessionByConvId(convId: string): ChatSession | undefined {
   const stmt = getDatabase().prepare(
-    'SELECT convId, title, messages, createdAt, updatedAt FROM ai_conversation WHERE convId = ?'
+    'SELECT convId, title, messages, createdAt, updatedAt, pinned FROM ai_conversation WHERE convId = ?'
   )
-  const row = stmt.get(convId) as { convId: string; title: string; messages: string; createdAt: number; updatedAt: number } | undefined
+  const row = stmt.get(convId) as { convId: string; title: string; messages: string; createdAt: number; updatedAt: number; pinned: number } | undefined
   if (!row) return undefined
   return {
     convId: row.convId,
     title: row.title,
     messages: JSON.parse(row.messages),
     createdAt: row.createdAt,
-    updatedAt: row.updatedAt
+    updatedAt: row.updatedAt,
+    pinned: row.pinned
   }
 }
 
 // 创建 AI 会话
 export function createChatSession(convId: string, input: CreateChatSessionInput): void {
   const stmt = getDatabase().prepare(
-    'INSERT INTO ai_conversation (convId, title, messages, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO ai_conversation (convId, title, messages, createdAt, updatedAt, pinned) VALUES (?, ?, ?, ?, ?, 0)'
   )
   stmt.run(convId, input.title, JSON.stringify(input.messages), input.createdAt, input.updatedAt)
+}
+
+// 更新置顶状态
+export function updatePinned(convId: string, pinned: number): void {
+  const stmt = getDatabase().prepare('UPDATE ai_conversation SET pinned = ?, updatedAt = ? WHERE convId = ?')
+  stmt.run(pinned, Date.now(), convId)
 }
 
 // 更新标题
