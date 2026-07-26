@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, app } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab, isInternalTab, tabs, getTabListData } from './tabCore'
+import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab, isInternalTab, tabs, getTabListData, findExistingInternalTab, switchToExistingTab } from './tabCore'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
 import { getSetting, setSetting, getAllSettings } from '../settings/settingsManager'
@@ -66,10 +66,15 @@ export function registerTabHandlers(win: BrowserWindow) {
     return id
   })
 
-  // 创建历史页
+  // 创建历史页（已存在则切换）
   ipcMain.handle('tabs:createHistory', async (_event, afterTabId?: string) => {
     const url = env.getHistoryUrl()
     console.log('[createHistory] 加载 URL:', url)
+    const existing = findExistingInternalTab(url)
+    if (existing) {
+      console.log('[createHistory] 已存在，切换到:', existing.info.id)
+      return switchToExistingTab(win, existing)
+    }
     const id = createTabAndShow({ title: '历史记录', url }, win, afterTabId)
     if (id) {
       const tab = tabs.find((t) => t.id === id)
@@ -78,10 +83,15 @@ export function registerTabHandlers(win: BrowserWindow) {
     return id
   })
 
-  // 创建下载管理页 (dev 走 Vite, packaged 走 lsqapp:// 协议)
+  // 创建下载管理页（已存在则切换）
   ipcMain.handle('tabs:createDownloads', async (_event, afterTabId?: string) => {
     const url = env.getDownloadsUrl()
     console.log('[createDownloads] 加载 URL:', url)
+    const existing = findExistingInternalTab(url)
+    if (existing) {
+      console.log('[createDownloads] 已存在，切换到:', existing.info.id)
+      return switchToExistingTab(win, existing)
+    }
     const id = createTabAndShow({ title: '下载管理', url }, win, afterTabId)
     if (id) {
       const tab = tabs.find((t) => t.id === id)
@@ -90,11 +100,33 @@ export function registerTabHandlers(win: BrowserWindow) {
     return id
   })
 
-  // 创建设置页
+  // 创建设置页（已存在则切换）
   ipcMain.handle('tabs:createSettings', async (_event, afterTabId?: string) => {
     const url = env.getSettingsUrl()
     console.log('[createSettings] 加载 URL:', url)
+    const existing = findExistingInternalTab(url)
+    if (existing) {
+      console.log('[createSettings] 已存在，切换到:', existing.info.id)
+      return switchToExistingTab(win, existing)
+    }
     const id = createTabAndShow({ title: '设置', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
+  })
+
+  // 创建日志页（已存在则切换）
+  ipcMain.handle('tabs:createLogs', async (_event, afterTabId?: string) => {
+    const url = env.getLogsUrl()
+    console.log('[createLogs] 加载 URL:', url)
+    const existing = findExistingInternalTab(url)
+    if (existing) {
+      console.log('[createLogs] 已存在，切换到:', existing.info.id)
+      return switchToExistingTab(win, existing)
+    }
+    const id = createTabAndShow({ title: '日志管理', url }, win, afterTabId)
     if (id) {
       const tab = tabs.find((t) => t.id === id)
       if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })

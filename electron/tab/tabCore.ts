@@ -259,6 +259,30 @@ export function isInternalTab(tab: { info: { url: string; actualUrl?: string } }
   return isInternalUrl(url) || isAppUrl(url)
 }
 
+// 查找已存在的内部页面标签
+export function findExistingInternalTab(url: string) {
+  return [...webContentViewMap.values()].find(t => t.info.url === url)
+}
+
+// 切换到已存在的标签（内部页面专用）
+export function switchToExistingTab(win: BrowserWindow, existing: { info: TabInfo; view: WebContentsView }) {
+  const curTab = getCurTab()
+  if (curTab?.view) win.contentView.removeChildView(curTab.view)
+  win.contentView.addChildView(existing.view)
+  updateCurTabBounds(existing, win)
+  setCurTabId(existing.info.id!)
+
+  // 发送导航状态
+  const canGoBack = existing.view.webContents.canGoBack()
+  const canGoForward = existing.view.webContents.canGoForward()
+  existing.info.canGoBack = canGoBack
+  existing.info.canGoForward = canGoForward
+  win.webContents.send('tab:can-navigate', { id: existing.info.id!, canGoBack, canGoForward })
+  win.webContents.send('tab:current-changed', { currentTabId: existing.info.id })
+
+  return existing.info.id!
+}
+
 export function getTitleForInternalUrl(url: string): string | null {
   if (!isInternalUrl(url)) return null
   try {

@@ -32,6 +32,8 @@ const handleGoForward = () => {
 const handleMoreClick = (event: MouseEvent) => {
   showMenu(event, [
     { label: '历史记录', action: 'openHistory', icon: 'history' },
+    { label: '下载记录', action: 'openDownloads', icon: 'downloads' },
+    { label: '日志管理', action: 'openLogs', icon: 'logs' },
     { label: '设置', action: 'openSettings', icon: 'settings' },
   ])
 }

@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import WindowControls from './WindowControls.vue'
 import { usePopup } from '../composables/usePopup'
 import { getInternalIconFromUrl } from '../utils/tabIcons'
+import { isNewTabUrl } from '../utils'
 
 const props = defineProps<{
   tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string; loadError?: { url: string; code: number; message: string } }[]
@@ -72,9 +73,15 @@ const tabMenuItems = [
 const handleContextMenu = (event: MouseEvent, tabId: string) => {
   const tab = props.tabs.find(t => t.id === tabId)
   const isHome = tab?.isHome
+  const isInternal = tab ? getInternalIconFromUrl(tab.url) !== null : false
+  const isNewTab = tab ? isNewTabUrl(tab.url) : false
 
-  const closeActions = ['close', 'closeLeft', 'openInNewTab']
+  const closeActions = ['close', 'closeLeft']
   const items = tabMenuItems.map(item => {
+    if (item.action === 'openInNewTab') {
+      // 内部页面（除新标签页）禁用"在新标签页中打开"
+      return { ...item, disabled: isHome || (isInternal && !isNewTab) }
+    }
     if (closeActions.includes(item.action)) {
       return { ...item, disabled: isHome }
     }

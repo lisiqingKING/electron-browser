@@ -29,6 +29,10 @@ export const env = {
     return this.getUrl('settings')
   },
 
+  getLogsUrl(): string {
+    return this.getUrl('logs')
+  },
+
   getErrorUrl(params: { url: string; code: number; error: string }): string {
     const query = new URLSearchParams({
       url: params.url,

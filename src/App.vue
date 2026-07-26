@@ -172,23 +172,25 @@ const handleGoForward = () => {
   window.ipcRenderer.send('tabs:goForward')
 }
 
-const openHistory = async () => {
-  await window.ipcRenderer.invoke('tabs:createHistory', currentTabId.value || undefined)
-  // 标签列表通过 tab:list-changed 事件更新
+// 内部页面菜单 action 映射
+const internalPageActions: Record<string, string> = {
+  openHistory: 'tabs:createHistory',
+  openSettings: 'tabs:createSettings',
+  openDownloads: 'tabs:createDownloads',
+  openLogs: 'tabs:createLogs',
 }
 
-const openSettings = async () => {
-  await window.ipcRenderer.invoke('tabs:createSettings', currentTabId.value || undefined)
-  // 标签列表通过 tab:list-changed 事件更新
+const openInternalPage = async (channel: string) => {
+  await window.ipcRenderer.invoke(channel, currentTabId.value || undefined)
 }
 
-// Popup 菜单处理（放在 openHistory/openSettings 定义之后）
-const { onAction } = usePopup()
+// Popup 菜单处理
+const { onAction, hide } = usePopup()
 onAction(async (action) => {
-  if (action === 'openHistory') {
-    openHistory()
-  } else if (action === 'openSettings') {
-    openSettings()
+  hide()
+  const channel = internalPageActions[action]
+  if (channel) {
+    await openInternalPage(channel)
   }
 })
 
