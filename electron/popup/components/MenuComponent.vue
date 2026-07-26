@@ -25,6 +25,10 @@ const emit = defineEmits<{
 function getIconPath(icon?: string): string | null {
   return icon ? (TAB_ICON_MAP[icon] || null) : null
 }
+
+function isUnicodeChar(icon?: string): boolean {
+  return !!icon && !getIconPath(icon)
+}
 </script>
 
 <template>
@@ -41,6 +45,7 @@ function getIconPath(icon?: string): string | null {
           <svg v-if="getIconPath(item.icon)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path :d="getIconPath(item.icon)" />
           </svg>
+          <span v-else-if="isUnicodeChar(item.icon)" class="unicode-icon">{{ item.icon }}</span>
         </span>
         <span class="label">{{ item.label }}</span>
       </div>
@@ -87,6 +92,10 @@ function getIconPath(icon?: string): string | null {
   justify-content: center;
   flex-shrink: 0;
   color: var(--color-accent);
+}
+.unicode-icon {
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
 .label {
   flex: 1;
