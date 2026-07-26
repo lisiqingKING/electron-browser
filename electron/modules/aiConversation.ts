@@ -8,6 +8,10 @@ export const aiConversationChannels = {
   getModel: 'ai:getModel',
   updatePinned: 'ai:updatePinned',
   saveFile: 'ai:saveFile',
+  openSaveDir: 'ai:openSaveDir',
+  listSaveFiles: 'ai:listSaveFiles',
+  readSaveFile: 'ai:readSaveFile',
+  deleteSaveFile: 'ai:deleteSaveFile',
 }
 
 export interface Message {

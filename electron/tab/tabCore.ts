@@ -245,6 +245,7 @@ const INTERNAL_PAGE_TITLES: Record<string, string> = {
   'default': '首页',
   'newtab': '新标签页',
   'ai': 'AI 助手',
+  'ai-saves': 'AI 保存记录',
   'history': '历史记录',
   'downloads': '下载管理',
   'logs': '日志查看',
@@ -261,7 +262,17 @@ export function isInternalTab(tab: { info: { url: string; actualUrl?: string } }
 
 // 查找已存在的内部页面标签
 export function findExistingInternalTab(url: string) {
-  return [...webContentViewMap.values()].find(t => t.info.url === url)
+  return [...webContentViewMap.values()].find(t => {
+    const tabUrl = t.info.url
+    // 精确匹配
+    if (tabUrl === url) return true
+    // 提取路由部分比较（处理 dev/prod URL 差异）
+    const getRoute = (u: string) => {
+      const hashIndex = u.indexOf('#/')
+      return hashIndex !== -1 ? u.slice(hashIndex) : u
+    }
+    return getRoute(tabUrl) === getRoute(url)
+  })
 }
 
 // 切换到已存在的标签（内部页面专用）

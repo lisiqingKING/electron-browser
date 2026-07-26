@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, app } from 'electron'
+import { ipcMain, BrowserWindow, app, shell } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab, isInternalTab, tabs, getTabListData, findExistingInternalTab, switchToExistingTab } from './tabCore'
@@ -144,6 +144,23 @@ export function registerTabHandlers(win: BrowserWindow) {
       return switchToExistingTab(win, existing)
     }
     const id = createTabAndShow({ title: 'AI 助手', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
+  })
+
+  // 创建 AI 保存记录页（已存在则切换）
+  ipcMain.handle('tabs:createAiSaves', async (_event, afterTabId?: string) => {
+    const url = env.getAiSavesUrl()
+    console.log('[createAiSaves] 加载 URL:', url)
+    const existing = findExistingInternalTab(url)
+    if (existing) {
+      console.log('[createAiSaves] 已存在，切换到:', existing.info.id)
+      return switchToExistingTab(win, existing)
+    }
+    const id = createTabAndShow({ title: 'AI 保存记录', url }, win, afterTabId)
     if (id) {
       const tab = tabs.find((t) => t.id === id)
       if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
@@ -329,6 +346,57 @@ export function registerTabHandlers(win: BrowserWindow) {
     const filePath = path.join(saveDir, filename)
     await fs.promises.writeFile(filePath, content, 'utf-8')
     return filePath
+  })
+
+  ipcMain.handle('ai:openSaveDir', async () => {
+    const saveDir = app.getPath('downloads')
+    await shell.openPath(saveDir)
+    return true
+  })
+
+  ipcMain.handle('ai:listSaveFiles', async () => {
+    const saveDir = app.getPath('downloads')
+    try {
+      const files = await fs.promises.readdir(saveDir)
+      const mdFiles = files.filter(f => f.endsWith('.md'))
+      const fileInfos = await Promise.all(
+        mdFiles.map(async (filename) => {
+          const filePath = path.join(saveDir, filename)
+          const stat = await fs.promises.stat(filePath)
+          return { filename, createdAt: stat.birthtimeMs, size: stat.size }
+        })
+      )
+      return fileInfos.sort((a, b) => b.createdAt - a.createdAt)
+    } catch {
+      return []
+    }
+  })
+
+  ipcMain.handle('ai:readSaveFile', async (_event, filename: string) => {
+    if (!filename || path.basename(filename) !== filename) {
+      throw new Error('非法文件名')
+    }
+    const saveDir = app.getPath('downloads')
+    const filePath = path.join(saveDir, filename)
+    try {
+      return await fs.promises.readFile(filePath, 'utf-8')
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('ai:deleteSaveFile', async (_event, filename: string) => {
+    if (!filename || path.basename(filename) !== filename) {
+      throw new Error('非法文件名')
+    }
+    const saveDir = app.getPath('downloads')
+    const filePath = path.join(saveDir, filename)
+    try {
+      await fs.promises.unlink(filePath)
+      return true
+    } catch {
+      return false
+    }
   })
 
   // 打开当前 Tab 的开发者工具

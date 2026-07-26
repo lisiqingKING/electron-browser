@@ -33,6 +33,10 @@ export const env = {
     return this.getUrl('ai')
   },
 
+  getAiSavesUrl(): string {
+    return this.getUrl('ai-saves')
+  },
+
   getLogsUrl(): string {
     return this.getUrl('logs')
   },
