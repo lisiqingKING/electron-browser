@@ -3,6 +3,7 @@ import { ref, watch, onMounted } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
 import { isUrl, isNewTabUrl } from './utils'
+import { usePopup } from './composables/usePopup'
 
 interface TabInfo {
   title: string
@@ -28,7 +29,6 @@ const canGoForward = ref(false)
 
 // 用于避免竞态：追踪当前 tab 的最新版本号
 let currentTabVersion = 0
-
 
 const updateCurrentUrl = () => {
    if(typeof currentTabId.value === 'string') {
@@ -182,6 +182,16 @@ const openSettings = async () => {
   // 标签列表通过 tab:list-changed 事件更新
 }
 
+// Popup 菜单处理（放在 openHistory/openSettings 定义之后）
+const { onAction } = usePopup()
+onAction(async (action) => {
+  if (action === 'openHistory') {
+    openHistory()
+  } else if (action === 'openSettings') {
+    openSettings()
+  }
+})
+
 // 加载主题设置
 const loadTheme = async () => {
   try {
@@ -230,8 +240,6 @@ onMounted(() => {
       @submit="addTab"
       @goBack="handleGoBack"
       @goForward="handleGoForward"
-      @openHistory="openHistory"
-      @openSettings="openSettings"
       @add="addTabByButton"
     />
   </div>
