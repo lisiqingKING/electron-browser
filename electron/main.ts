@@ -15,6 +15,7 @@ import { registerMemoryMonitorHandler, getMemoryMonitor } from './memory/memoryM
 import { createAlertHandler } from './memory/alertLogger'
 import { createTray, destroyTray } from './tray/trayManager'
 import { registerPopupHandlers, setMainWindow } from './popup'
+import { initUpdater, checkForUpdates, downloadUpdate, quitAndInstall, getUpdateStatus, updaterChannels } from './updater'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -205,4 +206,12 @@ app.whenReady().then(async () => {
   getDownloadManager().init()
   createWindow()
   monitor.startMonitor()
+
+  // Updater
+  initUpdater()
+  ipcMain.handle(updaterChannels.checkForUpdates, () => checkForUpdates())
+  ipcMain.handle(updaterChannels.downloadUpdate, () => downloadUpdate())
+  ipcMain.handle(updaterChannels.quitAndInstall, () => quitAndInstall())
+  ipcMain.handle(updaterChannels.getUpdateStatus, () => getUpdateStatus())
+  setTimeout(() => checkForUpdates(), 5 * 60 * 1000)
 })
