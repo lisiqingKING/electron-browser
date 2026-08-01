@@ -10,6 +10,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_NEW_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,15 +29,13 @@ jobs:
 
       - name: Debug GH_TOKEN
         run: |
-          echo "DEBUG: checking GH_TOKEN environment variable"
+          echo "DEBUG: checking GH_TOKEN"
           if [ -n "$GH_TOKEN" ]; then
             echo "GH_TOKEN is SET (length: ${#GH_TOKEN})"
             echo "GH_TOKEN prefix: ${GH_TOKEN:0:4}"
           else
-            echo "GH_TOKEN is NOT SET or EMPTY"
+            echo "GH_TOKEN is NOT SET"
           fi
 
       - name: Build and publish Electron
         run: npx electron-builder --publish always -w
-        env:
-          GH_TOKEN: ${{ secrets.GH_NEW_TOKEN }}
