@@ -234,7 +234,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
   view.webContents.session.webRequest.onBeforeSendHeaders(
     { urls: ['*://*/*'] },
     (details, callback) => {
-      if (details.resourceType === 'image') {
+      if (details.resourceType === 'image' && view.webContents) {
         details.requestHeaders['Referer'] = view.webContents.getURL()
       }
       callback({ requestHeaders: details.requestHeaders })

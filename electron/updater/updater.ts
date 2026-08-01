@@ -17,6 +17,7 @@ function isPortable(): boolean {
 }
 
 function canUpdate(): boolean {
+  if (process.env.FORCE_UPDATE_CHECK === '1') return true
   return app.isPackaged && !isPortable()
 }
 
