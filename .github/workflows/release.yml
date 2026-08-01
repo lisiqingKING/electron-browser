@@ -25,6 +25,16 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Debug GH_TOKEN
+        run: |
+          echo "DEBUG: checking GH_TOKEN environment variable"
+          if [ -n "$GH_TOKEN" ]; then
+            echo "GH_TOKEN is SET (length: ${#GH_TOKEN})"
+            echo "GH_TOKEN prefix: ${GH_TOKEN:0:4}"
+          else
+            echo "GH_TOKEN is NOT SET or EMPTY"
+          fi
+
       - name: Build and publish Electron
         run: npx electron-builder --publish always -w
         env:
