@@ -177,7 +177,7 @@ export function closeTab(id: string, win: BrowserWindow): string | null {
   const tab = webContentViewMap.get(id)!
   if (tab.info.isHome) return null  // 首页不可关闭
   win.contentView.removeChildView(tab.view)
-  tab.view.webContents.destroy()  // 彻底销毁渲染进程，否则音频/视频会继续播放
+  ;(tab.view.webContents as any).destroy()  // 彻底销毁渲染进程，否则音频/视频会继续播放
   webContentViewMap.delete(id)
   const closedIndex = tabs.findIndex(t => t.id === id)
   tabs.splice(closedIndex, 1)
