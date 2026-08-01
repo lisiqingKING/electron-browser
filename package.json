@@ -9,6 +9,7 @@
     "build:frontend": "vue-tsc && vite build && npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs",
     "preview": "vite preview",
     "postinstall": "electron-rebuild",
+    "release": "node scripts/release.mjs",
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
