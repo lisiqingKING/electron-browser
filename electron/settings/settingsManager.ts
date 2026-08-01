@@ -1,5 +1,4 @@
 import {
-  getSetting as getSettingFromDb,
   setSetting as setSettingToDb,
   getAllSettings as getAllSettingsFromDb,
   type SettingItem

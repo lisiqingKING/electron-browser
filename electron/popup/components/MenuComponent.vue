@@ -43,7 +43,7 @@ function isUnicodeChar(icon?: string): boolean {
       >
         <span v-if="item.icon" class="icon">
           <svg v-if="getIconPath(item.icon)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path :d="getIconPath(item.icon)" />
+            <path :d="getIconPath(item.icon) ?? undefined" />
           </svg>
           <span v-else-if="isUnicodeChar(item.icon)" class="unicode-icon">{{ item.icon }}</span>
         </span>

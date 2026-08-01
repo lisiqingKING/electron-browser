@@ -6,7 +6,7 @@ import { getInternalIconFromUrl } from '../utils/tabIcons'
 import { isNewTabUrl } from '../utils'
 
 const props = defineProps<{
-  tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string; loadError?: { url: string; code: number; message: string } }[]
+  tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string; loadError?: { url: string; code: number; message: string }; isHome?: boolean }[]
   currentTabId: string | null
 }>()
 
@@ -191,7 +191,7 @@ onUnmounted(() => {
             </svg>
             <!-- 内部页面图标（优先于 favicon） -->
             <svg v-else-if="getInternalIconFromUrl(tab.url)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path :d="getInternalIconFromUrl(tab.url)" />
+              <path :d="getInternalIconFromUrl(tab.url) ?? undefined" />
             </svg>
             <!-- 有 favicon 且未加载失败 -->
             <img v-else-if="tab.favicon && !failedFavicons.has(tab.favicon)" :src="tab.favicon" class="favicon-img" @error="onFaviconError(tab.favicon!)" @load="onFaviconLoad(tab.favicon!)" />
