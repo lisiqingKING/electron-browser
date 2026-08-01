@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 // Usage: node scripts/release.mjs 1.0.0
 // Or:    npm run release 1.0.0
+//
+// Prerequisites:
+//   1. package.json version 已改为目标版本
+//   2. 代码已 git add + git commit
+//
+// What it does:
+//   打 v<version> tag → push → CI 构建 + 发布到 GitHub Releases
 
 import { execSync } from 'child_process'
 
@@ -11,13 +18,9 @@ if (!version) {
 }
 
 const tag = `v${version}`
-const branch = `release/v${version}`
+console.log(`Tagging ${tag} and pushing to origin...`)
 
-console.log(`Creating ${branch} and tag ${tag}...`)
-
-execSync(`git checkout -b ${branch}`, { stdio: 'inherit' })
-execSync(`git add -A && git commit -m "chore: prepare release ${tag}"`, { stdio: 'inherit' })
 execSync(`git tag -a ${tag} -m "Release ${tag}"`, { stdio: 'inherit' })
-execSync(`git push origin ${branch} ${tag}`, { stdio: 'inherit' })
+execSync(`git push origin ${tag}`, { stdio: 'inherit' })
 
-console.log(`Done: ${branch} pushed, ${tag} pushed. CI will build and publish.`)
+console.log(`Done: ${tag} pushed. CI will build and publish.`)
