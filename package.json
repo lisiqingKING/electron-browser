@@ -9,7 +9,6 @@
     "build:frontend": "vue-tsc && vite build && npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs",
     "preview": "vite preview",
     "postinstall": "electron-rebuild",
-    "release": "semantic-release"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
@@ -19,14 +18,11 @@
     "vue": "^3.4.21"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
     "@types/better-sqlite3": "^7.6.13",
     "@vitejs/plugin-vue": "^5.0.4",
     "electron": "^30.0.1",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
-    "semantic-release": "^25.0.8",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.6",
