@@ -8,7 +8,8 @@
 //
 // 行为:
 //   - tag 不存在 → 创建并推送
-//   - tag 已存在 → 报错退出,提示升级版本号
+//   - tag 存在,Release 不存在(CI 失败) → 删除 remote tag,重新推送
+//   - tag 存在,Release 已存在 → 报错,需先手动删除 GitHub Release
 
 import { execSync } from 'child_process'
 
@@ -19,6 +20,7 @@ if (!version) {
 }
 
 const tag = `v${version}`
+const repo = 'lisiqingKING/electron-browser'
 
 // 检查 remote tag 是否存在
 function tagExistsRemote(tag) {
@@ -30,11 +32,42 @@ function tagExistsRemote(tag) {
   }
 }
 
-if (tagExistsRemote(tag)) {
-  console.error(`[release] Error: ${tag} already exists on remote.`)
-  console.error(`[release] To fix: bump your version number and try again.`)
-  console.error(`[release] For example: npm run release ${parseInt(version.split('.')[2]) + 1}`)
-  process.exit(1)
+// 通过 GitHub API 检查 Release 是否已发布
+function releaseExists(tag) {
+  try {
+    const token = process.env.GH_TOKEN
+    const url = `https://api.github.com/repos/${repo}/releases/tags/${tag}`
+    let cmd = `curl -s -H "Accept: application/vnd.github+json" "${url}"`
+    if (token) {
+      cmd += ` -H "Authorization: Bearer ${token}"`
+    }
+    const output = execSync(cmd, { stdio: 'pipe' }).toString()
+    const json = JSON.parse(output)
+    return json.id != null
+  } catch {
+    return false
+  }
+}
+
+// 删除 remote tag
+function deleteRemoteTag(tag) {
+  console.log(`[release] Deleting remote ${tag}...`)
+  execSync(`git push origin :refs/tags/${tag}`, { stdio: 'inherit' })
+}
+
+const remoteTag = tagExistsRemote(tag)
+
+if (remoteTag) {
+  const hasRelease = releaseExists(tag)
+  if (hasRelease) {
+    console.error(`[release] Error: ${tag} has an existing Release on GitHub.`)
+    console.error(`[release] To re-publish, delete the Release first:`)
+    console.error(`[release]   https://github.com/${repo}/releases`)
+    process.exit(1)
+  }
+  // CI 失败,删除旧 tag 重新推送
+  console.log(`[release] ${tag} exists but Release not found (CI likely failed). Re-publishing...`)
+  deleteRemoteTag(tag)
 }
 
 console.log(`[release] Creating ${tag}...`)
