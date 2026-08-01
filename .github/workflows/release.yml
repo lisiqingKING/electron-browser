@@ -25,7 +25,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Build and publish Electron
-        run: npx electron-builder --publish always -w
+      - name: Build (no publish)
+        run: npx electron-builder --publish never -w
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*
+          draft: true
         env:
-          GH_TOKEN: ${{ secrets.GH_NEW_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
