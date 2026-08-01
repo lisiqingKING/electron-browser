@@ -27,15 +27,5 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Debug GH_TOKEN
-        run: |
-          echo "DEBUG: checking GH_TOKEN"
-          if ($env:GH_TOKEN) {
-            Write-Host "GH_TOKEN is SET (length: $($env:GH_TOKEN.Length))"
-            Write-Host "GH_TOKEN prefix: $($env:GH_TOKEN.Substring(0, [Math]::Min(4, $env:GH_TOKEN.Length)))"
-          } else {
-            Write-Host "GH_TOKEN is NOT SET"
-          }
-
       - name: Build and publish Electron
         run: npx electron-builder --publish always -w
