@@ -46,7 +46,7 @@ function getPopupUrl(): string {
   if (process.env.VITE_DEV_SERVER_URL) {
     return process.env.VITE_DEV_SERVER_URL + 'popup.html'
   }
-  return 'file://' + path.join(app.getAppPath(), 'dist-electron', 'popup.html')
+  return 'file://' + path.join(app.getAppPath(), 'dist', 'popup.html')
 }
 
 export function showPopup(options: PopupOptions): void {
