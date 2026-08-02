@@ -26,12 +26,13 @@ jobs:
 
       - name: Build subapp
         run: |
-          git clone https://github.com/lisiqingKING/internal-app.git apps/app-temp
-          cd apps/app-temp
+          $root = $env:GITHUB_WORKSPACE
+          git clone https://github.com/lisiqingKING/internal-app.git "$root\apps\app-temp"
+          cd "$root\apps\app-temp"
           npm ci
           npm run build
-          cd ../..
-          xcopy /E /I /Y apps/app-temp/dist apps/internal-app/dist/
+          robocopy "$root\apps\app-temp\dist" "$root\apps\internal-app\dist" /E /MOVE
+          exit 0
 
       - name: Build
         run: npm run build
