@@ -76,6 +76,26 @@ function initSettingsTable(): void {
   `)
 }
 
+function initFavoritesTable(): void {
+  getDatabase().exec(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL DEFAULT '',
+      favicon TEXT,
+      createdAt INTEGER NOT NULL
+    )
+  `)
+  // 迁移：添加 favicon 列（如果不存在）
+  try {
+    getDatabase().exec('ALTER TABLE favorites ADD COLUMN favicon TEXT')
+  } catch {
+    // 列已存在，忽略
+  }
+  // 添加 url 索引，加速查询
+  getDatabase().exec('CREATE INDEX IF NOT EXISTS idx_favorites_url ON favorites(url)')
+}
+
 function initDownloadsTable(): void {
   // 检查老 schema 是否有 source 列 (旧版本带 source/method/post_body/headers/http 路径)
   // 启动时把老表备份 + 重建, 把还在用的列拷过去, 删掉废弃列
@@ -163,6 +183,7 @@ export function initDatabase(): Database.Database {
   initAIConversationTable()
   initSettingsTable()
   initDownloadsTable()
+  initFavoritesTable()
 
   console.log('[Database] Initialized at:', DB_PATH)
 

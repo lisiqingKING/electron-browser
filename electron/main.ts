@@ -7,6 +7,7 @@ import { registerWebContentsEvents } from './tab/tabEvents'
 import { isUrl } from '../src/utils'
 import { tabs, curTabId, webContentViewMap, setCurTabId, createTabCore, getTabListData } from './tab/tabCore'
 import { initDatabase, closeDatabase, saveTabs, loadTabs } from './database/index'
+import { syncFromDb as syncFavoritesFromDb } from './favorites/favoritesManager'
 import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
 import { getDownloadManager } from './downloads/downloadManager'
@@ -141,7 +142,9 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
-  saveTabs(tabs, curTabId)
+  // 只保存加载成功的标签页，加载失败的页面不恢复
+  const tabsToSave = tabs.filter(tab => !tab.loadError)
+  saveTabs(tabsToSave, curTabId)
 })
 
 app.on('will-quit', () => {
@@ -209,6 +212,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('window:isMaximized', () => win?.isMaximized() ?? false)
 
   initDatabase()
+  syncFavoritesFromDb()
   initWebviewSource()
   registerMemoryMonitorHandler()
   registerPopupHandlers()

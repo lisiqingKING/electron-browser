@@ -37,6 +37,10 @@ export const env = {
     return this.getUrl('ai-saves')
   },
 
+  getFavoritesUrl(): string {
+    return this.getUrl('favorites')
+  },
+
   getLogsUrl(): string {
     return this.getUrl('logs')
   },

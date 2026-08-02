@@ -26,6 +26,7 @@ const currentTabId = ref<string | null>(null)
 const currentUrl = ref('')
 const canGoBack = ref(false)
 const canGoForward = ref(false)
+const isFavorited = ref(false)
 
 // 用于避免竞态：追踪当前 tab 的最新版本号
 let currentTabVersion = 0
@@ -52,6 +53,19 @@ const updateCurrentUrl = () => {
 
 watch(currentTabId, () => {
   updateCurrentUrl()
+})
+
+// 监听 URL 变化，检查收藏状态
+watch(currentUrl, async (url) => {
+  if (!url || url.trim() === '' || isNewTabUrl(url)) {
+    isFavorited.value = false
+    return
+  }
+  try {
+    isFavorited.value = await window.ipcRenderer.invoke('favorites:check', url)
+  } catch {
+    isFavorited.value = false
+  }
 })
 
 const addTab = async () => {
@@ -172,8 +186,21 @@ const handleGoForward = () => {
   window.ipcRenderer.send('tabs:goForward')
 }
 
+const handleToggleFavorite = async () => {
+  if (!currentUrl.value) return
+  try {
+    const tab = tabs.value.find(t => t.id === currentTabId.value)
+    const title = tab?.title || currentUrl.value
+    const favicon = tab?.favicon || undefined
+    isFavorited.value = await window.ipcRenderer.invoke('favorites:toggle', currentUrl.value, title, favicon)
+  } catch (e) {
+    console.error('[handleToggleFavorite]', e)
+  }
+}
+
 // 内部页面菜单 action 映射
 const internalPageActions: Record<string, string> = {
+  openFavorites: 'tabs:createFavorites',
   openHistory: 'tabs:createHistory',
   openSettings: 'tabs:createSettings',
   openDownloads: 'tabs:createDownloads',
@@ -187,8 +214,14 @@ const openInternalPage = async (channel: string) => {
 
 // Popup 菜单处理
 const { onAction, hide } = usePopup()
-onAction(async (action) => {
+onAction(async (action, context) => {
   hide()
+  // 直接打开 URL
+  if (action === 'openUrl' && context?.url) {
+    // 在当前活跃标签后面新建标签
+    await window.ipcRenderer.invoke('tabs:create', { title: '加载中...', url: context.url }, currentTabId.value || undefined)
+    return
+  }
   const channel = internalPageActions[action]
   if (channel) {
     await openInternalPage(channel)
@@ -240,11 +273,13 @@ onMounted(() => {
       v-model="currentUrl"
       :can-go-back="canGoBack"
       :can-go-forward="canGoForward"
+      :is-favorited="isFavorited"
       @submit="addTab"
       @goBack="handleGoBack"
       @goForward="handleGoForward"
       @add="addTabByButton"
       @openAI="openInternalPage('tabs:createAI')"
+      @toggleFavorite="handleToggleFavorite"
     />
   </div>
 </template>

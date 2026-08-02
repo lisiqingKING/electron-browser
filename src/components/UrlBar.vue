@@ -5,6 +5,7 @@ const props = defineProps<{
   modelValue: string
   canGoBack?: boolean
   canGoForward?: boolean
+  isFavorited?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -14,6 +15,7 @@ const emit = defineEmits<{
   (e: 'goForward'): void
   (e: 'add'): void
   (e: 'openAI'): void
+  (e: 'toggleFavorite'): void
 }>()
 
 const { showMenu } = usePopup()
@@ -30,8 +32,37 @@ const handleGoForward = () => {
   if (props.canGoForward) emit('goForward')
 }
 
-const handleMoreClick = (event: MouseEvent) => {
+const handleMoreClick = async (event: MouseEvent) => {
+  // 动态获取收藏列表作为子菜单
+  let favoritesChildren: any[] = []
+  try {
+    const list = await window.ipcRenderer.invoke('favorites:list')
+    if (list && list.length > 0) {
+      favoritesChildren = list.slice(0, 5).map((item: any) => {
+        return {
+          label: item.title || item.url,
+          action: 'openUrl',
+          context: { url: item.url },
+          favicon: item.favicon || null,
+        }
+      })
+    } else {
+      favoritesChildren = [{ label: '暂无收藏', disabled: true }]
+    }
+  } catch {
+    favoritesChildren = [{ label: '加载失败', disabled: true }]
+  }
+
   showMenu(event, [
+    {
+      label: '收藏夹',
+      icon: 'star',
+      children: [
+        ...favoritesChildren,
+        { type: 'separator' },
+        { label: '管理收藏夹...', action: 'openFavorites' },
+      ],
+    },
     { label: '历史记录', action: 'openHistory', icon: 'history' },
     { label: '下载记录', action: 'openDownloads', icon: 'downloads' },
     { label: '日志管理', action: 'openLogs', icon: 'logs' },
@@ -80,6 +111,11 @@ const handleMoreClick = (event: MouseEvent) => {
         />
       </div>
 
+      <button class="star-btn" :class="{ active: props.isFavorited }" title="收藏" @click="emit('toggleFavorite')">
+        <svg viewBox="0 0 24 24" width="18" height="18" :fill="props.isFavorited ? '#facc15' : 'currentColor'">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+        </svg>
+      </button>
       <button class="ai-btn" title="AI 助手" @click="emit('openAI')">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
           <path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/>
@@ -250,5 +286,34 @@ const handleMoreClick = (event: MouseEvent) => {
 
 .ai-btn:active {
   background: var(--window-btn-hover);
+}
+
+/* ── 收藏按钮 ── */
+.star-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--urlbar-icon);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.star-btn:hover {
+  background: var(--window-btn-hover);
+  color: var(--urlbar-icon-hover);
+}
+
+.star-btn:active {
+  background: var(--window-btn-hover);
+}
+
+.star-btn.active {
+  color: #facc15;
 }
 </style>

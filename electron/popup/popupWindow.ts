@@ -117,6 +117,11 @@ export function showPopup(options: PopupOptions): void {
     }
   })
 
+  // 切换应用时隐藏菜单
+  popupWindow.on('blur', () => {
+    hidePopup()
+  })
+
   popupWindow.on('closed', () => {
     popupWindow = null
   })

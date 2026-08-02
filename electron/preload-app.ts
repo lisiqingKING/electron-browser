@@ -6,6 +6,7 @@ import { createDownloadsProxy } from './downloads/ipc'
 import { createLogsProxy } from './modules/logs'
 import { createSettingsProxy } from './modules/settings'
 import { createUpdaterProxy } from './modules/updater'
+import { createFavoritesProxy } from './modules/favorites'
 
 // 模块注册表 - 可以动态添加新模块
 const moduleRegistry: Record<string, () => Record<string, Function>> = {
@@ -16,6 +17,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   logs: () => createLogsProxy(ipcRenderer),
   settings: () => createSettingsProxy(ipcRenderer),
   updater: () => createUpdaterProxy(ipcRenderer),
+  favorites: () => createFavoritesProxy(ipcRenderer),
 }
 
 // 构建所有模块

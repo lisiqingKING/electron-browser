@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import WindowControls from './WindowControls.vue'
 import { usePopup } from '../composables/usePopup'
-import { getInternalIconFromUrl } from '../utils/tabIcons'
+import { getInternalIconFromUrl, getRouteFromUrl } from '../utils/tabIcons'
 import { isNewTabUrl } from '../utils'
 
 const props = defineProps<{
@@ -73,7 +73,7 @@ const tabMenuItems = [
 const handleContextMenu = (event: MouseEvent, tabId: string) => {
   const tab = props.tabs.find(t => t.id === tabId)
   const isHome = tab?.isHome
-  const isInternal = tab ? getInternalIconFromUrl(tab.url) !== null : false
+  const isInternal = tab ? getRouteFromUrl(tab.url) !== null : false
   const isNewTab = tab ? isNewTabUrl(tab.url) : false
 
   const closeActions = ['close', 'closeLeft']

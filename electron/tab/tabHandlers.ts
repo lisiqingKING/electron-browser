@@ -4,6 +4,7 @@ import path from 'node:path'
 import { getCurTab, webContentViewMap, updateCurTabBounds, closeTab, setCurTabId, openDevToolsForCurTab, isInternalTab, tabs, getTabListData, findExistingInternalTab, switchToExistingTab } from './tabCore'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
 import { getHistory, clearAllHistory, deleteRecord } from '../history/historyManager'
+import { getAllFavorites, checkFavorite, toggleFavorite, removeFavorite } from '../favorites/favoritesManager'
 import { getSetting, setSetting, getAllSettings } from '../settings/settingsManager'
 import {
   getAllChatSessions,
@@ -168,6 +169,23 @@ export function registerTabHandlers(win: BrowserWindow) {
     return id
   })
 
+  // 创建收藏页（已存在则切换）
+  ipcMain.handle('tabs:createFavorites', async (_event, afterTabId?: string) => {
+    const url = env.getFavoritesUrl()
+    console.log('[createFavorites] 加载 URL:', url)
+    const existing = findExistingInternalTab(url)
+    if (existing) {
+      console.log('[createFavorites] 已存在，切换到:', existing.info.id)
+      return switchToExistingTab(win, existing)
+    }
+    const id = createTabAndShow({ title: '收藏夹', url }, win, afterTabId)
+    if (id) {
+      const tab = tabs.find((t) => t.id === id)
+      if (tab) insertTab({ id, title: tab.title, url: tab.url, time: tab.time! })
+    }
+    return id
+  })
+
   // 刷新
   ipcMain.on('tabs:refresh', () => {
     refreshCurTab(win)
@@ -276,6 +294,24 @@ export function registerTabHandlers(win: BrowserWindow) {
 
   ipcMain.handle('history:delete', async (_event, id: number) => {
     deleteRecord(id)
+    return true
+  })
+
+  // 收藏相关
+  ipcMain.handle('favorites:list', async () => {
+    return getAllFavorites()
+  })
+
+  ipcMain.handle('favorites:check', async (_event, url: string) => {
+    return checkFavorite(url)
+  })
+
+  ipcMain.handle('favorites:toggle', async (_event, url: string, title: string, favicon?: string) => {
+    return toggleFavorite(url, title, favicon)
+  })
+
+  ipcMain.handle('favorites:remove', async (_event, url: string) => {
+    removeFavorite(url)
     return true
   })
 

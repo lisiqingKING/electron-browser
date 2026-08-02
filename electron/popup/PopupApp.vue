@@ -49,6 +49,11 @@ onMounted(() => {
       window.ipcRenderer.send('popup:hide')
     }
   })
+
+  // 窗口失去焦点时隐藏菜单
+  window.addEventListener('blur', () => {
+    window.ipcRenderer.send('popup:hide')
+  })
 })
 </script>
 
@@ -64,13 +69,14 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12px;
   user-select: none;
-  overflow: hidden;
   background: transparent;
+  overflow: visible;
 }
 .popup {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  overflow: visible;
 }
 </style>
