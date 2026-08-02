@@ -31,7 +31,9 @@ jobs:
           cd "$root\apps\app-temp"
           npm ci
           npm run build
-          robocopy "$root\apps\app-temp\dist" "$root\apps\internal-app\dist" /E /MOVE
+          robocopy "$root\apps\app-temp\dist" "$root\apps\internal-app\dist" /E
+          cd $root
+          Remove-Item -Recurse -Force "$root\apps\app-temp"
           exit 0
 
       - name: Build
