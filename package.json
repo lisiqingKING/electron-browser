@@ -1,7 +1,7 @@
 {
   "name": "electron-vue-app",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && vite",
