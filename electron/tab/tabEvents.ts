@@ -29,7 +29,8 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       win.contentView.removeChildView(curTab.view)
     }
 
-    const { view: newView, tabInfo: newTabInfo } = createTabCore({ url: event.url, title: '新窗口' })
+    const afterTabId = curTab?.info?.id
+    const { view: newView, tabInfo: newTabInfo } = createTabCore({ url: event.url, title: '新窗口' }, afterTabId)
     if (isUrl(event.url)) {
       newView.webContents.loadURL(event.url)
     } else {
@@ -268,7 +269,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       if (parameters.mediaType === 'image') {
         items.push({ label: '复制图片', click: () => view.webContents.copyImageAt(parameters.x, parameters.y) })
         if (parameters.srcURL) {
-          items.push({ label: '在新标签页打开图片', click: () => createTabAndShow({ title: '图片', url: parameters.srcURL }, win) })
+          items.push({ label: '在新标签页打开图片', click: () => createTabAndShow({ title: '图片', url: parameters.srcURL }, win, getCurTab()?.info?.id) })
         }
       }
 
