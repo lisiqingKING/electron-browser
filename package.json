@@ -5,12 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && vite",
-    "build": "vue-tsc && vite build && npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && electron-builder",
-    "build:frontend": "vue-tsc && vite build && npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs",
+    "build": "vite build && npx esbuild electron/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && electron-builder",
     "preview": "vite preview",
     "postinstall": "electron-rebuild",
     "release": "node scripts/release.mjs",
-    "build:subapp": "node scripts/build-subapp.js"
+    "build:all": "node scripts/build-all.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
