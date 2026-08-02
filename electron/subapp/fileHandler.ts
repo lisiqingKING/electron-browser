@@ -20,7 +20,9 @@ export const CONTENT_TYPES: Record<string, string> = {
 // 文件处理
 // ============================================================================
 export function handleFileRequest(url: string, res: http.ServerResponse, appsDir: string) {
-  const filePath = path.join(appsDir, url)
+  // /internal-app/settings -> /internal-app/dist/settings
+  const urlPath = url.replace(/^\/([^/]+)\//, '/$1/dist/')
+  const filePath = path.join(appsDir, urlPath)
 
   if (!filePath.startsWith(appsDir)) {
     res.writeHead(403)
