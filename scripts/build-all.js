@@ -10,9 +10,9 @@ console.log('[build-subapp] Building internal-app...')
 execSync('npm run build', { cwd: 'C:/Users/lsq/my-projects/app', stdio: 'inherit' })
 
 // 2. 拷贝到容器
-console.log('[build-subapp] Copying dist to apps/internal-app...')
+console.log('[build-subapp] Copying dist to apps/internal-app/dist...')
 const src = 'C:/Users/lsq/my-projects/app/dist'
-const dest = path.join(rootDir, 'apps/internal-app')
+const dest = path.join(rootDir, 'apps/internal-app/dist')
 execSync(`xcopy /E /I /Y "${src}" "${dest}"`, { stdio: 'inherit' })
 
 // 3. 构建容器
