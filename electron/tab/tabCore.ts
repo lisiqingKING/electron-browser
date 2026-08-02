@@ -299,7 +299,13 @@ export function getTitleForInternalUrl(url: string): string | null {
   if (!isInternalUrl(url)) return null
   try {
     const parsed = new URL(url)
-    const route = parsed.hash?.replace('#/', '') || ''
+    // lsqapp:// URLs have route in pathname (e.g., /ai), http:// URLs have route in hash (e.g., #/ai)
+    let route: string
+    if (parsed.hash && parsed.hash !== '#/') {
+      route = parsed.hash.replace('#/', '')
+    } else {
+      route = parsed.pathname.slice(1) || ''
+    }
     return INTERNAL_PAGE_TITLES[route] || null
   } catch {
     return null
