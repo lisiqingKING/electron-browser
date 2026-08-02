@@ -158,7 +158,21 @@ app.on('activate', () => {
   }
 })
 
+// 单例：确保只有一个实例运行
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.exit(0)
+}
+
 app.whenReady().then(async () => {
+  // 第二个实例启动时，激活主窗口
+  app.on('second-instance', () => {
+    if (win) {
+      win.show()
+      win.focus()
+    }
+  })
+
   await startSubappServer()
 
   // 注册 lsqapp:// 协议（内部导航，不注册到系统）
