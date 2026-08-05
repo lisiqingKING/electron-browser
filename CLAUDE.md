@@ -86,6 +86,23 @@ window.bridge.getModules(['history', 'ai'])  // 按需拿模块
 - 导航状态 (`canGoBack` / `canGoForward`) 通过 `tab:can-navigate` 事件回流到 UI
 - 容器认 `lsqapp://internal-app` 为"内置默认页", URL 栏隐藏 (见 [src/App.vue](src/App.vue#L33-L37))
 
+### Tab 数据持久化要点 (避免 id 不一致)
+
+**核心问题**：重启恢复 tab 时 `createTabCore` 生成新 id，而数据库存的是旧 id，导致关闭时 `deleteTab` 找不到记录。
+
+**持久化逻辑**：
+- `before-quit` → `saveTabs`：DELETE + 重新插入当前 tabs（此时 id 一致）
+- `loadTabs`：返回数据库中的旧 id，恢复时 `createTabCore` 生成新 id
+
+**正确做法**（已实现）：
+1. `switchTab` → 调用 `setActiveTab` 实时更新数据库 `isActive`
+2. 恢复 tab 后 → 调用 `saveTabs` 用新 id 重新保存到数据库
+3. 关闭 tab → 不单独 `deleteTab`，统一由 `before-quit` 的 `saveTabs` 处理
+
+**禁止**：
+- 恢复 tab 后直接用旧 id 关闭（因为内存中已是新 id）
+- 在 `tabs:close` 中单独调用 `deleteTab`（依赖 `before-quit` 的整体保存）
+
 ## 常用开发命令
 
 ```bash
