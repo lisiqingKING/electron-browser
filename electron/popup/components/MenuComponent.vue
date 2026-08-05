@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { TAB_ICON_MAP } from '../../../src/utils/tabIcons'
+import { TAB_ICON_MAP } from '@renderer/utils/tabIcons'
 
 interface MenuItem {
   label?: string
@@ -10,6 +10,7 @@ interface MenuItem {
   type?: string
   disabled?: boolean
   children?: MenuItem[]
+  context?: any
 }
 
 const props = defineProps<{

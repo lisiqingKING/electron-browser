@@ -1,10 +1,12 @@
 // 环境配置
 import { app } from 'electron'
 
+export const DEV_PORT = 5273
+
 export const env = {
   getUrl(route?: string): string {
     if (!app.isPackaged) {
-      return route ? `http://localhost:5273/#/${route}` : `http://localhost:5273/#/`
+      return route ? `http://localhost:${DEV_PORT}/#/${route}` : `http://localhost:${DEV_PORT}/#/`
     }
     return route ? `lsqapp://internal-app/${route}` : 'lsqapp://internal-app'
   },
@@ -53,7 +55,7 @@ export const env = {
     }).toString()
     const route = `error?${query}`
     if (!app.isPackaged) {
-      return `http://localhost:5273/#/${route}`
+      return `http://localhost:${DEV_PORT}/#/${route}`
     }
     return `lsqapp://internal-app/${route}`
   }

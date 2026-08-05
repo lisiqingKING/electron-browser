@@ -3,7 +3,7 @@ import contextMenu from 'electron-context-menu'
 import { recordVisit, updateFaviconByTabUrl } from '../history/historyManager'
 import { webContentViewMap, getCurTab, TabInfo, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, getTabListData } from './tabCore'
 import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
-import { isUrl } from '../../src/utils'
+import { isUrl } from '@renderer/utils'
 import { env } from '../env'
 import { insertTab, updateTabUrl } from '../database/index'
 

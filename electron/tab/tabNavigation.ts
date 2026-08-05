@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, getTabListData, TabInfo } from './tabCore'
 import { registerWebContentsEvents } from './tabEvents'
-import { isUrl } from '../../src/utils'
+import { isUrl } from '@renderer/utils'
 import { getSubappUrl } from '../subapp'
 
 export function resolveAppsUrl(url: string): string | null {

@@ -1,13 +1,11 @@
 import type { ChatSession, Message } from './aiConversationDb'
 
-export { ChatSession, Message } from './aiConversationDb'
+export { ChatSession, Message }
 
-export function syncConversationsFromDb(): void
-export function getChatSessions(): ChatSession[]
-export function getChatSession(convId: string): ChatSession | undefined
+export function getAllChatSessions(): ChatSession[]
+export function getChatSessionsPage(limit: number, offset: number): ChatSession[]
 export function createChatSession(title?: string): ChatSession
-export function updateChatSessionTitle(convId: string, title: string): void
+export function updateTitle(convId: string, title: string): void
+export function updateMessages(convId: string, messages: Message[]): void
 export function deleteChatSession(convId: string): void
-export function addMessage(convId: string, role: 'user' | 'assistant', content: string): Message
-export function deleteAIMessage(convId: string, msgId: string): void
-export function getOrCreateDefaultChatSession(): ChatSession
+export function updatePinned(convId: string, pinned: number): void
