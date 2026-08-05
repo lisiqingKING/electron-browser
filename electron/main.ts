@@ -6,7 +6,7 @@ import { registerShortcuts } from './keyboard/shortcuts'
 import { registerWebContentsEvents } from './tab/tabEvents'
 import { isUrl } from '@renderer/utils'
 import { tabs, curTabId, webContentViewMap, setCurTabId, createTabCore, getTabListData } from './tab/tabCore'
-import { initDatabase, closeDatabase, saveTabs, loadTabs } from './database/index'
+import { initDatabase, closeDatabase, saveTabs, loadTabs, setActiveTab } from './database/index'
 import { syncFromDb as syncFavoritesFromDb } from './favorites/favoritesManager'
 import { env } from './env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
@@ -104,9 +104,13 @@ function createWindow() {
         win.contentView.addChildView(targetTab.view)
         updateCurTabBounds(targetTab, win)
         setCurTabId(finalTabId)
+        setActiveTab(finalTabId)
         win.webContents.send('tab:current-changed', { currentTabId: finalTabId })
       }
     }
+
+    // 恢复后用新 id 重新保存到数据库，确保关闭 tab 时能正确删除
+    saveTabs(tabs.filter(tab => !tab.loadError), finalTabId || null)
   }
 
   // 统一在 window 层面处理 resize

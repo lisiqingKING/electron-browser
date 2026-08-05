@@ -229,7 +229,6 @@ export function registerTabHandlers(win: BrowserWindow) {
   // 关闭标签
   ipcMain.handle('tabs:close', async (_event, tabId: string) => {
     const newCurTabId = closeTab(tabId, win)
-    deleteTab(tabId)
     win.webContents.send('tab:list-changed', getTabListData())
     return newCurTabId
   })

@@ -24,7 +24,7 @@ export function updateNavigationState(tabId: string, win: BrowserWindow) {
     const canGoForward = tab.view.webContents.canGoForward()
     tab.info.canGoBack = canGoBack
     tab.info.canGoForward = canGoForward
-    console.log('[updateNavigationState] sending tab:can-navigate', { id: tabId, canGoBack, canGoForward })
+    // console.log('[updateNavigationState] sending tab:can-navigate', { id: tabId, canGoBack, canGoForward })
     win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
   }
 }

@@ -2,6 +2,7 @@ import { WebContentsView, BrowserWindow } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { env } from '../env'
+import { setActiveTab } from '../database/index'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -167,6 +168,7 @@ export function switchTab(id: string, win: BrowserWindow) {
   const targetTab = webContentViewMap.get(id)!
   win.contentView.addChildView(targetTab.view)
   updateCurTabBounds(targetTab, win)
+  setActiveTab(id)
 
   return true
 }
