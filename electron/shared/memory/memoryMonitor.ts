@@ -15,7 +15,7 @@
  */
 
 import { ipcMain, app } from 'electron'
-import { webContentViewMap, getCurTab } from '../tab/tabCore'
+import { webContentViewMap, getCurTab } from '../../tabs/tabCore'
 import { memoryConfig } from './memoryConfig'
 
 // --------- 类型定义 ---------

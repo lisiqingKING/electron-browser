@@ -1,5 +1,5 @@
 import { BrowserWindow, type WebContents } from 'electron'
-import { webContentViewMap } from './tab/tabCore'
+import { webContentViewMap } from '../tabs/tabCore'
 
 // 把事件广播给所有 webContents:
 //   - 每个 BrowserWindow (主窗口容器 UI 那个 + 未来多窗口)
