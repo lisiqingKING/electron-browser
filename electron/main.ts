@@ -1,22 +1,23 @@
 import { app, BrowserWindow, Menu, protocol, ipcMain } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { createTabAndShow, registerTabHandlers, updateCurTabBounds, getCurTab } from './tab/tabHandlers'
-import { registerShortcuts } from './keyboard/shortcuts'
-import { registerWebContentsEvents } from './tab/tabEvents'
+import { createTabAndShow, updateCurTabBounds, getCurTab } from './tabs/tabHandlers'
+import { registerShortcuts } from './windows/keyboard/shortcuts'
+import { registerWebContentsEvents } from './tabs/tabEvents'
 import { isUrl } from '@renderer/utils'
-import { tabs, curTabId, webContentViewMap, setCurTabId, createTabCore, getTabListData } from './tab/tabCore'
-import { initDatabase, closeDatabase, saveTabs, loadTabs, setActiveTab } from './database/index'
-import { syncFromDb as syncFavoritesFromDb } from './favorites/favoritesManager'
-import { env } from './env'
-import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp'
-import { getDownloadManager } from './downloads/downloadManager'
-import { initWebviewSource } from './downloads/sources/webviewSource'
-import { registerMemoryMonitorHandler, getMemoryMonitor } from './memory/memoryMonitor'
-import { createAlertHandler } from './memory/alertLogger'
-import { createTray, destroyTray } from './tray/trayManager'
+import { tabs, curTabId, webContentViewMap, setCurTabId, createTabCore, getTabListData } from './tabs/tabCore'
+import { initDatabase, closeDatabase, saveTabs, loadTabs, setActiveTab } from './shared/database/index'
+import { syncFromDb as syncFavoritesFromDb } from './features/favorites/favoritesManager'
+import { env } from './shared/env'
+import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp-server'
+import { getDownloadManager } from './features/downloads/downloadManager'
+import { initWebviewSource } from './features/downloads/sources/webviewSource'
+import { registerMemoryMonitorHandler, getMemoryMonitor } from './shared/memory/memoryMonitor'
+import { createAlertHandler } from './shared/memory/alertLogger'
+import { createTray, destroyTray } from './windows/tray/trayManager'
 import { registerPopupHandlers, setMainWindow } from './popup'
-import { updater, updaterChannels } from './updater'
+import { updater, updaterChannels } from './features/updater'
+import { registerAllHandlers } from './bootstrap'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -64,19 +65,20 @@ function createWindow() {
   // 恢复上次保存的标签
   const saved = loadTabs()
   if (saved.tabs.length > 0) {
-    const idMap = new Map<string, string>() // savedId → newId
-
-    // 批量恢复：跳过 createTabAndShow 中的视图切换和事件发送，只创建 tab 数据和 WebContentsView
+    // 直接用数据库中的 ID 创建 tab，不重新生成
     for (const savedTab of saved.tabs) {
       try {
-        const { view, tabInfo } = createTabCore({ title: savedTab.title, url: savedTab.url })
+        const { view, tabInfo } = createTabCore(
+          { title: savedTab.title, url: savedTab.url },
+          undefined,
+          savedTab.id // 使用数据库中已存在的 ID
+        )
         if (isUrl(savedTab.url)) {
           view.webContents.loadURL(savedTab.url)
         } else {
           view.webContents.loadFile(savedTab.url)
         }
         registerWebContentsEvents(view, tabInfo, win)
-        idMap.set(savedTab.id, tabInfo.id!)
       } catch (err) {
         console.error('[createWindow] 恢复标签失败:', savedTab.url, err)
       }
@@ -86,31 +88,25 @@ function createWindow() {
     win.webContents.send('tab:list-changed', getTabListData())
 
     // 切换到最后活跃的标签
-    const targetNewId = idMap.get(saved.currentTabId!)
-    const finalTabId = targetNewId || [...idMap.values()].pop()
-    if (finalTabId) {
-      const targetTab = webContentViewMap.get(finalTabId)
+    if (saved.currentTabId) {
+      const targetTab = webContentViewMap.get(saved.currentTabId)
       if (targetTab) {
         // 移除首页视图
         const homeTab = webContentViewMap.get(homeTabId!)
         if (homeTab?.view) win.contentView.removeChildView(homeTab.view)
         // 添加所有恢复的标签视图，最后添加目标标签使其在最上层
-        for (const newId of idMap.values()) {
-          if (newId !== finalTabId) {
-            const tab = webContentViewMap.get(newId)
-            if (tab) win.contentView.addChildView(tab.view)
+        for (const [id, tab] of webContentViewMap) {
+          if (id !== saved.currentTabId) {
+            win.contentView.addChildView(tab.view)
           }
         }
         win.contentView.addChildView(targetTab.view)
         updateCurTabBounds(targetTab, win)
-        setCurTabId(finalTabId)
-        setActiveTab(finalTabId)
-        win.webContents.send('tab:current-changed', { currentTabId: finalTabId })
+        setCurTabId(saved.currentTabId)
+        setActiveTab(saved.currentTabId)
+        win.webContents.send('tab:current-changed', { currentTabId: saved.currentTabId })
       }
     }
-
-    // 恢复后用新 id 重新保存到数据库，确保关闭 tab 时能正确删除
-    saveTabs(tabs.filter(tab => !tab.loadError), finalTabId || null)
   }
 
   // 统一在 window 层面处理 resize
@@ -119,8 +115,8 @@ function createWindow() {
     if (curTab) updateCurTabBounds(curTab, win!)
   })
 
-  // 注册 tab 相关 handlers
-  registerTabHandlers(win)
+  // 注册所有 IPC handlers
+  registerAllHandlers(win)
 
   // 注册键盘快捷键
   registerShortcuts(win)

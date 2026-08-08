@@ -3,7 +3,8 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const preloadPath = path.join(__dirname, 'preload.mjs')
+// preload 构建到 dist-electron/preload.mjs
+const preloadPath = path.join(__dirname, '..', '..', 'dist-electron', 'preload.mjs')
 
 export interface MenuItem {
   label?: string
@@ -46,7 +47,7 @@ function getPopupUrl(): string {
   if (process.env.VITE_DEV_SERVER_URL) {
     return process.env.VITE_DEV_SERVER_URL + 'popup.html'
   }
-  return 'file://' + path.join(app.getAppPath(), 'dist', 'popup.html')
+  return 'file://' + path.join(app.getAppPath(), 'dist', 'src', 'popup', 'index.html')
 }
 
 export function showPopup(options: PopupOptions): void {
@@ -104,13 +105,16 @@ export function showPopup(options: PopupOptions): void {
         } catch {}
       }
 
+      const contentX = popupX - bounds.x
+      const contentY = popupY - bounds.y
+      console.log('[popup] 窗口位置:', { bounds, popupX, popupY, contentX, contentY })
       popupWindow.webContents.send('popup:render', {
         type: options.type,
         data: options.data,
         context: options.context,
         theme,
-        x: popupX - bounds.x,
-        y: popupY - bounds.y,
+        x: contentX,
+        y: contentY,
         width: popupWidth,
         height: estimatedHeight,
       })
