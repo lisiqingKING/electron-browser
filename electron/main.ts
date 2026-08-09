@@ -3,10 +3,8 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createTabAndShow } from './tabs/tabHandlers'
 import { registerShortcuts } from './windows/keyboard/shortcuts'
-import { registerWebContentsEvents } from './tabs/tabEvents'
-import { isUrl } from '@renderer/utils'
 import { initDatabase, closeDatabase } from './shared/database/index'
-import { saveTabs, loadTabs, setActiveTab } from './features/tabs/tabsDb'
+import { saveTabs, loadTabs } from './features/tabs/tabsDb'
 import { syncFromDb as syncFavoritesFromDb } from './features/favorites/favoritesManager'
 import { env } from './shared/env'
 import { startSubappServer, stopSubappServer, getSubappUrl } from './subapp-server'
@@ -37,29 +35,22 @@ function setupWindow(win: BrowserWindow) {
 
   win.on('resize', () => {
     const curTab = getCurTab(win)
-    if (curTab) updateCurTabBounds(curTab, win)
+    if (curTab?.view) updateCurTabBounds(curTab, win)
   })
 }
 
-function restoreTabs(win: BrowserWindow, homeTabId: string) {
+function restoreTabs(win: BrowserWindow, _homeTabId: string) {
   const saved = loadTabs()
   if (saved.tabs.length > 0) {
     for (const savedTab of saved.tabs) {
       try {
-        const { view, tabInfo } = createTabCore(
+        createTabCore(
           { title: savedTab.title, url: savedTab.url },
           win,
           undefined,
-          savedTab.id
+          savedTab.id,
+          true // lazyView: 不立即创建视图和加载
         )
-        if (view) {
-          if (isUrl(savedTab.url)) {
-            view.webContents.loadURL(savedTab.url)
-          } else {
-            view.webContents.loadFile(savedTab.url)
-          }
-          registerWebContentsEvents(view, tabInfo, win)
-        }
       } catch (err) {
         console.error('[restoreTabs] 恢复标签失败:', savedTab.url, err)
       }
@@ -68,22 +59,7 @@ function restoreTabs(win: BrowserWindow, homeTabId: string) {
     win.webContents.send('tab:list-changed', getTabListData(win))
 
     if (saved.currentTabId) {
-      const ctx = getTabContext(win)
-      const targetTab = ctx.webContentViewMap.get(saved.currentTabId)
-      if (targetTab) {
-        const homeTab = ctx.webContentViewMap.get(homeTabId)
-        if (homeTab?.view) win.contentView.removeChildView(homeTab.view)
-        for (const [id, tab] of ctx.webContentViewMap) {
-          if (id !== saved.currentTabId) {
-            win.contentView.addChildView(tab.view)
-          }
-        }
-        win.contentView.addChildView(targetTab.view)
-        updateCurTabBounds(targetTab, win)
-        ctx.curTabId = saved.currentTabId
-        setActiveTab(saved.currentTabId)
-        win.webContents.send('tab:current-changed', { currentTabId: saved.currentTabId })
-      }
+      switchTab(saved.currentTabId, win)
     }
   }
 }
