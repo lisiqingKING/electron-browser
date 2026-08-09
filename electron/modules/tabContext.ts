@@ -113,7 +113,7 @@ export function createTabCore(
 
   ctx.tabs.splice(insertIndex, 0, _tabInfo)
   ctx.curTabId = _id
-  ctx.webContentViewMap.set(_id, { info: _tabInfo, view })
+  ctx.webContentViewMap.set(_id, { info: _tabInfo, view: view as WebContentsView })
 
   if (view) {
     registerTab(_id, { tabInfo: _tabInfo, view, browserWindow: win })

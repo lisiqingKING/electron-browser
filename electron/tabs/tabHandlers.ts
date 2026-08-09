@@ -3,7 +3,7 @@ import { getTabContext, getCurTab, updateCurTabBounds, closeTab, openDevToolsFor
 import { findExistingInternalTab, switchToExistingTab } from '../modules/tabCoreUtils'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
 import { env } from '../shared/env'
-import { insertTab, deleteTab, updateTabUrl, setActiveTab } from '../features/tabs/tabsDb'
+import { insertTab, deleteTab, updateTabUrl } from '../features/tabs/tabsDb'
 import { registerDownloadHandlers } from '../features/downloads/downloadHandlers'
 
 export { createTabAndShow }

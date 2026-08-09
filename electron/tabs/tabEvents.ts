@@ -34,6 +34,9 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
 
     const afterTabId = curTab?.info?.id
     const { view: newView, tabInfo: newTabInfo } = createTabCore({ url: event.url, title: '新窗口' }, win, afterTabId)
+    if (!newView) {
+      return { action: 'deny' }
+    }
     if (isUrl(event.url)) {
       newView.webContents.loadURL(event.url)
     } else {

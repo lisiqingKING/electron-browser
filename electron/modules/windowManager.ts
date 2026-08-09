@@ -1,7 +1,7 @@
 import { BrowserWindow, Menu } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getTabListData, cleanupWindowContext, createTabCore } from './tabContext'
+import { getTabListData, cleanupWindowContext, createTabCore, getTabContext } from './tabContext'
 import { cleanupWindowTabs } from './tabRegistry'
 import { env } from '../shared/env'
 
@@ -114,22 +114,24 @@ export function setWindowAsCurrentMain(win: BrowserWindow): void {
   currentMainWindow = win
 }
 
-export function closeWindow(win: BrowserWindow, forceDestroy?: boolean): void {
-  const windowCount = allWindows.size
-
-  if (windowCount <= 1 && !forceDestroy) {
-    win.hide()
-  } else {
-    win.destroy()
+export function closeWindow(win: BrowserWindow): void {
+  // 先销毁所有 BrowserViews，停止音频
+  const ctx = getTabContext(win)
+  for (const tab of ctx.tabs) {
+    const entry = ctx.webContentViewMap.get(tab.id!)
+    if (entry?.view) {
+      try {
+        win.contentView.removeChildView(entry.view)
+        ;(entry.view.webContents as unknown as { destroy: () => void }).destroy()
+      } catch {
+        // ignore
+      }
+    }
   }
 
-  // 切换 currentMainWindow 要在销毁前判断，因为销毁后 win.isDestroyed() 永远为 true
+  win.destroy()
+
   if (currentMainWindow === win) {
-    const otherWin = [...allWindows].find(w => !w.isDestroyed() && w !== win)
-    if (otherWin) {
-      setWindowAsCurrentMain(otherWin)
-    }
-  } else if (currentMainWindow?.isDestroyed()) {
     const otherWin = [...allWindows].find(w => !w.isDestroyed())
     if (otherWin) {
       setWindowAsCurrentMain(otherWin)

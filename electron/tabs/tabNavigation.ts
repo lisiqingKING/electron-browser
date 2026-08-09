@@ -218,6 +218,9 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
   }
 
   const { view, tabInfo: enrichedTabInfo, insertIndex } = createTabCore({ ...tabInfo, title }, win, afterTabId, externalId)
+  if (!view) {
+    return null
+  }
   enrichedTabInfo.isLoading = true
 
   const resolvedUrl = resolveAppsUrl(tabInfo.url) || tabInfo.url

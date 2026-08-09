@@ -52,12 +52,14 @@ function restoreTabs(win: BrowserWindow, homeTabId: string) {
           undefined,
           savedTab.id
         )
-        if (isUrl(savedTab.url)) {
-          view.webContents.loadURL(savedTab.url)
-        } else {
-          view.webContents.loadFile(savedTab.url)
+        if (view) {
+          if (isUrl(savedTab.url)) {
+            view.webContents.loadURL(savedTab.url)
+          } else {
+            view.webContents.loadFile(savedTab.url)
+          }
+          registerWebContentsEvents(view, tabInfo, win)
         }
-        registerWebContentsEvents(view, tabInfo, win)
       } catch (err) {
         console.error('[restoreTabs] 恢复标签失败:', savedTab.url, err)
       }
@@ -96,7 +98,7 @@ function createMainWindow(): BrowserWindow {
     win.webContents.openDevTools()
   }
 
-  createTray(win)
+  createTray()
 
   const appUrl = env.getAppUrl()
   const homeTabId = createTabAndShow({ title: '首页', url: appUrl, isHome: true }, win)
