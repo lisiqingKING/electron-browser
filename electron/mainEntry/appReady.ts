@@ -14,10 +14,12 @@ import { registerWindowEvents, setupWindow } from './windowEvents'
 import { registerProtocol } from './protocol'
 import { registerWindowIpc } from './windowHandlers'
 import { env } from '../shared/env'
-import { createTabAndShow } from '../tabs/tabNavigation'
+import { createTabAndShow, resolveAppsUrl } from '../tabs/tabNavigation'
+import { registerWebContentsEvents } from '../tabs/tabEvents'
 import { createTray } from '../windows/tray/trayManager'
 import { loadTabs } from '../tabs/tabsDb'
-import { createTabCore, getTabListData, switchTab } from '../tabs/state'
+import { createTabCore, getTabListData, switchTab, createTabView, getTabContext } from '../tabs/state'
+import { isUrl } from '@renderer/utils'
 
 function restoreTabs(win: Electron.BrowserWindow) {
   const saved = loadTabs()
@@ -40,6 +42,31 @@ function restoreTabs(win: Electron.BrowserWindow) {
 
     if (saved.currentTabId) {
       switchTab(saved.currentTabId, win)
+
+      // 当前 tab 加载完成后，提前创建其他 tab 的 view 并加载 URL
+      const activeTabEntry = getTabContext(win).webContentViewMap.get(saved.currentTabId)
+      if (activeTabEntry?.view) {
+        activeTabEntry.view.webContents.once('did-finish-load', () => {
+          const ctx = getTabContext(win)
+          for (const tab of ctx.tabs) {
+            if (tab.id === saved.currentTabId) continue
+            const entry = ctx.webContentViewMap.get(tab.id!)
+            if (entry?.view) continue // 已经有 view，跳过
+            try {
+              const view = createTabView(tab, win)
+              registerWebContentsEvents(view, tab, win)
+              const resolvedUrl = resolveAppsUrl(tab.url)
+              if (isUrl(resolvedUrl)) {
+                view.webContents.loadURL(resolvedUrl)
+              } else {
+                view.webContents.loadFile(resolvedUrl)
+              }
+            } catch (err) {
+              console.error('[restoreTabs] 预加载标签失败:', tab.url, err)
+            }
+          }
+        })
+      }
     }
   }
 }
