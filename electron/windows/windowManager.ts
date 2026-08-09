@@ -1,7 +1,7 @@
 import { BrowserWindow, Menu } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getTabListData, cleanupWindowContext, createTabCore, getTabContext } from '../tabs/state'
+import { getTabListData, cleanupWindowContext, createTabCore, destroyAllTabViews } from '../tabs/state'
 import { cleanupWindowTabs } from '../tabs/state/registry'
 import { env } from '../shared/env'
 import { setupWindow } from '../mainEntry/windowEvents'
@@ -117,20 +117,7 @@ export function setWindowAsCurrentMain(win: BrowserWindow): void {
 }
 
 export function closeWindow(win: BrowserWindow): void {
-  // 先销毁所有 BrowserViews，停止音频
-  const ctx = getTabContext(win)
-  for (const tab of ctx.tabs) {
-    const entry = ctx.webContentViewMap.get(tab.id!)
-    if (entry?.view) {
-      try {
-        win.contentView.removeChildView(entry.view)
-        ;(entry.view.webContents as unknown as { destroy: () => void }).destroy()
-      } catch {
-        // ignore
-      }
-    }
-  }
-
+  destroyAllTabViews(win)
   win.destroy()
 
   if (currentMainWindow === win) {

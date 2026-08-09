@@ -5,7 +5,7 @@ export type { TabInfo, TabContext } from './types'
 export { getTabContext, getCurTab, setCurTabId, getTabListData, cleanupWindowContext } from './context'
 
 // Tab lifecycle
-export { createTabCore, createTabView, switchTab, closeTab } from './tabCore'
+export { createTabCore, createTabView, switchTab, closeTab, destroyAllTabViews, removeTabFromWindow, addTabToWindow } from './tabCore'
 
 // Layout
 export { updateCurTabBounds } from './tabBounds'

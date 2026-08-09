@@ -52,7 +52,7 @@ const onTabLeave = () => {
 
 // 拖拽出窗口
 const { onMouseDown: onTabMouseDown } = useTabDrag((tabId, screenPos) => {
-  window.ipcRenderer.invoke('tab:drag-out-to-window', tabId, screenPos)
+  window.ipcRenderer.invoke('window:adopt-tab', tabId, screenPos)
 })
 
 const emit = defineEmits<{
@@ -117,7 +117,7 @@ const cleanupOnAction = onAction(async (action, context) => {
       break
     }
     case 'openInNewWindow':
-      window.ipcRenderer.invoke('tab:move-to-window', tabId)
+      window.ipcRenderer.invoke('window:adopt-tab', tabId)
       break
     case 'close':
       emit('close', tabId)

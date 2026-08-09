@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { setActiveTab } from '../tabsDb'
-import { registerTab, unregisterTab } from './registry'
+import { registerTab, unregisterTab, moveTabToWindow } from './registry'
 import { removeNavHistory } from './history'
 import { registerWebContentsEvents } from '../tabEvents'
 import { resolveAppsUrl } from '../tabNavigation'
@@ -120,6 +120,45 @@ export function switchTab(id: string, win: BrowserWindow): boolean {
   setActiveTab(id)
 
   return true
+}
+
+export function destroyAllTabViews(win: BrowserWindow): void {
+  const ctx = getTabContext(win)
+  for (const tab of ctx.tabs) {
+    const entry = ctx.webContentViewMap.get(tab.id!)
+    if (entry?.view) {
+      try {
+        win.contentView.removeChildView(entry.view)
+        ;(entry.view.webContents as unknown as { destroy: () => void }).destroy()
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+export function removeTabFromWindow(tabId: string, win: BrowserWindow): { tabInfo: TabInfo; view: WebContentsView } | null {
+  const ctx = getTabContext(win)
+  const entry = ctx.webContentViewMap.get(tabId)
+  if (!entry) return null
+
+  const idx = ctx.tabs.findIndex(t => t.id === tabId)
+  if (idx !== -1) ctx.tabs.splice(idx, 1)
+  ctx.webContentViewMap.delete(tabId)
+  if (ctx.curTabId === tabId) {
+    ctx.curTabId = null
+  }
+  return { tabInfo: entry.info, view: entry.view }
+}
+
+export function addTabToWindow(tabInfo: TabInfo, view: WebContentsView, win: BrowserWindow): void {
+  const ctx = getTabContext(win)
+  ctx.tabs.push(tabInfo)
+  ctx.webContentViewMap.set(tabInfo.id!, { info: tabInfo, view })
+  ctx.curTabId = tabInfo.id!
+  win.contentView.addChildView(view)
+  updateCurTabBounds({ info: tabInfo, view }, win)
+  moveTabToWindow(tabInfo.id!, win)
 }
 
 export function closeTab(id: string, win: BrowserWindow): string | null {

@@ -13,7 +13,6 @@ import { updater, updaterChannels } from '../features/updater'
 import { registerWindowEvents, setupWindow } from './windowEvents'
 import { registerProtocol } from './protocol'
 import { registerWindowIpc } from './windowHandlers'
-import { registerTabMove } from '../tabs/tabMove'
 import { env } from '../shared/env'
 import { createTabAndShow } from '../tabs/tabNavigation'
 import { createTray } from '../windows/tray/trayManager'
@@ -68,7 +67,6 @@ export async function appReadyInit() {
   registerWindowEvents()
   registerProtocol()
   registerWindowIpc()
-  registerTabMove()
 
   await startSubappServer()
 

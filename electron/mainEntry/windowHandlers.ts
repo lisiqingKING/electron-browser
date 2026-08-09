@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { closeWindow, getAllWindows, activateReserveWindow } from '../windows/windowManager'
-import { getTabContext } from '../tabs/state'
+import { getTabContext, getTabListData, switchTab, addTabToWindow, removeTabFromWindow } from '../tabs/state'
+import { getTabEntry } from '../tabs/state/registry'
 import { env } from '../shared/env'
 import { createTabAndShow } from '../tabs/tabNavigation'
 import { setupWindow } from './windowEvents'
@@ -41,5 +42,62 @@ export function registerWindowIpc() {
       tabs: getTabContext(win).tabs.length,
       isFocused: win.isFocused()
     }))
+  })
+
+  let lastAdoptTime = 0
+
+  ipcMain.handle('window:adopt-tab', (_event, tabId: string, screenPos?: { x: number; y: number }) => {
+    const now = Date.now()
+    if (now - lastAdoptTime < 500) return false
+    lastAdoptTime = now
+    const tabEntry = getTabEntry(tabId)
+    if (!tabEntry) return false
+
+    const oldWin = tabEntry.browserWindow
+    const oldCurTabId = getTabContext(oldWin).curTabId
+    const { view } = tabEntry
+    if (!view) return false
+
+    const newWin = activateReserveWindow()
+    if (newWin.isDestroyed()) return false
+
+    // 定位窗口到鼠标位置（仅拖拽场景）
+    if (screenPos) {
+      newWin.setPosition(screenPos.x - Math.floor(newWin.getSize()[0] / 2), screenPos.y - 48)
+    }
+
+    // 清空新窗口的非 home tab（reserveWindow 可能有残留）
+    const newCtx = getTabContext(newWin)
+    const homeTab = newCtx.tabs.find(t => t.isHome)
+    const homeEntry = homeTab ? newCtx.webContentViewMap.get(homeTab.id!) : undefined
+    newCtx.tabs = []
+    newCtx.webContentViewMap.clear()
+    if (homeTab) {
+      newCtx.tabs.push(homeTab)
+      if (homeEntry) newCtx.webContentViewMap.set(homeTab.id!, homeEntry)
+    }
+
+    // 从旧窗口移除 tab
+    oldWin.contentView.removeChildView(view)
+    const removed = removeTabFromWindow(tabId, oldWin)
+    if (!removed) return false
+
+    // 添加到新窗口
+    addTabToWindow(removed.tabInfo, view, newWin)
+
+    // 通知旧窗口切换 tab
+    const oldCtx = getTabContext(oldWin)
+    if (oldCurTabId === tabId && oldCtx.tabs.length > 0) {
+      const nextTab = oldCtx.tabs[0]
+      if (nextTab.id) switchTab(nextTab.id, oldWin)
+    }
+    if (!oldWin.isDestroyed()) {
+      oldWin.webContents.send('tab:list-changed', getTabListData(oldWin))
+    }
+    if (!newWin.isDestroyed()) {
+      newWin.webContents.send('tab:list-changed', getTabListData(newWin))
+    }
+
+    return true
   })
 }
