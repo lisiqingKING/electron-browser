@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { getTabListData, cleanupWindowContext, createTabCore, getTabContext } from '../tabs/state'
 import { cleanupWindowTabs } from '../tabs/state/registry'
 import { env } from '../shared/env'
+import { setupWindow } from '../mainEntry/windowEvents'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -85,6 +86,7 @@ export function createWindow(options?: { show?: boolean; tabInfo?: unknown }): B
 export function ensureReserveWindow(): void {
   if (!reserveWindow || reserveWindow.isDestroyed()) {
     reserveWindow = createWindowCore()
+    setupWindow(reserveWindow)
     reserveWindow.hide()
   }
 }
