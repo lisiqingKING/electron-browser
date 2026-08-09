@@ -12,20 +12,11 @@ function getTrayIconPath(): string {
 }
 
 function buildTrayMenu() {
-  const windows = getAllWindows()
-
-  const windowItems: Electron.MenuItemConstructorOptions[] = windows.map((win, index) => ({
-    label: `窗口 ${index + 1}`,
-    click: () => {
-      win.show()
-      win.focus()
-    }
-  }))
-
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: '打开主窗口',
+      label: '打开窗口',
       click: () => {
+        const windows = getAllWindows()
         if (windows.length > 0) {
           windows[0].show()
           windows[0].focus()
@@ -33,19 +24,8 @@ function buildTrayMenu() {
       }
     },
     { type: 'separator' },
-    ...windowItems,
-    { type: 'separator' },
     {
-      label: '显示所有窗口',
-      click: () => {
-        for (const win of windows) {
-          win.show()
-        }
-      }
-    },
-    { type: 'separator' },
-    {
-      label: '退出',
+      label: '退出应用',
       click: () => {
         app.quit()
       }
