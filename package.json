@@ -12,6 +12,7 @@
     "build:all": "node scripts/build-all.js"
   },
   "dependencies": {
+    "@vueuse/core": "^14.4.0",
     "better-sqlite3": "^12.8.0",
     "electron-context-menu": "^4.1.2",
     "electron-log": "^5.4.4",

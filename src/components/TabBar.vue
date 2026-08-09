@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import WindowControls from './WindowControls.vue'
 import { usePopup } from '../composables/usePopup'
+import { useTabDrag } from '../composables/useTabDrag'
 import { getInternalIconFromUrl, getRouteFromUrl } from '../utils/tabIcons'
 import { isNewTabUrl } from '../utils'
 
@@ -48,6 +49,11 @@ const onTabLeave = () => {
   hoveredTabId.value = null
   hoveredMemory.value = null
 }
+
+// 拖拽出窗口
+const { onMouseDown: onTabMouseDown } = useTabDrag((tabId, screenPos) => {
+  window.ipcRenderer.invoke('tab:drag-out-to-window', tabId, screenPos)
+})
 
 const emit = defineEmits<{
   (e: 'switch', tabId: string): void
@@ -192,6 +198,7 @@ onUnmounted(() => {
           class="tab"
           :class="{ active: tab.id === currentTabId }"
           @click="emit('switch', tab.id!)"
+          @mousedown="onTabMouseDown($event, tab)"
           @mouseenter="onTabEnter($event, tab)"
           @mouseleave="onTabLeave"
           @contextmenu="handleContextMenu($event, tab.id!)"
