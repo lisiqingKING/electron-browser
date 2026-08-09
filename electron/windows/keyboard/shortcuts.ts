@@ -1,6 +1,6 @@
 import { BrowserWindow, globalShortcut } from 'electron'
-import { getCurTab, closeTab, getTabListData, getTabContext } from '../../modules/tabContext'
-import { deleteTab } from '../../features/tabs/tabsDb'
+import { getCurTab, closeTab, getTabListData, getTabContext } from '../../tabs/state'
+import { deleteTab } from '../../tabs/tabsDb'
 
 const ACCELERATOR = 'CmdOrCtrl+W'
 

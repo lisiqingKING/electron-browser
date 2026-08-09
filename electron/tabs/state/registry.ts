@@ -1,5 +1,5 @@
 import { BrowserWindow, WebContentsView } from 'electron'
-import { TabInfo } from './tabContext'
+import type { TabInfo } from './types'
 
 export interface TabEntry {
   tabInfo: TabInfo
@@ -9,7 +9,6 @@ export interface TabEntry {
 
 const tabRegistry = new Map<string, TabEntry>()
 const windowTabs = new Map<number, Set<string>>()
-// 追踪 webContents 当前归属的窗口（webContents 移动后，BrowserWindow.fromWebContents 会返回旧窗口）
 const webContentsToWindow = new Map<number, BrowserWindow>()
 
 export function registerTab(tabId: string, entry: TabEntry): void {

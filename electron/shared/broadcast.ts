@@ -1,6 +1,6 @@
 import { type WebContents } from 'electron'
-import { getAllWindows } from '../modules/windowManager'
-import { getTabContext } from '../modules/tabContext'
+import { getAllWindows } from '../windows/windowManager'
+import { getTabContext } from '../tabs/state'
 
 // 把事件广播给所有 webContents:
 //   - 每个 BrowserWindow (主窗口容器 UI 那个 + 未来多窗口)

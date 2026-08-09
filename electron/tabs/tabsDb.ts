@@ -1,8 +1,5 @@
-import { getDatabase } from '../../shared/database'
+import { getDatabase } from '../shared/database'
 import { randomUUID } from 'node:crypto'
-
-// ============ 标签页 DAO 层 ============
-// 数据访问层，负责标签页数据库 CRUD 操作
 
 export interface TabRow {
   id: string

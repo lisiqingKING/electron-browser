@@ -16,8 +16,8 @@
 
 import { ipcMain, app } from 'electron'
 import { memoryConfig } from './memoryConfig'
-import { getAllWindows } from '../../modules/windowManager'
-import { getTabContext, getCurTab } from '../../modules/tabContext'
+import { getAllWindows } from '../../windows/windowManager'
+import { getTabContext, getCurTab } from '../../tabs/state'
 
 // --------- 类型定义 ---------
 

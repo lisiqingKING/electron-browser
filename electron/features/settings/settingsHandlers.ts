@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron'
 import { getSetting, setSetting, getAllSettings } from './settingsManager'
 import { isInternalTab } from '../../tabs/tabCore'
-import { getAllWindows } from '../../modules/windowManager'
-import { getTabContext } from '../../modules/tabContext'
+import { getAllWindows } from '../../windows/windowManager'
+import { getTabContext } from '../../tabs/state'
 
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get', async (_event, key: string) => {

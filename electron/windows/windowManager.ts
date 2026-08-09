@@ -1,8 +1,8 @@
 import { BrowserWindow, Menu } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getTabListData, cleanupWindowContext, createTabCore, getTabContext } from './tabContext'
-import { cleanupWindowTabs } from './tabRegistry'
+import { getTabListData, cleanupWindowContext, createTabCore, getTabContext } from '../tabs/state'
+import { cleanupWindowTabs } from '../tabs/state/registry'
 import { env } from '../shared/env'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

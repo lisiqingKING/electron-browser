@@ -1,6 +1,8 @@
 import { BrowserWindow, WebContentsView } from 'electron'
-import { env } from '../shared/env'
-import { getTabContext, TabInfo, updateCurTabBounds } from './tabContext'
+import { env, PROTOCOL_LSQAPP } from '../../shared/env'
+import { getTabContext } from './context'
+import type { TabInfo } from './types'
+import { updateCurTabBounds } from './tabBounds'
 
 export const DEFAULT_TAB = {
   title: '首页',
@@ -29,7 +31,7 @@ export function getDomainFromUrl(url: string): string | null {
 }
 
 export function isInternalUrl(url: string): boolean {
-  return url.startsWith('lsqapp://') || url.startsWith(env.getAppUrl())
+  return url.startsWith(`${PROTOCOL_LSQAPP}://`) || url.startsWith(env.getAppUrl())
 }
 
 export function isInternalTab(tab: { info: { url: string; actualUrl?: string } }): boolean {
@@ -93,4 +95,8 @@ export function getTitleForInternalUrl(url: string): string | null {
   } catch {
     return null
   }
+}
+
+export function escapeForJsString(url: string): string {
+  return url.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 }
