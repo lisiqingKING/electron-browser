@@ -15,8 +15,9 @@
  */
 
 import { ipcMain, app } from 'electron'
-import { webContentViewMap, getCurTab } from '../../tabs/tabCore'
 import { memoryConfig } from './memoryConfig'
+import { getAllWindows } from '../../modules/windowManager'
+import { getTabContext, getCurTab } from '../../modules/tabContext'
 
 // --------- 类型定义 ---------
 
@@ -233,20 +234,25 @@ class MemoryMonitor {
 
   private collectRendererMemory(targetWcId: number): RendererMemoryInfo | null {
     const metrics = app.getAppMetrics().filter(m => m.type === 'Tab')
-    for (const [, tab] of webContentViewMap) {
-      const wc = tab.view.webContents
-      if (wc.isDestroyed() || wc.id !== targetWcId) continue
-      const pid = wc.getOSProcessId()
-      const proc = metrics.find(m => m.pid === pid)
-      if (proc) {
-        return {
-          id: wc.id,
-          url: wc.getURL(),
-          title: tab.info.title,
-          usedJSHeapSize: (proc.memory.privateBytes ?? proc.memory.workingSetSize) / 1024,
-          totalJSHeapSize: proc.memory.workingSetSize / 1024,
-          jsHeapSizeLimit: 0,
-          timestamp: Date.now()
+    for (const win of getAllWindows()) {
+      if (win.isDestroyed()) continue
+      const ctx = getTabContext(win)
+      for (const [, tab] of ctx.webContentViewMap) {
+        if (!tab.view) continue
+        const wc = tab.view.webContents
+        if (wc.isDestroyed() || wc.id !== targetWcId) continue
+        const pid = wc.getOSProcessId()
+        const proc = metrics.find(m => m.pid === pid)
+        if (proc) {
+          return {
+            id: wc.id,
+            url: wc.getURL(),
+            title: tab.info.title,
+            usedJSHeapSize: (proc.memory.privateBytes ?? proc.memory.workingSetSize) / 1024,
+            totalJSHeapSize: proc.memory.workingSetSize / 1024,
+            jsHeapSizeLimit: 0,
+            timestamp: Date.now()
+          }
         }
       }
     }
@@ -257,28 +263,35 @@ class MemoryMonitor {
     const metrics = app.getAppMetrics().filter(m => m.type === 'Tab')
     const result: PeriodicSnapshot['renderers'] = []
 
-    for (const [, tab] of webContentViewMap) {
-      const wc = tab.view.webContents
-      if (wc.isDestroyed()) continue
-      try {
-        const pid = wc.getOSProcessId()
-        const proc = metrics.find(m => m.pid === pid)
-        if (proc) {
-          result.push({
-            title: tab.info.title || wc.getURL(),
-            usedJSHeapSize: (proc.memory.privateBytes ?? proc.memory.workingSetSize) / 1024,
-            totalJSHeapSize: proc.memory.workingSetSize / 1024
-          })
+    for (const win of getAllWindows()) {
+      if (win.isDestroyed()) continue
+      const ctx = getTabContext(win)
+      for (const [, tab] of ctx.webContentViewMap) {
+        if (!tab.view) continue
+        const wc = tab.view.webContents
+        if (wc.isDestroyed()) continue
+        try {
+          const pid = wc.getOSProcessId()
+          const proc = metrics.find(m => m.pid === pid)
+          if (proc) {
+            result.push({
+              title: tab.info.title || wc.getURL(),
+              usedJSHeapSize: (proc.memory.privateBytes ?? proc.memory.workingSetSize) / 1024,
+              totalJSHeapSize: proc.memory.workingSetSize / 1024
+            })
+          }
+        } catch {
+          // 单个 Tab 采集失败不影响整体
         }
-      } catch {
-        // 单个 Tab 采集失败不影响整体
       }
     }
     return result
   }
 
   private printSummary(main: MainProcessMemoryInfo, renderers: PeriodicSnapshot['renderers'], tabDeltaInfo: string = ''): void {
-    const curTab = getCurTab()
+    const wins = getAllWindows()
+    const focusedWin = wins.find(w => w.isFocused()) ?? wins[0]
+    const curTab = focusedWin ? getCurTab(focusedWin) : null
     const curRenderer = curTab ? renderers.find(r => r.title === curTab.info.title) : null
     const curInfo = curRenderer ? `${curRenderer.title} 内存${curRenderer.totalJSHeapSize.toFixed(1)}MB` : '无'
 

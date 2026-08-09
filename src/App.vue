@@ -96,25 +96,6 @@ const addTabByButton = async () => {
   // 标签列表通过 tab:list-changed 事件更新
 }
 
-// 初始化获取标签数据
-const initTabs = async () => {
-  const data = await window.ipcRenderer.invoke('tabs:list')
-  if (data) {
-    // 合并已有 favicon（DB 可能尚未更新）
-    const prev = tabs.value
-    tabs.value = data.tabs.map((t: TabInfo) => {
-      if (!t.favicon) {
-        const old = prev.find(p => p.id === t.id)
-        if (old?.favicon) t.favicon = old.favicon
-      }
-      return t
-    })
-    currentTabId.value = data.currentTabId
-  }
-}
-
-initTabs()
-
 const switchTab = async (tabId: string) => {
   await window.ipcRenderer.invoke('tabs:switch', tabId)
   // 当前标签通过 tab:current-changed 事件更新

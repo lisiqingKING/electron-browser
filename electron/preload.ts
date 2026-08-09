@@ -1,7 +1,12 @@
 import { ipcRenderer, contextBridge } from 'electron'
 
+// Parse windowId from URL
+const url = new URL(window.location.href)
+const windowId = url.searchParams.get('windowId')
+
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
+  windowId: windowId ? parseInt(windowId, 10) : null,
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
     return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))

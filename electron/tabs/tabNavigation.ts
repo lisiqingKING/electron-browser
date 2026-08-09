@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
-import { getCurTab, webContentViewMap, createTabCore, updateCurTabBounds, isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, getTabListData, TabInfo } from './tabCore'
+import { getCurTab, createTabCore, updateCurTabBounds, getTabListData, getTabContext, switchTab, TabInfo } from '../modules/tabContext'
+import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from '../modules/tabCoreUtils'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '@renderer/utils'
 import { getSubappUrl } from '../subapp-server'
@@ -18,18 +19,17 @@ export function resolveAppsUrl(url: string): string | null {
 }
 
 export function updateNavigationState(tabId: string, win: BrowserWindow) {
-  const tab = webContentViewMap.get(tabId)
+  const ctx = getTabContext(win)
+  const tab = ctx.webContentViewMap.get(tabId)
   if (tab) {
     const canGoBack = tab.view.webContents.canGoBack()
     const canGoForward = tab.view.webContents.canGoForward()
     tab.info.canGoBack = canGoBack
     tab.info.canGoForward = canGoForward
-    // console.log('[updateNavigationState] sending tab:can-navigate', { id: tabId, canGoBack, canGoForward })
     win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
   }
 }
 
-// 检测 URL 是否是错误页面 URL，如果是则恢复 loadError 状态（会修改 tab.info）
 export function tryRestoreLoadError(tab: { info: TabInfo }, newUrl: string): boolean {
   if (tab.info.loadError || !newUrl.includes('/error?url=')) return false
   try {
@@ -51,7 +51,7 @@ export function tryRestoreLoadError(tab: { info: TabInfo }, newUrl: string): boo
 }
 
 export function goBack(win: BrowserWindow) {
-  const tab = getCurTab()
+  const tab = getCurTab(win)
   if (!tab) {
     console.log('[goBack] no current tab')
     return
@@ -65,19 +65,16 @@ export function goBack(win: BrowserWindow) {
     return
   }
 
-  // 监听导航完成，导航完成后自动更新 URL
   const finishHandler = () => {
     console.log('[goBack] navigation finished, newUrl:', tab.view.webContents.getURL())
     const newUrl = tab.view.webContents.getURL()
 
-    // 检测是否是错误页面 URL，恢复 loadError 状态
     if (tryRestoreLoadError(tab, newUrl)) {
       win.webContents.send('tab:info-changed', tab.info)
       updateNavigationState(tab.info.id!, win)
       return
     }
 
-    // 正常页面，清除加载错误状态
     tab.info.loadError = undefined
     tab.info.url = newUrl
     tab.info.actualUrl = newUrl
@@ -85,14 +82,13 @@ export function goBack(win: BrowserWindow) {
     updateNavigationState(tab.info.id!, win)
   }
 
-  // 同时监听 did-navigate 和 did-navigate-in-page（SPA 客户端路由）
   tab.view.webContents.once('did-navigate', finishHandler)
   tab.view.webContents.once('did-navigate-in-page', finishHandler)
   tab.view.webContents.goBack()
 }
 
 export function goForward(win: BrowserWindow) {
-  const tab = getCurTab()
+  const tab = getCurTab(win)
   if (!tab) {
     console.log('[goForward] no current tab')
     return
@@ -106,19 +102,16 @@ export function goForward(win: BrowserWindow) {
     return
   }
 
-  // 监听导航完成，导航完成后自动更新 URL
   const finishHandler = () => {
     console.log('[goForward] navigation finished, newUrl:', tab.view.webContents.getURL())
     const newUrl = tab.view.webContents.getURL()
 
-    // 检测是否是错误页面 URL，恢复 loadError 状态
     if (tryRestoreLoadError(tab, newUrl)) {
       win.webContents.send('tab:info-changed', tab.info)
       updateNavigationState(tab.info.id!, win)
       return
     }
 
-    // 正常页面，清除加载错误状态
     tab.info.loadError = undefined
     tab.info.url = newUrl
     tab.info.actualUrl = newUrl
@@ -126,7 +119,6 @@ export function goForward(win: BrowserWindow) {
     updateNavigationState(tab.info.id!, win)
   }
 
-  // 同时监听 did-navigate 和 did-navigate-in-page（SPA 客户端路由）
   tab.view.webContents.once('did-navigate', finishHandler)
   tab.view.webContents.once('did-navigate-in-page', finishHandler)
   tab.view.webContents.goForward()
@@ -141,14 +133,12 @@ function getTitleForUrl(tab: { info: { url: string }, view: { webContents: { get
 }
 
 export function refreshCurTab(win: BrowserWindow) {
-  const tab = getCurTab()
+  const tab = getCurTab(win)
   if (tab) {
-    // 如果有加载错误，重新加载原始 URL 而不是当前页面
     const urlToLoad = tab.info.loadError ? tab.info.loadError.url : null
 
     tab.view.webContents.once('did-finish-load', () => {
       if (tab.info.id) {
-        // 如果 loadError 仍然存在，说明原始 URL 再次加载失败，不更新 URL
         if (tab.info.loadError) {
           updateNavigationState(tab.info.id, win)
           return
@@ -166,7 +156,6 @@ export function refreshCurTab(win: BrowserWindow) {
     })
 
     if (urlToLoad) {
-      // 有加载错误时，用 location.replace 加载原始 URL（不添加新历史记录）
       const safeUrl = urlToLoad.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
       tab.view.webContents.executeJavaScript(`location.replace('${safeUrl}')`)
     } else {
@@ -176,15 +165,11 @@ export function refreshCurTab(win: BrowserWindow) {
 }
 
 export function updateCurTabUrl(url: string, win: BrowserWindow) {
-  const tab = getCurTab()
+  const tab = getCurTab(win)
   if (tab) {
-    // 用户通过URL栏主动输入时，清除之前的加载错误状态
     tab.info.loadError = undefined
-
-    // 先设置 URL，再加载，确保 did-start-loading 触发时 URL 已更新
     tab.info.url = url
 
-    // 立即设置加载中的标题
     let newTitle: string | null = null
     if (isInternalUrl(url)) {
       newTitle = getTitleForInternalUrl(url)
@@ -201,21 +186,26 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
     } else {
       tab.view.webContents.loadFile(url)
     }
-
-    // isLoading 由 did-start-loading / did-stop-loading 事件统一管理
-    // page-title-updated 由 tabEvents.ts 统一处理
   }
 }
 
-export function createTabAndShow(tabInfo: { title: string; url: string; isHome?: boolean }, win: BrowserWindow, afterTabId?: string, externalId?: string) {
-  const finalAfterTabId = afterTabId
+export function createTabAndShow(tabInfo: { title: string; url: string; isHome?: boolean }, win: BrowserWindow, afterTabId?: string, externalId?: string): string | null {
+  const ctx = getTabContext(win)
 
-  const curTab = getCurTab()
+  // 如果是 home tab 且已存在 lazy home tab，直接切换到它
+  if (tabInfo.isHome) {
+    const existingHomeTab = ctx.tabs.find(t => t.isHome && t.id !== externalId)
+    if (existingHomeTab?.id) {
+      switchTab(existingHomeTab.id, win)
+      return existingHomeTab.id
+    }
+  }
+
+  const curTab = getCurTab(win)
   if (curTab?.view) {
     win.contentView.removeChildView(curTab.view)
   }
 
-  // 根据 URL 设置标题（如果传入的标题为空）
   let title = tabInfo.title
   if (!title) {
     if (isInternalUrl(tabInfo.url)) {
@@ -227,10 +217,9 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
     }
   }
 
-  const { view, tabInfo: enrichedTabInfo, insertIndex } = createTabCore({ ...tabInfo, title }, finalAfterTabId, externalId)
+  const { view, tabInfo: enrichedTabInfo, insertIndex } = createTabCore({ ...tabInfo, title }, win, afterTabId, externalId)
   enrichedTabInfo.isLoading = true
 
-  // 解析 apps:// 协议
   const resolvedUrl = resolveAppsUrl(tabInfo.url) || tabInfo.url
   if (isUrl(resolvedUrl)) {
     view.webContents.loadURL(resolvedUrl)
@@ -239,11 +228,10 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
   }
 
   registerWebContentsEvents(view, enrichedTabInfo, win)
-  // 在指定位置插入视图
   win.contentView.addChildView(view, insertIndex)
-  updateCurTabBounds(webContentViewMap.get(enrichedTabInfo.id!)!, win)
-  win.webContents.send('tab:list-changed', getTabListData())
+  updateCurTabBounds(ctx.webContentViewMap.get(enrichedTabInfo.id!)!, win)
+  win.webContents.send('tab:list-changed', getTabListData(win))
   win.webContents.send('tab:loading', { id: enrichedTabInfo.id, isLoading: true })
 
-  return enrichedTabInfo.id
+  return enrichedTabInfo.id ?? null
 }

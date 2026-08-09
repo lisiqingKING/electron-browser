@@ -26,21 +26,9 @@ export interface PopupOptions {
 }
 
 let popupWindow: BrowserWindow | null = null
-let mainWindow: BrowserWindow | null = null
 
-export function setMainWindow(win: BrowserWindow) {
-  mainWindow = win
-  win.on('blur', () => {
-    // popup 窗口有焦点时不关闭（用户点击了 popup）
-    // 只在用户切换到其他应用时关闭
-    if (popupWindow && !popupWindow.isDestroyed() && popupWindow.isFocused()) return
-    hidePopup()
-  })
-}
-
-export function getMainWindow(): BrowserWindow | null {
-  return mainWindow
-}
+// popup webContents id -> source window id
+export const popupSourceMap = new Map<number, number>()
 
 function getPopupUrl(): string {
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -49,32 +37,12 @@ function getPopupUrl(): string {
   return 'file://' + path.join(app.getAppPath(), 'dist', 'popup.html')
 }
 
-export function showPopup(options: PopupOptions): void {
-  hidePopup()
-
-  if (!mainWindow || mainWindow.isDestroyed()) return
-
-  const bounds = mainWindow.getBounds()
-  const popupWidth = options.width || 200
-  const estimatedHeight = options.height || Math.min(
-    (options.data?.items?.length || 0) * 28 + 16, 400
-  )
-
-  let popupX = options.x
-  let popupY = options.y
-
-  if (popupX + popupWidth > bounds.x + bounds.width) {
-    popupX = bounds.x + bounds.width - popupWidth
-  }
-  if (popupY + estimatedHeight > bounds.y + bounds.height) {
-    popupY = bounds.y + bounds.height - estimatedHeight
-  }
-
-  popupWindow = new BrowserWindow({
-    x: bounds.x,
-    y: bounds.y,
-    width: bounds.width,
-    height: bounds.height,
+function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
+  const popupWin = new BrowserWindow({
+    x: targetWin.getBounds().x,
+    y: targetWin.getBounds().y,
+    width: targetWin.getBounds().width,
+    height: targetWin.getBounds().height,
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
@@ -91,20 +59,72 @@ export function showPopup(options: PopupOptions): void {
     }
   })
 
-  popupWindow.loadURL(getPopupUrl())
+  popupWin.on('blur', () => {
+    try {
+      if (!popupWin.isDestroyed()) {
+        popupWin.destroy()
+      }
+    } catch {}
+  })
 
-  popupWindow.webContents.on('did-finish-load', async () => {
-    if (popupWindow && !popupWindow.isDestroyed()) {
+  popupWin.on('closed', () => {
+    try {
+      popupSourceMap.delete(popupWin.webContents.id)
+    } catch {}
+    if (popupWindow === popupWin) {
+      popupWindow = null
+    }
+  })
+
+  return popupWin
+}
+
+export function showPopup(options: PopupOptions, win: BrowserWindow): void {
+  const targetWin = win
+  if (!targetWin || targetWin.isDestroyed()) return
+
+  // 销毁旧 popup 窗口
+  if (popupWindow && !popupWindow.isDestroyed()) {
+    popupWindow.destroy()
+    popupWindow = null
+  }
+
+  const popupWin = createPopupWindow(targetWin)
+  popupWindow = popupWin
+
+  const bounds = targetWin.getBounds()
+  const popupWidth = options.width || 200
+  const estimatedHeight = options.height || Math.min(
+    (options.data?.items?.length || 0) * 28 + 16, 400
+  )
+
+  let popupX = options.x
+  let popupY = options.y
+
+  if (popupX + popupWidth > bounds.x + bounds.width) {
+    popupX = bounds.x + bounds.width - popupWidth
+  }
+  if (popupY + estimatedHeight > bounds.y + bounds.height) {
+    popupY = bounds.y + bounds.height - estimatedHeight
+  }
+
+  popupWin.loadURL(getPopupUrl())
+
+  popupSourceMap.set(popupWin.webContents.id, targetWin.id)
+
+  const currentPopupId = popupWin.id
+  popupWin.webContents.on('did-finish-load', async () => {
+    if (!popupWin.isDestroyed() && popupWin.id === currentPopupId) {
       let theme = 'dark'
-      if (mainWindow && !mainWindow.isDestroyed()) {
+      if (targetWin && !targetWin.isDestroyed()) {
         try {
-          theme = await mainWindow.webContents.executeJavaScript(
+          theme = await targetWin.webContents.executeJavaScript(
             'document.documentElement.classList.contains("dark") ? "dark" : "light"'
           )
         } catch {}
       }
 
-      popupWindow.webContents.send('popup:render', {
+      popupWin.webContents.send('popup:render', {
         type: options.type,
         data: options.data,
         context: options.context,
@@ -114,22 +134,22 @@ export function showPopup(options: PopupOptions): void {
         width: popupWidth,
         height: estimatedHeight,
       })
-      popupWindow.showInactive()
+
+      popupWin.showInactive()
     }
-  })
-
-  // 切换应用时隐藏菜单
-  popupWindow.on('blur', () => {
-    hidePopup()
-  })
-
-  popupWindow.on('closed', () => {
-    popupWindow = null
   })
 }
 
 export function hidePopup(): void {
-  if (popupWindow && !popupWindow.isDestroyed()) {
-    popupWindow.close()
+  if (!popupWindow) return
+  try {
+    if (popupWindow.isDestroyed()) {
+      popupWindow = null
+      return
+    }
+    popupWindow.webContents.send('popup:hide')
+    popupWindow.hide()
+  } catch {
+    popupWindow = null
   }
 }

@@ -63,6 +63,7 @@ const { showMenu, hide: hidePopup, onAction } = usePopup()
 const tabMenuItems = [
   { label: '刷新', action: 'reload', icon: '↻' },
   { label: '在新标签页中打开', action: 'openInNewTab', icon: '+' },
+  { label: '在新窗口中打开', action: 'openInNewWindow', icon: '⧉' },
   { type: 'separator', action: 'sep1' },
   { label: '关闭', action: 'close', icon: '×' },
   { label: '关闭左侧标签页', action: 'closeLeft', icon: '←' },
@@ -81,6 +82,9 @@ const handleContextMenu = (event: MouseEvent, tabId: string) => {
     if (item.action === 'openInNewTab') {
       // 内部页面（除新标签页）禁用"在新标签页中打开"
       return { ...item, disabled: isHome || (isInternal && !isNewTab) }
+    }
+    if (item.action === 'openInNewWindow') {
+      return { ...item, disabled: isHome }
     }
     if (closeActions.includes(item.action)) {
       return { ...item, disabled: isHome }
@@ -106,6 +110,9 @@ const cleanupOnAction = onAction(async (action, context) => {
       }
       break
     }
+    case 'openInNewWindow':
+      window.ipcRenderer.invoke('tab:move-to-window', tabId)
+      break
     case 'close':
       emit('close', tabId)
       break

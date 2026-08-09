@@ -1,5 +1,6 @@
-import { BrowserWindow, type WebContents } from 'electron'
-import { webContentViewMap } from '../tabs/tabCore'
+import { type WebContents } from 'electron'
+import { getAllWindows } from '../modules/windowManager'
+import { getTabContext } from '../modules/tabContext'
 
 // 把事件广播给所有 webContents:
 //   - 每个 BrowserWindow (主窗口容器 UI 那个 + 未来多窗口)
@@ -7,11 +8,14 @@ import { webContentViewMap } from '../tabs/tabCore'
 // webContents 已销毁 / 枚举中被关都静默忽略, 不抛错.
 // payload 缺省时调 send(channel), 否则 send(channel, payload).
 export function broadcast(channel: string, payload?: unknown): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) sendTo(win.webContents, channel, payload)
-  }
-  for (const { view } of webContentViewMap.values()) {
-    sendTo(view.webContents, channel, payload)
+  for (const win of getAllWindows()) {
+    if (win.isDestroyed()) continue
+    sendTo(win.webContents, channel, payload)
+    const ctx = getTabContext(win)
+    for (const [, tab] of ctx.webContentViewMap) {
+      if (!tab.view) continue
+      sendTo(tab.view.webContents, channel, payload)
+    }
   }
 }
 

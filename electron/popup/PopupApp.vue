@@ -54,6 +54,10 @@ onMounted(() => {
   window.addEventListener('blur', () => {
     window.ipcRenderer.send('popup:hide')
   })
+
+  window.ipcRenderer.on('popup:hide', () => {
+    popupStyle.value = { display: 'none' }
+  })
 })
 </script>
 
