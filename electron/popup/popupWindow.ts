@@ -44,7 +44,6 @@ function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
     width: targetWin.getBounds().width,
     height: targetWin.getBounds().height,
     frame: false,
-    alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,
     movable: false,
