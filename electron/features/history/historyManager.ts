@@ -4,9 +4,9 @@ import {
   deleteHistoryById as deleteHistoryByIdFromDb,
   clearAll as clearAllFromDb,
   trimHistory as trimHistoryFromDb,
-  updateFaviconByUrl as updateFaviconByUrlFromDb,
   type HistoryItem
 } from './historyDb'
+import { getCachedIcon, getIconFromDb } from '../icons/iconsManager'
 
 // ============ 历史记录 Manager 层 ============
 // 门面层，管理内存缓存，调用 DAO 层
@@ -26,7 +26,18 @@ export function getHistory(): HistoryItem[] {
   if (historyCache.length === 0) {
     syncFromDb()
   }
-  return [...historyCache]
+  return historyCache.map(item => ({
+    ...item,
+    favicon: resolveFavicon(item.url, item.favicon)
+  }))
+}
+
+function resolveFavicon(pageUrl: string, originalFavicon?: string): string | undefined {
+  const cached = getCachedIcon(pageUrl)
+  if (cached) return cached
+  const fromDb = getIconFromDb(pageUrl)
+  if (fromDb) return fromDb
+  return originalFavicon
 }
 
 // 记录访问
@@ -59,14 +70,4 @@ export function deleteRecord(id: number): void {
 export function clearAllHistory(): void {
   historyCache.length = 0
   clearAllFromDb()
-}
-
-// 更新最近一条历史记录的 favicon
-export function updateFaviconByTabUrl(url: string, favicon: string): void {
-  updateFaviconByUrlFromDb(url, favicon)
-  // 同步更新内存缓存
-  const item = historyCache.find(h => h.url === url)
-  if (item) {
-    item.favicon = favicon
-  }
 }

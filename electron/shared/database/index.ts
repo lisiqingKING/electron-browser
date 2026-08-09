@@ -53,6 +53,18 @@ function initSettingsTable(): void {
   `)
 }
 
+function initIconsTable(): void {
+  getDatabase().exec(`
+    CREATE TABLE IF NOT EXISTS page_icons (
+      url TEXT PRIMARY KEY,
+      icon TEXT NOT NULL,
+      iconUrl TEXT,
+      updatedAt INTEGER NOT NULL
+    )
+  `)
+  getDatabase().exec('CREATE INDEX IF NOT EXISTS idx_page_icons_url ON page_icons(url)')
+}
+
 function initFavoritesTable(): void {
   getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS favorites (
@@ -155,6 +167,7 @@ export function initDatabase(): Database.Database {
   db = new Database(DB_PATH)
 
   // 初始化所有表
+  initIconsTable()
   initHistoryTable()
   initAIConversationTable()
   initSettingsTable()

@@ -4,6 +4,7 @@ import {
   removeFavorite as removeFromDb,
   type FavoriteItem
 } from './favoritesDb'
+import { getCachedIcon, getIconFromDb } from '../icons/iconsManager'
 
 // ============ 收藏 Manager 层 ============
 // 门面层，管理内存缓存，调用 DAO 层
@@ -22,7 +23,18 @@ export function syncFromDb(): void {
 
 // 获取所有收藏
 export function getAllFavorites(): FavoriteItem[] {
-  return getAllFromDb()
+  return getAllFromDb().map(item => ({
+    ...item,
+    favicon: resolveFavicon(item.url, item.favicon)
+  }))
+}
+
+function resolveFavicon(pageUrl: string, originalFavicon?: string): string | undefined {
+  const cached = getCachedIcon(pageUrl)
+  if (cached) return cached
+  const fromDb = getIconFromDb(pageUrl)
+  if (fromDb) return fromDb
+  return originalFavicon
 }
 
 // 检查是否已收藏

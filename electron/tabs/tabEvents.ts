@@ -1,6 +1,7 @@
 import { WebContentsView, BrowserWindow } from 'electron'
 import contextMenu from 'electron-context-menu'
-import { recordVisit, updateFaviconByTabUrl } from '../features/history/historyManager'
+import { recordVisit } from '../features/history/historyManager'
+import { getOrFetchIcon } from '../features/icons/iconsManager'
 import { getTabContext, TabInfo, createTabCore, updateCurTabBounds, getTabListData, getCurTab } from './state'
 import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString } from './state/coreUtils'
 import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
@@ -200,12 +201,33 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     }
   })
 
-  view.webContents.on('page-favicon-updated', (_event, favicons) => {
+  view.webContents.on('page-favicon-updated', async (_event, favicons) => {
     const tab = ctx.webContentViewMap.get(tabId)
     if (tab && favicons.length > 0) {
-      tab.info.favicon = favicons[0]
-      updateFaviconByTabUrl(tab.info.url, favicons[0])
-      win.webContents.send('tab:info-changed', tab.info)
+      let iconUrl = favicons[0]
+      // data: URL 直接使用
+      if (iconUrl.startsWith('data:')) {
+        tab.info.favicon = iconUrl
+        win.webContents.send('tab:info-changed', tab.info)
+        return
+      }
+      // 相对路径转为完整 URL
+      if (!iconUrl.startsWith('http://') && !iconUrl.startsWith('https://')) {
+        try {
+          const pageUrl = view.webContents.getURL()
+          const pageOrigin = new URL(pageUrl).origin
+          iconUrl = pageOrigin + (iconUrl.startsWith('/') ? iconUrl : '/' + iconUrl)
+        } catch {
+          // 无法解析 URL，跳过
+          return
+        }
+      }
+      // 下载并转为 base64
+      const base64Icon = await getOrFetchIcon(tab.info.url, iconUrl)
+      if (base64Icon) {
+        tab.info.favicon = base64Icon
+        win.webContents.send('tab:info-changed', tab.info)
+      }
     }
   })
 
