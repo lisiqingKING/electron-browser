@@ -168,6 +168,15 @@ onUnmounted(() => {
 
 <template>
   <div class="tab-bar">
+    <!-- Logo -->
+    <div class="tab-bar-logo">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </div>
+
     <Transition name="fade">
       <div v-if="hoveredTabId && hoveredMemory" class="memory-tooltip" :style="tooltipStyle">
         <span>内存 {{ formatMB(hoveredMemory.totalJSHeapSize) }}</span>
@@ -240,6 +249,24 @@ onUnmounted(() => {
   -webkit-app-region: drag;
 }
 
+.tab-bar-logo {
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto 8px auto 12px;
+  color: var(--color-accent);
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+  height: 36px;
+  margin-top: 12px;
+}
+
+.tab-bar-logo:hover {
+  opacity: 0.8;
+}
+
 .tab {
   display: flex;
   align-items: center;
@@ -279,7 +306,6 @@ onUnmounted(() => {
 
 .tab:hover {
   background: var(--tabbar-hover-bg);
-  border-radius: 12px 12px 0 0;
 }
 
 .tab:hover::after,
@@ -299,9 +325,6 @@ onUnmounted(() => {
 
 .tab.active {
   background: var(--tabbar-active-bg);
-  border-radius: 12px 12px 0 0 !important;
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
   z-index: 1;
 }
 
@@ -351,7 +374,7 @@ onUnmounted(() => {
 }
 
 .close-btn {
-  width: 20px;
+  width: 0;
   height: 20px;
   border: none;
   border-radius: 4px;
@@ -362,7 +385,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  overflow: hidden;
+  transition: opacity 0.15s ease, background 0.15s ease, width 0.15s ease;
   flex-shrink: 0;
   padding: 0;
 }
@@ -372,8 +396,10 @@ onUnmounted(() => {
   color: var(--tabbar-text-active);
 }
 
-.tab.active .close-btn {
+.tab.active .close-btn,
+.tab:hover .close-btn {
   opacity: 1;
+  width: 20px;
 }
 
 /* 滚动容器 */
@@ -382,6 +408,7 @@ onUnmounted(() => {
   overflow: hidden;
   height: 100%;
   min-width: 0;
+  margin-right: 50px;
 }
 
 .tabs-scroll {
