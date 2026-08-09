@@ -1,6 +1,6 @@
 export function isUrl(input: string): boolean {
   // 1. 明确的协议头
-  if (/^(https?:\/\/|lsqapp:\/\/|open-lsqapp:\/\/)/i.test(input)) return true
+  if (/^(https?:\/\/|lsqapp:\/\/)/i.test(input)) return true
 
   // 2. www. 开头
   if (/^www\./i.test(input)) return true

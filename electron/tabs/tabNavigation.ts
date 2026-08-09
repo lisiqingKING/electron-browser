@@ -1,12 +1,13 @@
 import { BrowserWindow } from 'electron'
-import { getCurTab, createTabCore, updateCurTabBounds, getTabListData, getTabContext, switchTab, TabInfo } from '../modules/tabContext'
-import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from '../modules/tabCoreUtils'
+import { getCurTab, createTabCore, updateCurTabBounds, getTabListData, getTabContext, switchTab, TabInfo } from './state'
+import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString } from './state/coreUtils'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '@renderer/utils'
 import { getSubappUrl } from '../subapp-server'
+import { PROTOCOL_LSQAPP } from '../shared/env'
 
-export function resolveAppsUrl(url: string): string | null {
-  if (!url.startsWith('apps://')) return null
+export function resolveAppsUrl(url: string): string {
+  if (!url.startsWith('apps://')) return url
   try {
     const parsed = new URL(url)
     const subapp = parsed.hostname
@@ -14,7 +15,7 @@ export function resolveAppsUrl(url: string): string | null {
     const fullPath = route === '/' ? '' : route
     return getSubappUrl(subapp, `index.html#${fullPath}`)
   } catch {
-    return null
+    return url
   }
 }
 
@@ -145,7 +146,7 @@ export function refreshCurTab(win: BrowserWindow) {
         }
 
         const newUrl = tab.view.webContents.getURL()
-        if (tab.info.url.startsWith('lsqapp://')) {
+        if (tab.info.url.startsWith(`${PROTOCOL_LSQAPP}://`)) {
           tab.info.actualUrl = newUrl
         } else {
           tab.info.url = newUrl
@@ -156,8 +157,7 @@ export function refreshCurTab(win: BrowserWindow) {
     })
 
     if (urlToLoad) {
-      const safeUrl = urlToLoad.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-      tab.view.webContents.executeJavaScript(`location.replace('${safeUrl}')`)
+      tab.view.webContents.executeJavaScript(`location.replace('${escapeForJsString(urlToLoad)}')`)
     } else {
       tab.view.webContents.reload()
     }
@@ -223,7 +223,7 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
   }
   enrichedTabInfo.isLoading = true
 
-  const resolvedUrl = resolveAppsUrl(tabInfo.url) || tabInfo.url
+  const resolvedUrl = resolveAppsUrl(tabInfo.url)
   if (isUrl(resolvedUrl)) {
     view.webContents.loadURL(resolvedUrl)
   } else {

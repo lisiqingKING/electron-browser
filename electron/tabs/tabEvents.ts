@@ -1,12 +1,12 @@
 import { WebContentsView, BrowserWindow } from 'electron'
 import contextMenu from 'electron-context-menu'
 import { recordVisit, updateFaviconByTabUrl } from '../features/history/historyManager'
-import { getTabContext, TabInfo, createTabCore, updateCurTabBounds, getTabListData, getCurTab } from '../modules/tabContext'
-import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl } from '../modules/tabCoreUtils'
+import { getTabContext, TabInfo, createTabCore, updateCurTabBounds, getTabListData, getCurTab } from './state'
+import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString } from './state/coreUtils'
 import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
 import { isUrl } from '@renderer/utils'
-import { env } from '../shared/env'
-import { insertTab, updateTabUrl } from '../features/tabs/tabsDb'
+import { env, PROTOCOL_LSQAPP } from '../shared/env'
+import { insertTab, updateTabUrl } from './tabsDb'
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
   if (isInternalUrl(tab.info.url)) {
@@ -92,8 +92,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
           code: tab.info.loadError.code,
           error: tab.info.loadError.message
         })
-        const safeUrl = errorUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-        view.webContents.executeJavaScript(`location.replace('${safeUrl}')`)
+        view.webContents.executeJavaScript(`location.replace('${escapeForJsString(errorUrl)}')`)
         return
       }
 
@@ -117,8 +116,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         error: errorDescription
       })
 
-      const safeErrorUrl = errorUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-      view.webContents.executeJavaScript(`location.replace('${safeErrorUrl}')`)
+      view.webContents.executeJavaScript(`location.replace('${escapeForJsString(errorUrl)}')`)
     }
   })
 
@@ -138,7 +136,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         return
       }
 
-      if (tab.info.url.startsWith('lsqapp://')) {
+      if (tab.info.url.startsWith(`${PROTOCOL_LSQAPP}://`)) {
         tab.info.actualUrl = newUrl
       } else if (!isAppUrl(tab.info.url)) {
         tab.info.url = newUrl
@@ -157,7 +155,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       if (tab) {
         if (tab.info.loadError) return
 
-        if (tab.info.url.startsWith('lsqapp://')) {
+        if (tab.info.url.startsWith(`${PROTOCOL_LSQAPP}://`)) {
           tab.info.actualUrl = url
         } else {
           tab.info.url = url
@@ -178,7 +176,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
 
       if (tab.info.loadError) return
 
-      if (tab.info.url.startsWith('lsqapp://')) {
+      if (tab.info.url.startsWith(`${PROTOCOL_LSQAPP}://`)) {
         tab.info.actualUrl = url
       } else {
         tab.info.url = url

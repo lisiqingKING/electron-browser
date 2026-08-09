@@ -79,7 +79,7 @@ const addTab = async () => {
     // 不处理
   } else if (isUrl(input)) {
     // 如果是 URL 但没有协议，补全 https://
-    if (!/^(https?:\/\/|lsqapp:\/\/|open-lsqapp:\/\/)/i.test(input)) {
+    if (!/^(https?:\/\/|lsqapp:\/\/)/i.test(input)) {
       url = `https://${input}`
     }
   } else {

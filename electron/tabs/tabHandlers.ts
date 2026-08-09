@@ -1,9 +1,9 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { getTabContext, getCurTab, updateCurTabBounds, closeTab, openDevToolsForCurTab, getTabListData, switchTab } from '../modules/tabContext'
-import { findExistingInternalTab, switchToExistingTab } from '../modules/tabCoreUtils'
+import { getTabContext, getCurTab, updateCurTabBounds, closeTab, openDevToolsForCurTab, getTabListData, switchTab } from './state'
+import { findExistingInternalTab, switchToExistingTab } from './state/coreUtils'
 import { goBack, goForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
 import { env } from '../shared/env'
-import { insertTab, deleteTab, updateTabUrl } from '../features/tabs/tabsDb'
+import { insertTab, deleteTab, updateTabUrl } from './tabsDb'
 import { registerDownloadHandlers } from '../features/downloads/downloadHandlers'
 
 export { createTabAndShow }
@@ -120,7 +120,7 @@ export function registerTabHandlers() {
   ipcMain.on('tabs:updateUrl', (event, url: string) => {
     const win = getWindowFromEvent(event)
     if (!win) return
-    const resolvedUrl = resolveAppsUrl(url) || url
+    const resolvedUrl = resolveAppsUrl(url)
     updateCurTabUrl(resolvedUrl, win)
     const ctx = getTabContext(win)
     const curTab = getCurTab(win)

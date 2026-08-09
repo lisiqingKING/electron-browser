@@ -81,7 +81,6 @@
 ┌─────────────────────────────────────────────────────────┐
 │ Electron 主进程 (electron/main.ts)                       │
 │   ├─ protocol 'lsqapp://'   → 302 到子应用 dev URL        │
-│   ├─ protocol 'open-lsqapp://' → 外部唤醒入口             │
 │   └─ startSubappServer() (electron/subapp/)              │
 │        └─ 本地 HTTP 服务器, 监听随机端口                  │
 │             ├─ /proxy/* → 通用 HTTP 代理                  │

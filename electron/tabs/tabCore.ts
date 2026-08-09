@@ -1,11 +1,10 @@
-// Re-export from modules/tabContext for backward compatibility
-// New code should import directly from ../modules/tabContext
-import type { TabInfo, TabContext } from '../modules/tabContext'
+// Re-export from state/ for backward compatibility
+import type { TabInfo, TabContext } from './state'
 export type { TabInfo, TabContext }
-export { getTabContext, getCurTab, setCurTabId, getTabListData, createTabCore, switchTab, closeTab, updateCurTabBounds } from '../modules/tabContext'
+export { getTabContext, getCurTab, setCurTabId, getTabListData, createTabCore, switchTab, closeTab, updateCurTabBounds } from './state'
 
 // History
-export { tabHistoryMap, pushHistory, goBackInHistory, goForwardInHistory, canGoBackInHistory, canGoForwardInHistory, removeHistory, type TabHistoryEntry, type TabHistory } from '../modules/tabHistory'
+export { tabNavHistoryMap, pushHistory, goBackInHistory, goForwardInHistory, canGoBackInHistory, canGoForwardInHistory, removeNavHistory, type TabHistoryEntry, type TabHistory } from './state/history'
 
 // Utilities
-export { DEFAULT_TAB, isLocalFile, isAppUrl, getDomainFromUrl, isInternalUrl, isInternalTab, findExistingInternalTab, switchToExistingTab, getTitleForInternalUrl } from '../modules/tabCoreUtils'
+export { DEFAULT_TAB, isLocalFile, isAppUrl, getDomainFromUrl, isInternalUrl, isInternalTab, findExistingInternalTab, switchToExistingTab, getTitleForInternalUrl, escapeForJsString } from './state/coreUtils'

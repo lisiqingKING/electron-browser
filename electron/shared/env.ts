@@ -3,12 +3,15 @@ import { app } from 'electron'
 
 export const DEV_PORT = 5273
 
+export const PROTOCOL_LSQAPP = 'lsqapp'
+export const PROTOCOL_INTERNAL_APP = 'internal-app'
+
 export const env = {
   getUrl(route?: string): string {
     if (!app.isPackaged) {
       return route ? `http://localhost:${DEV_PORT}/#/${route}` : `http://localhost:${DEV_PORT}/#/`
     }
-    return route ? `lsqapp://internal-app/${route}` : 'lsqapp://internal-app'
+    return route ? `${PROTOCOL_LSQAPP}://${PROTOCOL_INTERNAL_APP}/${route}` : `${PROTOCOL_LSQAPP}://${PROTOCOL_INTERNAL_APP}`
   },
 
   getAppUrl(): string {
@@ -57,6 +60,6 @@ export const env = {
     if (!app.isPackaged) {
       return `http://localhost:${DEV_PORT}/#/${route}`
     }
-    return `lsqapp://internal-app/${route}`
+    return `${PROTOCOL_LSQAPP}://${PROTOCOL_INTERNAL_APP}/${route}`
   }
 }

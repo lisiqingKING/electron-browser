@@ -42,8 +42,8 @@
     "icon": "build/logo.ico",
     "protocols": [
       {
-        "name": "Open LSQApp",
-        "schemes": ["open-lsqapp"]
+        "name": "LSQApp",
+        "schemes": ["lsqapp"]
       }
     ],
     "target": [
