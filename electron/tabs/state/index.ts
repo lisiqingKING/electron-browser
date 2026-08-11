@@ -13,8 +13,8 @@ export { updateCurTabBounds } from './tabBounds'
 // DevTools
 export { openDevToolsForTab, openDevToolsForCurTab } from './devTools'
 
-// Registry
-export { registerTab, unregisterTab, getTabEntry, moveTabToWindow, cleanupWindowTabs } from './registry'
+// Window-Tab relationship
+export { getTabEntry, getTabBrowserWindow, moveTabToWindow, cleanupWindowTabs } from './windowTabs'
 
 // History
 export { tabNavHistoryMap, pushHistory, goBackInHistory, goForwardInHistory, canGoBackInHistory, canGoForwardInHistory, removeNavHistory } from './history'

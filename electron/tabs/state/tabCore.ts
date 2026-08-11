@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { setActiveTab } from '../tabsDb'
-import { registerTab, unregisterTab, moveTabToWindow } from './registry'
+import { moveTabToWindow } from './windowTabs'
 import { removeNavHistory } from './history'
 import { registerWebContentsEvents } from '../tabEvents'
 import { resolveAppsUrl } from '../tabNavigation'
@@ -63,10 +63,6 @@ export function createTabCore(
   ctx.curTabId = _id
   ctx.webContentViewMap.set(_id, { info: _tabInfo, view: view as WebContentsView })
 
-  if (view) {
-    registerTab(_id, { tabInfo: _tabInfo, view, browserWindow: win })
-  }
-
   return { view, tabInfo: _tabInfo, insertIndex }
 }
 
@@ -84,7 +80,6 @@ export function createTabView(tabInfo: TabInfo, win: BrowserWindow): WebContents
   if (entry) {
     entry.view = view
   }
-  registerTab(tabInfo.id!, { tabInfo, view, browserWindow: win })
 
   return view
 }
@@ -175,7 +170,6 @@ export function closeTab(id: string, win: BrowserWindow): string | null {
   ctx.webContentViewMap.delete(id)
   const closedIndex = ctx.tabs.findIndex(t => t.id === id)
   ctx.tabs.splice(closedIndex, 1)
-  unregisterTab(id)
   removeNavHistory(id)
 
   if (ctx.curTabId === id) {

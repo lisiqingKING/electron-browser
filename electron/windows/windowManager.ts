@@ -2,7 +2,7 @@ import { BrowserWindow, Menu } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getTabListData, cleanupWindowContext, createTabCore, destroyAllTabViews } from '../tabs/state'
-import { cleanupWindowTabs } from '../tabs/state/registry'
+import { cleanupWindowTabs } from '../tabs/state/windowTabs'
 import { env } from '../shared/env'
 import { setupWindow } from '../mainEntry/windowEvents'
 

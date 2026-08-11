@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { closeWindow, getAllWindows, activateReserveWindow } from '../windows/windowManager'
 import { getTabContext, getTabListData, switchTab, addTabToWindow, removeTabFromWindow } from '../tabs/state'
-import { getTabEntry } from '../tabs/state/registry'
+import { getTabEntry, getTabBrowserWindow } from '../tabs/state/windowTabs'
 import { env } from '../shared/env'
 import { createTabAndShow } from '../tabs/tabNavigation'
 import { setupWindow } from './windowEvents'
@@ -50,10 +50,11 @@ export function registerWindowIpc() {
     const now = Date.now()
     if (now - lastAdoptTime < 500) return false
     lastAdoptTime = now
+
     const tabEntry = getTabEntry(tabId)
     if (!tabEntry) return false
-
-    const oldWin = tabEntry.browserWindow
+    const oldWin = getTabBrowserWindow(tabId)
+    if (!oldWin) return false
     const oldCurTabId = getTabContext(oldWin).curTabId
     const { view } = tabEntry
     if (!view) return false

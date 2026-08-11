@@ -2,7 +2,7 @@ import { BrowserWindow } from 'electron'
 import type { TabContext } from './types'
 import { getCachedIcon, getIconFromDb } from '../../features/icons/iconsManager'
 
-const windowTabContexts = new Map<number, TabContext>()
+export const windowTabContexts = new Map<number, TabContext>()
 
 export function getTabContext(win: BrowserWindow): TabContext {
   const existing = windowTabContexts.get(win.id)
