@@ -18,13 +18,23 @@ import { createTabAndShow, resolveAppsUrl } from '../tabs/tabNavigation'
 import { registerWebContentsEvents } from '../tabs/tabEvents'
 import { createTray } from '../windows/tray/trayManager'
 import { loadTabs } from '../tabs/tabsDb'
+import { getCurrentTabId } from '../shared/windowConfig'
 import { createTabCore, getTabListData, switchTab, createTabView, getTabContext } from '../tabs/state'
 import { isUrl } from '@renderer/utils'
 
 function restoreTabs(win: Electron.BrowserWindow) {
-  const saved = loadTabs()
-  if (saved.tabs.length > 0) {
-    for (const savedTab of saved.tabs) {
+  const savedTabs = loadTabs()
+  let currentTabId = getCurrentTabId(win.id)
+  console.log('[restoreTabs] savedTabs:', savedTabs.length, 'currentTabId:', currentTabId)
+
+  // 如果 currentTabId 不在恢复的 tabs 里，用第一个 tab
+  if (currentTabId && !savedTabs.some(t => t.id === currentTabId)) {
+    console.log('[restoreTabs] currentTabId not found in savedTabs, falling back to first tab')
+    currentTabId = savedTabs[0]?.id ?? null
+  }
+
+  if (savedTabs.length > 0) {
+    for (const savedTab of savedTabs) {
       try {
         createTabCore(
           { title: savedTab.title, url: savedTab.url },
@@ -40,16 +50,16 @@ function restoreTabs(win: Electron.BrowserWindow) {
 
     win.webContents.send('tab:list-changed', getTabListData(win))
 
-    if (saved.currentTabId) {
-      switchTab(saved.currentTabId, win)
+    if (currentTabId) {
+      switchTab(currentTabId, win)
 
       // 当前 tab 加载完成后，提前创建其他 tab 的 view 并加载 URL
-      const activeTabEntry = getTabContext(win).webContentViewMap.get(saved.currentTabId)
+      const activeTabEntry = getTabContext(win).webContentViewMap.get(currentTabId)
       if (activeTabEntry?.view) {
         activeTabEntry.view.webContents.once('did-finish-load', () => {
           const ctx = getTabContext(win)
           for (const tab of ctx.tabs) {
-            if (tab.id === saved.currentTabId) continue
+            if (tab.id === currentTabId) continue
             const entry = ctx.webContentViewMap.get(tab.id!)
             if (entry?.view) continue // 已经有 view，跳过
             try {
@@ -80,10 +90,14 @@ export function createMainWindow(): Electron.BrowserWindow {
     win.webContents.openDevTools()
   }
 
-  const appUrl = env.getAppUrl()
-  createTabAndShow({ title: '首页', url: appUrl, isHome: true }, win)
-
   restoreTabs(win)
+
+  // 只有没有任何 tab 时才创建 home tab
+  const ctx = getTabContext(win)
+  if (ctx.tabs.length === 0) {
+    const appUrl = env.getAppUrl()
+    createTabAndShow({ title: '首页', url: appUrl, isHome: true }, win)
+  }
 
   createTray()
 

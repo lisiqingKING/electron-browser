@@ -85,6 +85,49 @@ function initFavoritesTable(): void {
   getDatabase().exec('CREATE INDEX IF NOT EXISTS idx_favorites_url ON favorites(url)')
 }
 
+function initTabsTable(): void {
+  getDatabase().exec(`
+    CREATE TABLE IF NOT EXISTS tabs (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      isHome INTEGER NOT NULL DEFAULT 0
+    )
+  `)
+}
+
+function initWindowConfigTable(): void {
+  getDatabase().exec(`
+    CREATE TABLE IF NOT EXISTS window_config (
+      windowId TEXT PRIMARY KEY,
+      currentTabId TEXT
+    )
+  `)
+
+  // 迁移：如果是老版本 (INTEGER windowId)，改成 TEXT，key 统一成 'main'
+  try {
+    const cols = getDatabase().prepare(`PRAGMA table_info(window_config)`).all() as { name: string; type: string }[]
+    const windowIdCol = cols.find(c => c.name === 'windowId')
+    if (windowIdCol && windowIdCol.type === 'INTEGER') {
+      const oldRow = getDatabase().prepare(`SELECT currentTabId FROM window_config`).get() as { currentTabId: string } | undefined
+      getDatabase().exec(`DROP TABLE window_config`)
+      getDatabase().exec(`
+        CREATE TABLE window_config (
+          windowId TEXT PRIMARY KEY,
+          currentTabId TEXT
+        )
+      `)
+      if (oldRow?.currentTabId) {
+        getDatabase().prepare(`INSERT INTO window_config (windowId, currentTabId) VALUES (?, ?)`).run('main', oldRow.currentTabId)
+      }
+    }
+  } catch {
+    // 表不存在或已迁移，忽略
+  }
+}
+
 function initDownloadsTable(): void {
   // 检查老 schema 是否有 source 列 (旧版本带 source/method/post_body/headers/http 路径)
   // 启动时把老表备份 + 重建, 把还在用的列拷过去, 删掉废弃列
@@ -173,6 +216,8 @@ export function initDatabase(): Database.Database {
   initSettingsTable()
   initDownloadsTable()
   initFavoritesTable()
+  initTabsTable()
+  initWindowConfigTable()
 
   console.log('[Database] Initialized at:', DB_PATH)
 

@@ -91,11 +91,12 @@ window.bridge.getModules(['history', 'ai'])  // 按需拿模块
 
 **持久化逻辑**：
 - `before-quit` → `saveTabs`：DELETE + 重新插入当前 tabs（此时 id 一致）
-- `loadTabs`：返回数据库中的旧 id，恢复时 `createTabCore` 生成新 id
+- `loadTabs`：返回数据库中的 tabs，恢复时 `createTabCore` 生成新 id
+- 每个窗口的 `currentTabId` 存在 `window_config` 表（`windowId → currentTabId`）
 
 **正确做法**（已实现）：
-1. `switchTab` → 调用 `setActiveTab` 实时更新数据库 `isActive`
-2. 恢复 tab 后 → 调用 `saveTabs` 用新 id 重新保存到数据库
+1. `switchTab` → 调用 `windowConfig.setCurrentTabId(win.id, tabId)` 实时保存当前选中
+2. 恢复 tab 后 → 调用 `windowConfig.getCurrentTabId(win.id)` 获取上次选中的 tab 并切换
 3. 关闭 tab → 不单独 `deleteTab`，统一由 `before-quit` 的 `saveTabs` 处理
 
 **禁止**：
