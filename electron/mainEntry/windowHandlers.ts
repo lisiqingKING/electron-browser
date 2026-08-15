@@ -80,16 +80,18 @@ export function registerWindowIpc() {
 
     // 从旧窗口移除 tab
     oldWin.contentView.removeChildView(view)
+    const closedIndex = getTabContext(oldWin).tabs.findIndex(t => t.id === tabId)
     const removed = removeTabFromWindow(tabId, oldWin)
     if (!removed) return false
 
     // 添加到新窗口
     addTabToWindow(removed.tabInfo, view, newWin)
 
-    // 通知旧窗口切换 tab
+    // 通知旧窗口切换 tab（切换到被移除tab左侧的tab）
     const oldCtx = getTabContext(oldWin)
     if (oldCurTabId === tabId && oldCtx.tabs.length > 0) {
-      const nextTab = oldCtx.tabs[0]
+      const nextIndex = Math.max(0, closedIndex - 1)
+      const nextTab = oldCtx.tabs[nextIndex]
       if (nextTab.id) switchTab(nextTab.id, oldWin)
     }
     if (!oldWin.isDestroyed()) {
