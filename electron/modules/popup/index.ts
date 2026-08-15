@@ -1,0 +1,6 @@
+export { registerPopupHandlers } from './handlers'
+export { createPopupProxy } from './ipcClient'
+export { popupChannels } from './channels'
+export type { PopupModule } from './ipcClient'
+export { showPopup, hidePopup, popupSourceMap } from './manager'
+export type { MenuItem, PopupOptions } from './manager'

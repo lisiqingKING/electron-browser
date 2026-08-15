@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import MenuComponent from './popup/components/MenuComponent.vue'
-import '@renderer/styles/tokens/primitive.css'
-import '@renderer/styles/tokens/light.css'
-import '@renderer/styles/tokens/dark.css'
+import MenuComponent from './components/MenuComponent.vue'
+import '../../../../src/styles/tokens/primitive.css'
+import '../../../../src/styles/tokens/light.css'
+import '../../../../src/styles/tokens/dark.css'
 
 const type = ref('menu')
 const data = ref<any>({})

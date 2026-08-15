@@ -27,7 +27,6 @@ export interface PopupOptions {
 
 let popupWindow: BrowserWindow | null = null
 
-// popup webContents id -> source window id
 export const popupSourceMap = new Map<number, number>()
 
 function getPopupUrl(): string {
@@ -82,7 +81,6 @@ export function showPopup(options: PopupOptions, win: BrowserWindow): void {
   const targetWin = win
   if (!targetWin || targetWin.isDestroyed()) return
 
-  // 销毁旧 popup 窗口
   if (popupWindow && !popupWindow.isDestroyed()) {
     popupWindow.destroy()
     popupWindow = null

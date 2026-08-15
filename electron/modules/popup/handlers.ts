@@ -1,25 +1,23 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { showPopup, hidePopup, PopupOptions, popupSourceMap } from './popupWindow'
+import { showPopup, hidePopup, popupSourceMap } from './manager'
+import { popupChannels } from './channels'
 
 export function registerPopupHandlers(): void {
-  ipcMain.on('popup:show', (_event, options: PopupOptions) => {
+  ipcMain.on(popupChannels.show, (_event, options) => {
     const win = BrowserWindow.fromWebContents(_event.sender)
     if (!win || win.isDestroyed()) return
     showPopup(options, win)
   })
 
-  ipcMain.on('popup:hide', () => {
+  ipcMain.on(popupChannels.hide, () => {
     hidePopup()
   })
 
-  ipcMain.on('popup:action', (_event, data: { action: string; context?: any }) => {
-    console.log('[popup:action] received:', data.action, data.context)
+  ipcMain.on(popupChannels.action, (_event, data: { action: string; context?: any }) => {
     const sourceWindowId = popupSourceMap.get(_event.sender.id)
     const win = sourceWindowId ? BrowserWindow.fromId(sourceWindowId) : null
     if (win && !win.isDestroyed()) {
       win.webContents.send('popup:action', data)
-    } else {
-      console.warn('[popup:action] source window not available, action dropped:', data.action)
     }
   })
 }
