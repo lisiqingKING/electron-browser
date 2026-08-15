@@ -12,9 +12,7 @@ const props = defineProps<{
 }>()
 
 const hoveredTabId = ref<string | null>(null)
-const hoveredMemory = ref<{ usedJSHeapSize: number; totalJSHeapSize: number } | null>(null)
 const tooltipStyle = ref<Record<string, string>>({})
-const formatMB = (mb: number) => `${mb.toFixed(1)} MB`
 const failedFavicons = ref<Set<string>>(new Set())
 
 const onFaviconError = (url: string) => {
@@ -25,9 +23,8 @@ const onFaviconLoad = (url: string) => {
   failedFavicons.value.delete(url)
 }
 
-const onTabEnter = async (e: MouseEvent, tab: { id?: string; wcId?: number }) => {
+const onTabEnter = (e: MouseEvent, tab: { id?: string }) => {
   hoveredTabId.value = tab.id || null
-  hoveredMemory.value = null
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   tooltipStyle.value = {
     position: 'fixed',
@@ -35,19 +32,10 @@ const onTabEnter = async (e: MouseEvent, tab: { id?: string; wcId?: number }) =>
     top: `${rect.bottom + 4}px`,
     transform: 'translateX(-50%)',
   }
-  if (tab.wcId != null) {
-    try {
-      const info = await (window as any).ipcRenderer.invoke('memory:requestUpdate', tab.wcId)
-      if (info) {
-        hoveredMemory.value = { usedJSHeapSize: info.usedJSHeapSize, totalJSHeapSize: info.totalJSHeapSize }
-      }
-    } catch {}
-  }
 }
 
 const onTabLeave = () => {
   hoveredTabId.value = null
-  hoveredMemory.value = null
 }
 
 // 拖拽出窗口
@@ -182,12 +170,6 @@ onUnmounted(() => {
         <circle cx="12" cy="12" r="3"/>
       </svg>
     </div>
-
-    <Transition name="fade">
-      <div v-if="hoveredTabId && hoveredMemory" class="memory-tooltip" :style="tooltipStyle">
-        <span>内存 {{ formatMB(hoveredMemory.totalJSHeapSize) }}</span>
-      </div>
-    </Transition>
 
     <!-- 所有 tab 都在滚动容器内 -->
     <div class="tabs-scroll-container" ref="tabsContainer">
@@ -453,20 +435,6 @@ onUnmounted(() => {
 .add-btn:hover {
   background: var(--tabbar-hover-bg);
   color: var(--tabbar-text-active);
-}
-
-.memory-tooltip {
-  position: fixed;
-  background: var(--tooltip-bg);
-  border: 1px solid var(--tooltip-border);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--tooltip-text);
-  white-space: nowrap;
-  z-index: 9999;
-  pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .fade-enter-active,

@@ -2,7 +2,6 @@ import { startSubappServer } from '../subapp-server'
 import { initDatabase } from '../shared/database/index'
 import { syncFromDb as syncFavoritesFromDb } from '../modules/favorites/manager'
 import { initWebviewSource } from '../modules/downloads/manager/sources/webviewSource'
-import { registerMemoryMonitorHandler, getMemoryMonitor } from '../shared/memory/memoryMonitor'
 import { registerPopupHandlers } from '../modules/popup'
 import { registerAllHandlers } from '../bootstrap'
 import { ensureReserveWindow, createWindow } from '../windows/windowManager'
@@ -112,19 +111,10 @@ export async function appReadyInit() {
   initDatabase()
   syncFavoritesFromDb()
   initWebviewSource()
-  registerMemoryMonitorHandler()
   registerPopupHandlers()
   registerAllHandlers()
-
-  const monitor = getMemoryMonitor()
-  monitor.setAlertHandler((snapshot) => {
-    for (const msg of snapshot.alerts) {
-      logger.error(msg)
-    }
-  })
 
   getDownloadManager().init()
   createMainWindow()
   ensureReserveWindow()
-  monitor.startMonitor()
 }

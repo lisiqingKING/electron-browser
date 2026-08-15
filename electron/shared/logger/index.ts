@@ -27,6 +27,7 @@ export function initLoggers(): void {
       return path.join(app.getPath('logs'), module, `${module}-{y}-{m}-{d}.log`)
     }
     logger.transports.file.maxSize = 10 * 1024 * 1024 // 10MB
+    logger.transports.file.level = 'warn' // 只写 warn 和 error，info/debug 只打印到终端
     moduleLoggers[module] = logger
   }
   mainLogger = moduleLoggers.main

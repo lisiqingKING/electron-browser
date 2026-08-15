@@ -2,7 +2,6 @@ import { app, BrowserWindow } from 'electron'
 import { activateReserveWindow, setWindowAsCurrentMain } from '../windows/windowManager'
 import { getTabContext, updateCurTabBounds } from '../tabs/state'
 import { destroyTray } from '../windows/tray/trayManager'
-import { getMemoryMonitor } from '../shared/memory/memoryMonitor'
 import { closeDatabase } from '../shared/database/index'
 import { stopSubappServer } from '../subapp-server'
 import { getDownloadManager } from '../modules/downloads/manager'
@@ -29,7 +28,6 @@ export function registerWindowEvents() {
 
   app.on('will-quit', () => {
     destroyTray()
-    getMemoryMonitor().stopMonitor()
     closeDatabase()
     stopSubappServer()
     void getDownloadManager().shutdown()
