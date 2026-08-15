@@ -19,10 +19,11 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Electron 主进程 (electron/main.ts)                       │
-│   ├─ protocol 'lsqapp://'   → 302 到子应用 dev URL        │
-│   └─ startSubappServer() (electron/subapp/)              │
-│        └─ 本地 HTTP 服务器, 监听随机端口                  │
+│ Electron 主进程 (electron/main.ts → mainEntry/)          │
+│   ├─ mainEntry/protocol.ts  →  注册 'lsqapp://' 协议     │
+│   ├─ mainEntry/appReady.ts →  应用就绪初始化链           │
+│   └─ subapp-server/        →  本地 HTTP 服务器            │
+│        └─ 监听随机端口                                   │
 │             ├─ /proxy/* → 通用 HTTP 代理                  │
 │             └─ /*       → 读 apps/<name>/dist/ 静态文件   │
 └─────────────────────────────────────────────────────────┘
@@ -38,36 +39,49 @@
 
 ## 关键目录
 
-- [electron/main.ts](electron/main.ts) — 主进程入口, 注册协议
-- [electron/subapp/](electron/subapp/) — 本地 HTTP 服务器 (fileHandler / proxy / router / index)
-- [electron/tab/tabHandlers.ts](electron/tab/tabHandlers.ts) — 标签页 IPC handlers (tabs:*)
+- [electron/main.ts](electron/main.ts) — 主进程入口，仅调用 `init()`
+- [electron/mainEntry/](electron/mainEntry/) — 启动入口模块化
+  - [appReady.ts](electron/mainEntry/appReady.ts) — 应用就绪初始化链
+  - [protocol.ts](electron/mainEntry/protocol.ts) — 注册 `lsqapp://` 协议
+  - [windowEvents.ts](electron/mainEntry/windowEvents.ts) — 窗口事件注册
+  - [windowHandlers.ts](electron/mainEntry/windowHandlers.ts) — 窗口级 IPC handlers
+- [electron/subapp-server/](electron/subapp-server/) — 本地 HTTP 服务器
+- [electron/tabs/](electron/tabs/) — 标签页模块
+  - [tabHandlers.ts](electron/tabs/tabHandlers.ts) — 标签页 IPC handlers
+  - [state/](electron/tabs/state/) — 状态管理 (tabCore / context / history 等)
+  - [tabEvents.ts](electron/tabs/tabEvents.ts) — webContents 事件监听
+  - [tabNavigation.ts](electron/tabs/tabNavigation.ts) — 导航操作 (后退/前进/刷新)
 - [electron/preload.ts](electron/preload.ts) — 基础 ipcRenderer 桥 (`window.ipcRenderer`)
 - [preload/preload-app.ts](preload/preload-app.ts) — 子应用专用桥 (`window.bridge.getModules`)
-- [electron/modules/](electron/modules/) — 各 IPC 模块实现，每个模块统一结构: ipcClient / handlers / db / manager
-- [electron/env.ts](electron/env.ts) — dev/packaged 模式下 app URL 解析
+- [electron/modules/](electron/modules/) — 各 IPC 模块，每个模块统一结构: ipcClient / handlers / db / manager
+- [electron/shared/](electron/shared/) — 共享工具 (database / env / broadcast / memory 等)
 - [src/App.vue](src/App.vue) — 容器 UI (标签栏 + URL 栏 + 书签栏)
 
 ## 跨项目契约 (CRITICAL — 改任何一边必须同步另一边)
 
 ### 1. `lsqapp://` 协议解析规则
-定义在 [electron/main.ts](electron/main.ts#L82-L91):
+定义在 [electron/mainEntry/protocol.ts](electron/mainEntry/protocol.ts):
 ```
 lsqapp://<appName>/<route>
   ↓ 302 Redirect
 http://localhost:<subappPort>/<appName>/index.html#/<route>
 ```
 
-**dev 模式**: 当前是写死的子应用 dev URL (env.ts#L6-L11), 没经过 subapp server. 修改 `getAppUrl`/`getHistoryUrl` 时同时检查 [electron/main.ts](electron/main.ts) 中的 302 路径, 两边要保持一致.
+**dev 模式**: 当前是写死的子应用 dev URL ([electron/shared/env.ts](electron/shared/env.ts)), 没经过 subapp server. 修改 `getAppUrl`/`getHistoryUrl` 时同时检查 [electron/mainEntry/protocol.ts](electron/mainEntry/protocol.ts) 中的 302 路径, 两边要保持一致.
 
 ### 2. 子应用通过 `window.bridge` 调用容器能力
 子应用代码 (如 [internal-app App.vue](C:\Users\lsq\my-projects\app\src\App.vue)) 调用:
 ```js
 window.bridge.getModules(['history', 'ai'])  // 按需拿模块
 ```
-当前已注册的模块 (在 [electron/preload-app.ts](electron/preload-app.ts#L7-L11) 和 [electron/modules/](electron/modules/)):
+当前已注册的模块 (在 [preload/preload-app.ts](preload/preload-app.ts) 和 [electron/modules/](electron/modules/)):
 - `tabs` — 标签页操作
 - `history` — 历史记录 CRUD
 - `ai` — AI 会话 CRUD
+- `downloads` — 下载管理
+- `favorites` — 收藏夹
+- `settings` — 设置
+- `popup` — 弹出面板
 
 **新增模块时** 三处必须同步:
 1. 新建 `electron/modules/<name>/`, 实现 ipcClient / handlers / db / manager 四件套
@@ -76,7 +90,7 @@ window.bridge.getModules(['history', 'ai'])  // 按需拿模块
 
 ### 3. 构建产物路径
 子应用 `pnpm build` → 子项目 `dist/` → 手动/脚本拷贝到容器 `apps/<name>/dist/`.
-生产模式下 [electron/subapp/index.ts](electron/subapp/index.ts#L21-L23) 读取 `apps/<name>/dist/`.
+生产模式下 [electron/subapp-server/index.ts](electron/subapp-server/index.ts) 读取 `apps/<name>/dist/`.
 
 ## 标签系统要点
 
@@ -120,7 +134,7 @@ pnpm build && electron-builder
 
 ## 改代码前自查清单
 
-- [ ] 修改了协议? 检查 [electron/main.ts](electron/main.ts) + [electron/env.ts](electron/env.ts) + 子项目路由.
-- [ ] 新增了 IPC 模块? 三处同步: 模块实现 / preload 注册 / main 注册.
-- [ ] 新增了子应用? 扩展顶部"子应用地图" + 在 [electron/subapp/](electron/subapp/) 配置 dev 端口转发.
+- [ ] 修改了协议? 检查 [electron/mainEntry/protocol.ts](electron/mainEntry/protocol.ts) + [electron/shared/env.ts](electron/shared/env.ts) + 子项目路由.
+- [ ] 新增了 IPC 模块? 三处同步: 模块实现 / preload 注册 / bootstrap 注册.
+- [ ] 新增了子应用? 扩展顶部"子应用地图" + 在 [electron/subapp-server/](electron/subapp-server/) 配置 dev 端口转发.
 - [ ] 不要直接编辑 `apps/<name>/dist/` 下的产物, 那是从子项目 `dist/` 拷贝过来的构建结果.
