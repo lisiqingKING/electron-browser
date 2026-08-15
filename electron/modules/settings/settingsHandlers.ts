@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { getSetting, setSetting, getAllSettings } from './settingsManager'
+import { getSetting, setSetting, getAllSettings } from './manager'
 import { isInternalTab } from '../../tabs/tabCore'
 import { getAllWindows } from '../../windows/windowManager'
 import { getTabContext } from '../../tabs/state'

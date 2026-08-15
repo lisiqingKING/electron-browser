@@ -1,6 +1,6 @@
 import { getDatabase } from '../../shared/database'
 import type { DownloadStatus } from './downloadTypes'
-import { DownloadTask } from './internal/downloadTask'
+import { DownloadTask } from './manager/task'
 
 interface DownloadRow {
   id: string

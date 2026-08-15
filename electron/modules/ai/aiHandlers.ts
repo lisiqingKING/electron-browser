@@ -9,8 +9,8 @@ import {
   updateMessages,
   deleteChatSession,
   updatePinned,
-} from './aiConversationManager'
-import { getSetting } from '../settings/settingsManager'
+} from './manager'
+import { getSetting } from '../settings/manager'
 
 export function registerAIHandlers() {
   ipcMain.handle('ai:list', async (_event, options?: { limit?: number; offset?: number }) => {

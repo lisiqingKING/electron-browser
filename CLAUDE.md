@@ -42,8 +42,8 @@
 - [electron/subapp/](electron/subapp/) — 本地 HTTP 服务器 (fileHandler / proxy / router / index)
 - [electron/tab/tabHandlers.ts](electron/tab/tabHandlers.ts) — 标签页 IPC handlers (tabs:*)
 - [electron/preload.ts](electron/preload.ts) — 基础 ipcRenderer 桥 (`window.ipcRenderer`)
-- [electron/preload-app.ts](electron/preload-app.ts) — 子应用专用桥 (`window.bridge.getModules`)
-- [electron/modules/](electron/modules/) — 各 IPC 模块实现 (tabs / history / aiConversation)
+- [preload/preload-app.ts](preload/preload-app.ts) — 子应用专用桥 (`window.bridge.getModules`)
+- [electron/modules/](electron/modules/) — 各 IPC 模块实现，每个模块统一结构: ipcClient / handlers / db / manager
 - [electron/env.ts](electron/env.ts) — dev/packaged 模式下 app URL 解析
 - [src/App.vue](src/App.vue) — 容器 UI (标签栏 + URL 栏 + 书签栏)
 
@@ -70,9 +70,9 @@ window.bridge.getModules(['history', 'ai'])  // 按需拿模块
 - `ai` — AI 会话 CRUD
 
 **新增模块时** 三处必须同步:
-1. 新建 `electron/modules/<name>.ts`, 实现 proxy
-2. 在 [electron/preload-app.ts](electron/preload-app.ts) `moduleRegistry` 注册
-3. 在 [electron/main.ts](electron/main.ts) 或 [tabHandlers.ts](electron/tab/tabHandlers.ts) 添加对应的 `ipcMain.handle`/`on`
+1. 新建 `electron/modules/<name>/`, 实现 ipcClient / handlers / db / manager 四件套
+2. 在 [preload/preload-app.ts](preload/preload-app.ts) `moduleRegistry` 注册
+3. 在 [bootstrap.ts](electron/bootstrap.ts) 注册 handlers
 
 ### 3. 构建产物路径
 子应用 `pnpm build` → 子项目 `dist/` → 手动/脚本拷贝到容器 `apps/<name>/dist/`.

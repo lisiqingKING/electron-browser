@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { getHistory, clearAllHistory, deleteRecord } from './historyManager'
+import { getHistory, clearAllHistory, deleteRecord } from './manager'
 
 export function registerHistoryHandlers() {
   ipcMain.handle('history:get', async () => {

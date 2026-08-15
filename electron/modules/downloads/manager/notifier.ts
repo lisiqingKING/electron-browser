@@ -1,6 +1,6 @@
 import type { DownloadEvent, DownloadProgress } from '../downloadTypes'
-import { DownloadTask } from './downloadTask'
-import { DownloadTaskStore } from './downloadTaskStore'
+import { DownloadTask } from './task'
+import { DownloadTaskStore } from './taskStore'
 import { broadcast } from '../../../shared/broadcast'
 
 const PROGRESS_FLUSH_INTERVAL_MS = 250  // DB 写入节流

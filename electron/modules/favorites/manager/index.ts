@@ -3,16 +3,11 @@ import {
   addFavorite as addToDb,
   removeFavorite as removeFromDb,
   type FavoriteItem
-} from './favoritesDb'
-import { getCachedIcon, getIconFromDb } from '../icons/iconsManager'
+} from '../favoritesDb'
+import { getCachedIcon, getIconFromDb } from '../../icons/manager'
 
-// ============ 收藏 Manager 层 ============
-// 门面层，管理内存缓存，调用 DAO 层
-
-// 内存缓存: Set<string>（URL 为 key）
 let favoritesCache: Set<string> | null = null
 
-// 同步数据库到内存
 export function syncFromDb(): void {
   favoritesCache = new Set()
   const records = getAllFromDb()
@@ -21,7 +16,6 @@ export function syncFromDb(): void {
   }
 }
 
-// 获取所有收藏
 export function getAllFavorites(): FavoriteItem[] {
   return getAllFromDb().map(item => ({
     ...item,
@@ -37,7 +31,6 @@ function resolveFavicon(pageUrl: string, originalFavicon?: string): string | und
   return originalFavicon
 }
 
-// 检查是否已收藏
 export function checkFavorite(url: string): boolean {
   if (favoritesCache === null) {
     syncFromDb()
@@ -45,7 +38,6 @@ export function checkFavorite(url: string): boolean {
   return favoritesCache!.has(url)
 }
 
-// 切换收藏状态
 export function toggleFavorite(url: string, title: string, favicon?: string): boolean {
   if (favoritesCache === null) {
     syncFromDb()
@@ -61,7 +53,6 @@ export function toggleFavorite(url: string, title: string, favicon?: string): bo
   }
 }
 
-// 删除收藏（通过 url）
 export function removeFavorite(url: string): void {
   if (favoritesCache === null) {
     syncFromDb()

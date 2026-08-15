@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { getDownloadManager, downloadsChannels } from './downloadManager'
+import { getDownloadManager, downloadsChannels } from './manager'
 import type { AddHttpInput } from './downloadTypes'
 
 export function registerDownloadHandlers(): void {

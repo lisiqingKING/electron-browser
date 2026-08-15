@@ -1,18 +1,16 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { app, shell } from 'electron'
-import * as downloadDb from './downloadDb'
-import { DownloadTaskStore } from './internal/downloadTaskStore'
-import { DownloadNotifier } from './internal/downloadNotifier'
-import { DownloadScheduler } from './internal/downloadScheduler'
-import { DownloadTask } from './internal/downloadTask'
-import type { AddHttpInput } from './downloadTypes'
-import { downloadsChannels } from './channels'
+import * as downloadDb from '../downloadDb'
+import { DownloadTaskStore } from './taskStore'
+import { DownloadNotifier } from './notifier'
+import { DownloadScheduler } from './scheduler'
+import { DownloadTask } from './task'
+import type { AddHttpInput } from '../downloadTypes'
+import { downloadsChannels } from '../channels'
 
 export { downloadsChannels }
 
-// Facade over store / notifier / scheduler. 公共 API 都在这里.
-// 编排规则: 改 task 字段 → task.setStatus / setProgress; 持久化 → store.add / delete; 推事件 → notifier; 启动/取消 I/O → scheduler.
 export class DownloadManager {
   private readonly store: DownloadTaskStore
   private readonly notifier: DownloadNotifier
@@ -70,11 +68,8 @@ export class DownloadManager {
     const task = this.store.get(id)
     if (!task || !task.canCancel()) return false
 
-    // in-flight (downloading): abort 走 scheduler, catch 块里 setStatus('canceled') + finishTask
     if (this.scheduler.cancel(id)) return true
 
-    // queued / paused: 没有 AbortController, scheduler.cancel 返回 false
-    // 直接改 status, 推一次 progress 事件让 UI 更新按钮组
     task.setStatus('canceled')
     this.notifier.finishTask(task)
     return true
@@ -108,7 +103,6 @@ export class DownloadManager {
     return full
   }
 
-  // 清空所有: 取消 in-flight + 删全部文件 + DB 全删 + store 清空 + 推 removed.
   async clearAll(): Promise<number> {
     const tasks = [...this.store.list()]
     for (const t of tasks) {
@@ -144,7 +138,7 @@ export class DownloadManager {
     let counter = 1
     while (fs.existsSync(path.join(saveDir, candidate))) {
       candidate = `${base} (${counter})${ext}`
-      counter += 1
+      counter++
     }
     return candidate
   }

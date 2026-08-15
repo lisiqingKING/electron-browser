@@ -1,5 +1,5 @@
 import * as downloadDb from '../downloadDb'
-import { DownloadTask } from './downloadTask'
+import { DownloadTask } from './task'
 
 // 纯内存任务列表 wrapper. 只管 list-level 操作 (init/add/delete/get/has/list/clear/pickNextRunnable).
 // 单个任务的 status/progress 变更走 task.setStatus / setProgress, task 自己写回 DB——store 不掺和.

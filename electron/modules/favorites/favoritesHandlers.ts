@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { getAllFavorites, checkFavorite, toggleFavorite, removeFavorite } from './favoritesManager'
+import { getAllFavorites, checkFavorite, toggleFavorite, removeFavorite } from './manager'
 
 export function registerFavoritesHandlers() {
   ipcMain.handle('favorites:list', async () => {

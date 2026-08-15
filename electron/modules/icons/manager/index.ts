@@ -1,10 +1,8 @@
 import { net } from 'electron'
-import { getIconByUrl, saveIcon } from './iconsDb'
+import { getIconByUrl, saveIcon } from '../iconsDb'
 
-// 内存缓存: pageUrl -> base64 icon
 const iconCache = new Map<string, string>()
 
-// 同步数据库到内存缓存
 export function syncFromDb(): void {
   iconCache.clear()
 }
@@ -97,7 +95,6 @@ export async function getOrFetchIcon(pageUrl: string, iconUrl: string): Promise<
     return fromDb
   }
 
-  // 只处理 http/https 协议的 favicon
   if (!iconUrl.startsWith('http://') && !iconUrl.startsWith('https://')) {
     return null
   }

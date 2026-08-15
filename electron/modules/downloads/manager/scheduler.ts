@@ -1,7 +1,7 @@
-import { DownloadTask } from './downloadTask'
-import { DownloadTaskStore } from './downloadTaskStore'
-import { DownloadNotifier } from './downloadNotifier'
-import { downloadHttpTask } from '../sources/httpSource'
+import { DownloadTask } from './task'
+import { DownloadTaskStore } from './taskStore'
+import { DownloadNotifier } from './notifier'
+import { downloadHttpTask } from './sources/httpSource'
 
 const MAX_CONCURRENT = 5
 

@@ -1,7 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import { app, type Session, type WebContents, type Event } from 'electron'
-import { getDownloadManager } from '../downloadManager'
+import { getDownloadManager } from '../'
 
 let initialized = false
 const registeredSessions: WeakSet<Session> = new WeakSet()

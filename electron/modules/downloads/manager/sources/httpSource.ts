@@ -3,7 +3,7 @@ import path from 'node:path'
 import http from 'node:http'
 import https from 'node:https'
 import { URL } from 'node:url'
-import type { DownloadTask } from '../internal/downloadTask'
+import type { DownloadTask } from '../task'
 
 // HTTP/HTTPS 下载, Range 续传, POST, AbortController 取消.
 // 调度器 (downloadScheduler) 决定并发, 本文件只负责单个任务的 I/O 生命周期.
