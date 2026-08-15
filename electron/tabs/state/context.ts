@@ -1,6 +1,6 @@
 import { BrowserWindow } from 'electron'
 import type { TabContext } from './types'
-import { getCachedIcon, getIconFromDb } from '../../features/icons/iconsManager'
+import { getCachedIcon, getIconFromDb } from '../../modules/icons/iconsManager'
 
 export const windowTabContexts = new Map<number, TabContext>()
 

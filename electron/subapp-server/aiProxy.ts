@@ -1,6 +1,6 @@
 import http from 'node:http'
 import https from 'node:https'
-import { getSetting } from '../features/settings/settingsManager'
+import { getSetting } from '../modules/settings/settingsManager'
 
 // 默认 API Key 混淆存储 — 运行时还原，增加静态提取难度
 const _k = ['tp-c2c3', '97g9akt', 'qbph1c', 'pe4n9ej', 'royi6o', 'aqjmeeo', 'waflb22', '572n']

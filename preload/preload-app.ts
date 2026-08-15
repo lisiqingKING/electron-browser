@@ -1,12 +1,12 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import { createTabsProxy } from '../electron/tabs/ipcClient'
-import { createHistoryProxy } from '../electron/features/history/ipcClient'
-import { createAIConversationProxy } from '../electron/features/ai/ipcClient'
-import { createDownloadsProxy } from '../electron/features/downloads/ipcClient'
-import { createLogsProxy } from '../electron/features/logs/ipcClient'
-import { createSettingsProxy } from '../electron/features/settings/ipcClient'
-// import { createUpdaterProxy } from '../electron/features/updater/ipcClient'
-import { createFavoritesProxy } from '../electron/features/favorites/ipcClient'
+import { createHistoryProxy } from '../electron/modules/history/ipcClient'
+import { createAIConversationProxy } from '../electron/modules/ai/ipcClient'
+import { createDownloadsProxy } from '../electron/modules/downloads/ipcClient'
+import { createLogsProxy } from '../electron/modules/logs/ipcClient'
+import { createSettingsProxy } from '../electron/modules/settings/ipcClient'
+// import { createUpdaterProxy } from '../electron/modules/updater/ipcClient'
+import { createFavoritesProxy } from '../electron/modules/favorites/ipcClient'
 
 // 模块注册表 - 可以动态添加新模块
 const moduleRegistry: Record<string, () => Record<string, Function>> = {

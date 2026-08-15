@@ -26,7 +26,6 @@ function setSetting(key: string, value: string): void {
 }
 
 function runMigration(v: number): void {
-  const fileName = `${v.toString().padStart(3, '0')}_*.sql`
   const dir = getMigrationsPath()
   const files = fs.readdirSync(dir).filter(f => f.startsWith(`${v.toString().padStart(3, '0')}_`) && f.endsWith('.sql'))
 

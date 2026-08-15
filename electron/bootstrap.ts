@@ -1,11 +1,11 @@
 import { registerTabHandlers } from './tabs/tabHandlers'
-import { registerDownloadHandlers } from './features/downloads/downloadHandlers'
-import { registerHistoryHandlers } from './features/history/historyHandlers'
-import { registerFavoritesHandlers } from './features/favorites/favoritesHandlers'
-import { registerSettingsHandlers } from './features/settings/settingsHandlers'
-import { registerAIHandlers } from './features/ai/aiHandlers'
-import { registerLogsHandlers } from './features/logs/logsHandlers'
-// import { registerUpdaterHandlers } from './features/updater/updaterHandlers'
+import { registerDownloadHandlers } from './modules/downloads/downloadHandlers'
+import { registerHistoryHandlers } from './modules/history/historyHandlers'
+import { registerFavoritesHandlers } from './modules/favorites/favoritesHandlers'
+import { registerSettingsHandlers } from './modules/settings/settingsHandlers'
+import { registerAIHandlers } from './modules/ai/aiHandlers'
+import { registerLogsHandlers } from './modules/logs/logsHandlers'
+// import { registerUpdaterHandlers } from './modules/updater/updaterHandlers'
 
 export function registerAllHandlers() {
   registerTabHandlers()
