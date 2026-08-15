@@ -1,6 +1,7 @@
 import { BrowserWindow, globalShortcut } from 'electron'
 import { getCurTab, closeTab, getTabListData, getTabContext } from '../../tabs/state'
 import { deleteTab } from '../../tabs/tabsDb'
+import { mainLogger as logger } from '../../shared/logger'
 
 const ACCELERATOR = 'CmdOrCtrl+W'
 
@@ -28,7 +29,7 @@ function registerAllShortcuts(win: BrowserWindow) {
   try {
     globalShortcut.register(ACCELERATOR, () => handleCloseTab(win))
   } catch (err) {
-    console.error('[shortcuts] Failed to register:', err)
+    logger.error('Failed to register:', err)
   }
 }
 

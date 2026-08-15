@@ -18,6 +18,7 @@ import { ipcMain, app } from 'electron'
 import { memoryConfig } from './memoryConfig'
 import { getAllWindows } from '../../windows/windowManager'
 import { getTabContext, getCurTab } from '../../tabs/state'
+import { mainLogger as logger } from '../logger'
 
 // --------- 类型定义 ---------
 
@@ -141,13 +142,14 @@ class MemoryMonitor {
         }
 
         // 泄漏检测（线性回归）
+        let leakTrend: LeakDetectionResult | null = null
         if (this.snapshots.length >= memoryConfig.minSamplesForLeak) {
-          const trend = this.detectLeak()
-          if (trend.isLeaking) {
-            const tag = trend.level === 'critical' ? '严重' : '轻微'
-            const msg = `${tag}泄漏: ${trend.growthRate.toFixed(2)} MB/min (${trend.samples} 个样本)`
+          leakTrend = this.detectLeak()
+          if (leakTrend.isLeaking) {
+            const tag = leakTrend.level === 'critical' ? '严重' : '轻微'
+            const msg = `${tag}泄漏: ${leakTrend.growthRate.toFixed(2)} MB/min (${leakTrend.samples} 个样本)`
             alerts.push(msg)
-            if (trend.level === 'critical' && level !== 'critical') {
+            if (leakTrend.level === 'critical' && level !== 'critical') {
               level = 'critical'
             }
           }
@@ -172,7 +174,7 @@ class MemoryMonitor {
           this.alertHandler(snapshot)
         }
       } catch (err) {
-        console.error('[MemoryMonitor] 采集异常:', err)
+        logger.error('采集异常:', err)
         this.stats.failedCollections++
       } finally {
         this.stats.totalCollections++
@@ -295,8 +297,8 @@ class MemoryMonitor {
     const curRenderer = curTab ? renderers.find(r => r.title === curTab.info.title) : null
     const curInfo = curRenderer ? `${curRenderer.title} 内存${curRenderer.totalJSHeapSize.toFixed(1)}MB` : '无'
 
-    console.log(
-      `[MemoryMonitor] 主进程: Heap ${main.heapUsed.toFixed(1)}/${main.heapTotal.toFixed(1)} MB | RSS ${main.rss.toFixed(1)} MB${tabDeltaInfo} | ` +
+    logger.error(
+      `主进程: Heap ${main.heapUsed.toFixed(1)}/${main.heapTotal.toFixed(1)} MB | RSS ${main.rss.toFixed(1)} MB${tabDeltaInfo} | ` +
       `当前Tab: ${curInfo}`
     )
   }
@@ -344,7 +346,7 @@ class MemoryMonitor {
     }
 
     for (const msg of alerts) {
-      console.warn(`[MemoryMonitor] ${msg}`)
+      logger.error(msg)
     }
 
     return { level, alerts }

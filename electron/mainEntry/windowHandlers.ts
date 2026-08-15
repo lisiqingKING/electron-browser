@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron'
+import { ipcLogger } from '../shared/logger'
 import { closeWindow, getAllWindows, activateReserveWindow } from '../windows/windowManager'
 import { getTabContext, getTabListData, switchTab, addTabToWindow, removeTabFromWindow } from '../tabs/state'
 import { getTabEntry, getTabBrowserWindow } from '../tabs/state/windowTabs'
@@ -52,9 +53,15 @@ export function registerWindowIpc() {
     lastAdoptTime = now
 
     const tabEntry = getTabEntry(tabId)
-    if (!tabEntry) return false
+    if (!tabEntry) {
+      ipcLogger.error(`window:adopt-tab failed - tab not found: ${tabId}`)
+      return false
+    }
     const oldWin = getTabBrowserWindow(tabId)
-    if (!oldWin) return false
+    if (!oldWin) {
+      ipcLogger.error(`window:adopt-tab failed - browser window not found for tab: ${tabId}`)
+      return false
+    }
     const oldCurTabId = getTabContext(oldWin).curTabId
     const { view } = tabEntry
     if (!view) return false

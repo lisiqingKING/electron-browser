@@ -1,6 +1,7 @@
 import { ipcMain, app, shell } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
+import { ipcLogger } from '../../shared/logger'
 import {
   getAllChatSessions,
   getChatSessionsPage,
@@ -50,12 +51,18 @@ export function registerAIHandlers() {
 
   ipcMain.handle('ai:saveFile', async (_event, content: string, filename: string) => {
     if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      ipcLogger.error(`ai:saveFile invalid filename: ${filename}`)
       throw new Error('非法文件名')
     }
     const saveDir = app.getPath('downloads')
     const filePath = path.join(saveDir, filename)
-    await fs.promises.writeFile(filePath, content, 'utf-8')
-    return filePath
+    try {
+      await fs.promises.writeFile(filePath, content, 'utf-8')
+      return filePath
+    } catch (err) {
+      ipcLogger.error(`ai:saveFile failed: ${err}`)
+      throw err
+    }
   })
 
   ipcMain.handle('ai:openSaveDir', async () => {
@@ -84,19 +91,22 @@ export function registerAIHandlers() {
 
   ipcMain.handle('ai:readSaveFile', async (_event, filename: string) => {
     if (!filename || path.basename(filename) !== filename) {
+      ipcLogger.error(`ai:readSaveFile invalid filename: ${filename}`)
       throw new Error('非法文件名')
     }
     const saveDir = app.getPath('downloads')
     const filePath = path.join(saveDir, filename)
     try {
       return await fs.promises.readFile(filePath, 'utf-8')
-    } catch {
+    } catch (err) {
+      ipcLogger.error(`ai:readSaveFile failed: ${err}`)
       return null
     }
   })
 
   ipcMain.handle('ai:deleteSaveFile', async (_event, filename: string) => {
     if (!filename || path.basename(filename) !== filename) {
+      ipcLogger.error(`ai:deleteSaveFile invalid filename: ${filename}`)
       throw new Error('非法文件名')
     }
     const saveDir = app.getPath('downloads')
@@ -104,7 +114,8 @@ export function registerAIHandlers() {
     try {
       await fs.promises.unlink(filePath)
       return true
-    } catch {
+    } catch (err) {
+      ipcLogger.error(`ai:deleteSaveFile failed: ${err}`)
       return false
     }
   })

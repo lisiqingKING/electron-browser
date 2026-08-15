@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import { ipcLogger } from '../../shared/logger'
 import { getDownloadManager, downloadsChannels } from './manager'
 import type { AddHttpInput } from './downloadTypes'
 
@@ -9,6 +10,7 @@ export function registerDownloadHandlers(): void {
 
   ipcMain.handle(downloadsChannels.add, (_event, input: AddHttpInput) => {
     if (!input || typeof input.url !== 'string' || input.url.length === 0) {
+      ipcLogger.error(`downloads:add invalid input: ${JSON.stringify(input)}`)
       throw new Error('invalid url')
     }
     return manager.addHttpTask(input).toJSON()

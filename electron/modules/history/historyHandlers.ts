@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import { ipcLogger } from '../../shared/logger'
 import { getHistory, clearAllHistory, deleteRecord } from './manager'
 
 export function registerHistoryHandlers() {
@@ -7,12 +8,22 @@ export function registerHistoryHandlers() {
   })
 
   ipcMain.handle('history:clear', async () => {
-    clearAllHistory()
-    return true
+    try {
+      clearAllHistory()
+      return true
+    } catch (err) {
+      ipcLogger.error(`history:clear failed: ${err}`)
+      return false
+    }
   })
 
   ipcMain.handle('history:delete', async (_event, id: number) => {
-    deleteRecord(id)
-    return true
+    try {
+      deleteRecord(id)
+      return true
+    } catch (err) {
+      ipcLogger.error(`history:delete failed: ${err}`)
+      return false
+    }
   })
 }

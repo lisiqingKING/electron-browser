@@ -1,6 +1,7 @@
 import http from 'node:http'
 import https from 'node:https'
 import { getSetting } from '../modules/settings/manager'
+import { networkLogger as logger } from '../shared/logger'
 
 // 默认 API Key 混淆存储 — 运行时还原，增加静态提取难度
 const _k = ['tp-c2c3', '97g9akt', 'qbph1c', 'pe4n9ej', 'royi6o', 'aqjmeeo', 'waflb22', '572n']
@@ -22,7 +23,7 @@ export function handleAiProxyRequest(url: string, req: http.IncomingMessage, res
   // 拼接目标 URL: baseUrl + / + path
   const baseUrl = apiUrl.replace(/\/$/, '')
   const targetUrl = `${baseUrl}/${aiPath}`
-  console.log(`[aiProxy] ${url} -> ${targetUrl}`)
+  logger.error(`${url} -> ${targetUrl}`)
 
   const headers = { ...req.headers }
   delete headers.host
@@ -40,7 +41,7 @@ export function handleAiProxyRequest(url: string, req: http.IncomingMessage, res
   })
 
   proxyReq.on('error', (err) => {
-    console.error('[aiProxy] 代理错误:', err)
+    logger.error('代理错误:', err)
     res.writeHead(502, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ error: 'AI 代理请求失败' }))
   })

@@ -5,6 +5,7 @@ import { getTabListData, cleanupWindowContext, createTabCore, destroyAllTabViews
 import { cleanupWindowTabs } from '../tabs/state/windowTabs'
 import { env } from '../shared/env'
 import { setupWindow } from '../mainEntry/windowEvents'
+import { mainLogger as logger } from '../shared/logger'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -100,7 +101,7 @@ export function activateReserveWindow(): BrowserWindow {
   reserveWindow = null
 
   if (win.isDestroyed()) {
-    console.error('[activateReserveWindow] window destroyed')
+    logger.error('window destroyed')
     return win
   }
 

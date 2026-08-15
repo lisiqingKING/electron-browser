@@ -3,11 +3,11 @@ import { initDatabase } from '../shared/database/index'
 import { syncFromDb as syncFavoritesFromDb } from '../modules/favorites/manager'
 import { initWebviewSource } from '../modules/downloads/manager/sources/webviewSource'
 import { registerMemoryMonitorHandler, getMemoryMonitor } from '../shared/memory/memoryMonitor'
-import { createAlertHandler } from '../shared/memory/alertLogger'
 import { registerPopupHandlers } from '../modules/popup'
 import { registerAllHandlers } from '../bootstrap'
 import { ensureReserveWindow, createWindow } from '../windows/windowManager'
 import { getDownloadManager } from '../modules/downloads/manager'
+import { mainLogger as logger } from '../shared/logger'
 import { registerWindowEvents, setupWindow } from './windowEvents'
 import { registerProtocol } from './protocol'
 import { registerWindowIpc } from './windowHandlers'
@@ -23,11 +23,11 @@ import { isUrl } from '@renderer/utils'
 function restoreTabs(win: Electron.BrowserWindow) {
   const savedTabs = loadTabs()
   let currentTabId = getCurrentTabId(win.id)
-  console.log('[restoreTabs] savedTabs:', savedTabs.length, 'currentTabId:', currentTabId)
+  logger.error('savedTabs:', savedTabs.length, 'currentTabId:', currentTabId)
 
   // 如果 currentTabId 不在恢复的 tabs 里，用第一个 tab
   if (currentTabId && !savedTabs.some(t => t.id === currentTabId)) {
-    console.log('[restoreTabs] currentTabId not found in savedTabs, falling back to first tab')
+    logger.error('currentTabId not found in savedTabs, falling back to first tab')
     currentTabId = savedTabs[0]?.id ?? null
   }
 
@@ -42,7 +42,7 @@ function restoreTabs(win: Electron.BrowserWindow) {
           true
         )
       } catch (err) {
-        console.error('[restoreTabs] 恢复标签失败:', savedTab.url, err)
+        logger.error('恢复标签失败:', savedTab.url, err)
       }
     }
 
@@ -70,7 +70,7 @@ function restoreTabs(win: Electron.BrowserWindow) {
                 view.webContents.loadFile(resolvedUrl)
               }
             } catch (err) {
-              console.error('[restoreTabs] 预加载标签失败:', tab.url, err)
+              logger.error('预加载标签失败:', tab.url, err)
             }
           }
         })
@@ -117,7 +117,11 @@ export async function appReadyInit() {
   registerAllHandlers()
 
   const monitor = getMemoryMonitor()
-  monitor.setAlertHandler(createAlertHandler())
+  monitor.setAlertHandler((snapshot) => {
+    for (const msg of snapshot.alerts) {
+      logger.error(msg)
+    }
+  })
 
   getDownloadManager().init()
   createMainWindow()

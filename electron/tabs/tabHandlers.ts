@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron'
+import { ipcLogger } from '../shared/logger'
 import {
   listTabs,
   createTab,
@@ -108,7 +109,10 @@ export function registerTabHandlers() {
     if (!win) return false
 
     const result = switchToTab(win, tabId)
-    if (!result) return false
+    if (!result) {
+      ipcLogger.error(`tabs:switch failed - tab not found: ${tabId}`)
+      return false
+    }
 
     win.webContents.send('tab:can-navigate', { id: tabId, canGoBack: result.canGoBack, canGoForward: result.canGoForward })
     win.webContents.send('tab:current-changed', { currentTabId: tabId })

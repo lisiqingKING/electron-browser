@@ -1,8 +1,9 @@
 import http from 'node:http'
+import { networkLogger as logger } from '../shared/logger'
 
 export function handleProxyRequest(url: string, req: http.IncomingMessage, res: http.ServerResponse) {
   const targetUrl = url.replace('/proxy/', '')
-  console.log(`[subappServer] 代理请求: ${url} -> ${targetUrl}`)
+  console.log(`[network] 代理请求: ${url} -> ${targetUrl}`)
 
   const proxyReq = http.request(targetUrl, {
     method: req.method,
@@ -13,7 +14,7 @@ export function handleProxyRequest(url: string, req: http.IncomingMessage, res: 
   })
 
   proxyReq.on('error', (err) => {
-    console.error('[subappServer] 代理错误:', err)
+    logger.error('代理错误:', err)
     res.writeHead(502, { 'Content-Type': 'text/plain' })
     res.end('Proxy Error')
   })

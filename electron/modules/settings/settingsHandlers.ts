@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import { ipcLogger } from '../../shared/logger'
 import { getSetting, setSetting, getAllSettings } from './manager'
 import { isInternalTab } from '../../tabs/tabCore'
 import { getAllWindows } from '../../windows/windowManager'
@@ -10,7 +11,12 @@ export function registerSettingsHandlers() {
   })
 
   ipcMain.handle('settings:set', async (_event, key: string, value: string) => {
-    setSetting(key, value)
+    try {
+      setSetting(key, value)
+    } catch (err) {
+      ipcLogger.error(`settings:set failed for key ${key}: ${err}`)
+      return false
+    }
     if (key === 'theme') {
       for (const w of getAllWindows()) {
         w.webContents.send('settings:theme-changed', value)

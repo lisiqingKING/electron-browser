@@ -1,6 +1,7 @@
 import { autoUpdater, type UpdateInfo } from 'electron-updater'
 import { broadcast } from '../../shared/broadcast'
 import { updaterChannels } from './channels'
+import { mainLogger as logger } from '../../shared/logger'
 
 export { updaterChannels }
 
@@ -57,7 +58,7 @@ export class Updater {
     })
 
     autoUpdater.on('error', (err) => {
-      console.error('[updater] error:', err.message)
+      logger.error('error:', err.message)
       this.#status = { state: 'error', error: err.message }
       broadcast(updaterChannels.updateError, { error: err.message })
     })

@@ -26,6 +26,28 @@ for (const [name, factory] of Object.entries(moduleRegistry)) {
   allModules[name] = factory()
 }
 
+// 渲染进程 JS 错误收集，发送到主进程写入 render/ 日志
+const logsProxy = createLogsProxy(ipcRenderer)
+
+// 全局未捕获错误
+window.onerror = (message, source, lineno, colno, error) => {
+  logsProxy.renderError({
+    message: String(message),
+    stack: error?.stack,
+    url: source,
+    line: lineno,
+  })
+}
+
+// 未处理的 Promise 拒绝
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason
+  logsProxy.renderError({
+    message: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  })
+})
+
 // 暴露 bridge API
 contextBridge.exposeInMainWorld('bridge', {
   getModules(moduleNames?: string[]) {

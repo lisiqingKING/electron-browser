@@ -8,6 +8,7 @@ import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './
 import { isUrl } from '@renderer/utils'
 import { env, PROTOCOL_LSQAPP } from '../shared/env'
 import { insertTab, updateTabUrl } from './tabsDb'
+import { mainLogger as logger } from '../shared/logger'
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
   if (isInternalUrl(tab.info.url)) {
@@ -24,7 +25,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
   const ctx = getTabContext(win)
 
   view.webContents.setWindowOpenHandler((event) => {
-    console.log('[setWindowOpenHandler] 拦截到 window.open, url:', event.url)
+    console.log('[tabEvents] 拦截到 window.open, url:', event.url)
 
     if (win.isDestroyed()) return { action: 'deny' }
 
@@ -85,7 +86,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
 
     const tab = ctx.webContentViewMap.get(tabId)
     if (tab) {
-      console.log('[did-fail-load] URL:', validatedURL, 'Error:', errorCode, errorDescription)
+      logger.error('URL:', validatedURL, 'Error:', errorCode, errorDescription)
 
       if (tab.info.loadError) {
         const errorUrl = env.getErrorUrl({

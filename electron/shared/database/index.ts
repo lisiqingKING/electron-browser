@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
+import { sqlLogger as logger } from '../logger'
 
 const DB_PATH = path.join(app.getPath('userData'), 'app.db')
 const CURRENT_VERSION = 1
@@ -30,7 +31,7 @@ function runMigration(v: number): void {
   const files = fs.readdirSync(dir).filter(f => f.startsWith(`${v.toString().padStart(3, '0')}_`) && f.endsWith('.sql'))
 
   if (files.length === 0) {
-    console.warn(`[Database] Migration ${v} not found in ${dir}`)
+    logger.error(`Migration ${v} not found in ${dir}`)
     return
   }
 
