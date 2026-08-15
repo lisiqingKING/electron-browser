@@ -4,6 +4,7 @@ import { registerFavoritesHandlers } from './features/favorites/favoritesHandler
 import { registerSettingsHandlers } from './features/settings/settingsHandlers'
 import { registerAIHandlers } from './features/ai/aiHandlers'
 import { registerLogsHandlers } from './features/logs/logsHandlers'
+// import { registerUpdaterHandlers } from './features/updater/updaterHandlers'
 
 export function registerAllHandlers() {
   registerTabHandlers()
@@ -12,4 +13,5 @@ export function registerAllHandlers() {
   registerSettingsHandlers()
   registerAIHandlers()
   registerLogsHandlers()
+  // registerUpdaterHandlers()
 }

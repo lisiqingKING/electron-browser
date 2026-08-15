@@ -1,4 +1,3 @@
-import { ipcMain } from 'electron'
 import { startSubappServer } from '../subapp-server'
 import { initDatabase } from '../shared/database/index'
 import { syncFromDb as syncFavoritesFromDb } from '../features/favorites/favoritesManager'
@@ -9,7 +8,6 @@ import { registerPopupHandlers } from '../popup'
 import { registerAllHandlers } from '../bootstrap'
 import { ensureReserveWindow, createWindow } from '../windows/windowManager'
 import { getDownloadManager } from '../features/downloads/downloadManager'
-import { updater, updaterChannels } from '../features/updater'
 import { registerWindowEvents, setupWindow } from './windowEvents'
 import { registerProtocol } from './protocol'
 import { registerWindowIpc } from './windowHandlers'
@@ -125,11 +123,4 @@ export async function appReadyInit() {
   createMainWindow()
   ensureReserveWindow()
   monitor.startMonitor()
-
-  updater.init()
-  ipcMain.handle(updaterChannels.checkForUpdates, () => updater.checkForUpdates())
-  ipcMain.handle(updaterChannels.downloadUpdate, () => updater.downloadUpdate())
-  ipcMain.handle(updaterChannels.quitAndInstall, () => updater.quitAndInstall())
-  ipcMain.handle(updaterChannels.getUpdateStatus, () => updater.getStatus())
-  setTimeout(() => updater.checkForUpdates(), 1 * 60 * 1000)
 }

@@ -5,7 +5,7 @@ import { createAIConversationProxy } from '../electron/features/ai/ipcClient'
 import { createDownloadsProxy } from '../electron/features/downloads/ipcClient'
 import { createLogsProxy } from '../electron/features/logs/ipcClient'
 import { createSettingsProxy } from '../electron/features/settings/ipcClient'
-import { createUpdaterProxy } from '../electron/features/updater/ipcClient'
+// import { createUpdaterProxy } from '../electron/features/updater/ipcClient'
 import { createFavoritesProxy } from '../electron/features/favorites/ipcClient'
 
 // 模块注册表 - 可以动态添加新模块
@@ -16,7 +16,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   downloads: () => createDownloadsProxy(ipcRenderer),
   logs: () => createLogsProxy(ipcRenderer),
   settings: () => createSettingsProxy(ipcRenderer),
-  updater: () => createUpdaterProxy(ipcRenderer),
+  // updater: () => createUpdaterProxy(ipcRenderer),
   favorites: () => createFavoritesProxy(ipcRenderer),
 }
 
