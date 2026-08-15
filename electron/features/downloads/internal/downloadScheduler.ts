@@ -78,6 +78,9 @@ export class DownloadScheduler {
           updated.setStatus('canceled')
         }
         this.notifier.finishTask(updated)
+      } else if (err instanceof Error && err.message === 'range-not-supported') {
+        updated.setStatus('failed', '断点续传失败')
+        this.notifier.finishTask(updated)
       } else {
         const msg = (err as Error)?.message || String(err)
         updated.setStatus('failed', msg)

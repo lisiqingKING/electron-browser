@@ -29,10 +29,10 @@ export async function downloadHttpTask(
       task.url,
       { method: task.method, headers },
       (res) => {
-        // 416: Range 越界, 服务器说我们已有全部
+        // 416: Range 不支持, 服务器拒绝续传. reject 走 failed 分支, 用户可手动重试全量下载.
         if (res.statusCode === 416) {
           res.resume()
-          return resolve({ totalBytes: startOffset })
+          return reject(new Error('range-not-supported'))
         }
         // startOffset > 0 时拿 200 = 服务器忽略 Range, 全量响应. 把已有 partial 当废, 改写覆盖.
         const resuming = startOffset > 0
