@@ -17,7 +17,6 @@ import {
   closeTabsToRight,
   openDevTools,
 } from './tabManager'
-import { registerDownloadHandlers } from '../features/downloads/downloadHandlers'
 
 export { createTabAndShow } from './tabManager'
 
@@ -169,6 +168,4 @@ export function registerTabHandlers() {
     if (!win) return
     openDevTools(win)
   })
-
-  registerDownloadHandlers()
 }

@@ -1,4 +1,5 @@
 import { registerTabHandlers } from './tabs/tabHandlers'
+import { registerDownloadHandlers } from './features/downloads/downloadHandlers'
 import { registerHistoryHandlers } from './features/history/historyHandlers'
 import { registerFavoritesHandlers } from './features/favorites/favoritesHandlers'
 import { registerSettingsHandlers } from './features/settings/settingsHandlers'
@@ -8,6 +9,7 @@ import { registerLogsHandlers } from './features/logs/logsHandlers'
 
 export function registerAllHandlers() {
   registerTabHandlers()
+  registerDownloadHandlers()
   registerHistoryHandlers()
   registerFavoritesHandlers()
   registerSettingsHandlers()
