@@ -35,6 +35,28 @@ export function clearAll(): void {
   getDatabase().exec('DELETE FROM history')
 }
 
+// 查询最近一条指定 URL 的记录
+export function findHistoryByUrl(url: string): HistoryItem | undefined {
+  const stmt = getDatabase().prepare(
+    'SELECT id, title, url, visitedAt, favicon FROM history WHERE url = ? ORDER BY id DESC LIMIT 1'
+  )
+  return stmt.get(url) as HistoryItem | undefined
+}
+
+// 更新已有记录的 visitedAt
+export function updateVisitedAt(id: number, visitedAt: number, title?: string, favicon?: string): void {
+  if (title !== undefined || favicon !== undefined) {
+    const sets: string[] = ['visitedAt = ?']
+    const params: (string | number)[] = [visitedAt]
+    if (title !== undefined) { sets.push('title = ?'); params.push(title) }
+    if (favicon !== undefined) { sets.push('favicon = ?'); params.push(favicon) }
+    params.push(id)
+    getDatabase().prepare(`UPDATE history SET ${sets.join(', ')} WHERE id = ?`).run(...params)
+  } else {
+    getDatabase().prepare('UPDATE history SET visitedAt = ? WHERE id = ?').run(visitedAt, id)
+  }
+}
+
 // 限制历史记录数量（保留最近 N 条）
 export function trimHistory(keepCount: number): void {
   getDatabase().exec(`DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY visitedAt DESC LIMIT ${keepCount})`)

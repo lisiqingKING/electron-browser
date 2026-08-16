@@ -4,9 +4,13 @@ import {
   deleteHistoryById as deleteHistoryIdFromDb,
   clearAll as clearAllFromDb,
   trimHistory as trimHistoryFromDb,
+  findHistoryByUrl,
+  updateVisitedAt,
   type HistoryItem
 } from '../historyDb'
 import { getCachedIcon, getIconFromDb } from '../../icons/manager'
+
+const VISIT_WINDOW_MS = 5 * 60 * 1000
 
 const historyCache: HistoryItem[] = []
 
@@ -36,6 +40,19 @@ function resolveFavicon(pageUrl: string, originalFavicon?: string): string | und
 
 export function recordVisit(title: string, url: string, favicon?: string): void {
   const visitedAt = Date.now()
+
+  // 5 分钟窗口内同一 URL 视为重复访问，更新时间戳而非新建记录
+  const existing = findHistoryByUrl(url)
+  if (existing && visitedAt - existing.visitedAt < VISIT_WINDOW_MS) {
+    updateVisitedAt(existing.id, visitedAt, title, favicon)
+    const cacheIdx = historyCache.findIndex(item => item.id === existing.id)
+    if (cacheIdx !== -1) {
+      historyCache[cacheIdx] = { ...historyCache[cacheIdx], visitedAt, title, favicon }
+    }
+    return
+  }
+
+  // 全新的访问记录
   const id = addHistoryToDb({ title, url, visitedAt, favicon })
   historyCache.unshift({ id, title, url, visitedAt, favicon })
   if (historyCache.length > 100) {
@@ -45,10 +62,10 @@ export function recordVisit(title: string, url: string, favicon?: string): void 
 }
 
 export function deleteRecord(id: number): void {
+  deleteHistoryIdFromDb(id)
   const index = historyCache.findIndex(item => item.id === id)
   if (index !== -1) {
     historyCache.splice(index, 1)
-    deleteHistoryIdFromDb(id)
   }
 }
 
