@@ -6,31 +6,23 @@ import { registerPopupHandlers } from '../modules/popup'
 import { registerAllHandlers } from '../bootstrap'
 import { ensureReserveWindow, createWindow } from '../windows/windowManager'
 import { getDownloadManager } from '../modules/downloads/manager'
-import { mainLogger as logger } from '../shared/logger'
+import { mainLogger } from '../shared/logger'
 import { registerWindowEvents, setupWindow } from './windowEvents'
 import { registerProtocol } from './protocol'
 import { registerWindowIpc } from './windowHandlers'
 import { env } from '../shared/env'
-import { createTabAndShow, resolveAppsUrl } from '../tabs/tabNavigation'
-import { registerWebContentsEvents } from '../tabs/tabEvents'
+import { createTabAndShow } from '../tabs/tabNavigation'
 import { createTray } from '../windows/tray/trayManager'
 import { loadTabs } from '../tabs/tabsDb'
 import { getCurrentTabId } from '../shared/windowConfig'
-import { createTabCore, getTabListData, switchTab, createTabView, getTabContext } from '../tabs/state'
-import { isUrl } from '@renderer/utils'
+import { createTabCore, getTabListData, switchTab, getTabContext } from '../tabs/state'
 
 function restoreTabs(win: Electron.BrowserWindow) {
   const savedTabs = loadTabs()
-  let currentTabId = getCurrentTabId(win.id)
-  logger.error('savedTabs:', savedTabs.length, 'currentTabId:', currentTabId)
-
-  // 如果 currentTabId 不在恢复的 tabs 里，用第一个 tab
-  if (currentTabId && !savedTabs.some(t => t.id === currentTabId)) {
-    logger.error('currentTabId not found in savedTabs, falling back to first tab')
-    currentTabId = savedTabs[0]?.id ?? null
-  }
+  const currentTabId = getCurrentTabId(win.id)
 
   if (savedTabs.length > 0) {
+    // 有保存的 tab，恢复它们
     for (const savedTab of savedTabs) {
       try {
         createTabCore(
@@ -41,39 +33,28 @@ function restoreTabs(win: Electron.BrowserWindow) {
           true
         )
       } catch (err) {
-        logger.error('恢复标签失败:', savedTab.url, err)
+        mainLogger.error('恢复标签失败:', savedTab.url, err)
       }
     }
 
+    // 切换到 currentTabId（如果存在且在恢复的 tabs 中），否则选中首页
+    const ctx = getTabContext(win)
+    const homeTabId = ctx.tabs.find(t => t.isHome)?.id
+    const targetId = currentTabId && savedTabs.some(t => t.id === currentTabId)
+      ? currentTabId
+      : homeTabId ?? savedTabs[0]?.id ?? null
+
+    if (targetId) {
+      switchTab(targetId, win)
+    }
     win.webContents.send('tab:list-changed', getTabListData(win))
-
-    if (currentTabId) {
-      switchTab(currentTabId, win)
-
-      // 当前 tab 加载完成后，提前创建其他 tab 的 view 并加载 URL
-      const activeTabEntry = getTabContext(win).webContentViewMap.get(currentTabId)
-      if (activeTabEntry?.view) {
-        activeTabEntry.view.webContents.once('did-finish-load', () => {
-          const ctx = getTabContext(win)
-          for (const tab of ctx.tabs) {
-            if (tab.id === currentTabId) continue
-            const entry = ctx.webContentViewMap.get(tab.id!)
-            if (entry?.view) continue // 已经有 view，跳过
-            try {
-              const view = createTabView(tab, win)
-              registerWebContentsEvents(view, tab, win)
-              const resolvedUrl = resolveAppsUrl(tab.url)
-              if (isUrl(resolvedUrl)) {
-                view.webContents.loadURL(resolvedUrl)
-              } else {
-                view.webContents.loadFile(resolvedUrl)
-              }
-            } catch (err) {
-              logger.error('预加载标签失败:', tab.url, err)
-            }
-          }
-        })
-      }
+  } else {
+    // 没有保存的 tab，使用首页
+    const ctx = getTabContext(win)
+    const homeTab = ctx.tabs.find(t => t.isHome)
+    if (homeTab?.id) {
+      switchTab(homeTab.id, win)
+      win.webContents.send('tab:list-changed', getTabListData(win))
     }
   }
 }
