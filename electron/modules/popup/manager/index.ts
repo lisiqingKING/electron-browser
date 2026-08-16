@@ -3,12 +3,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const preloadPath = path.join(__dirname, 'preload.mjs')
 
 export interface MenuItem {
   label?: string
-  action?: string
   icon?: string
+  action?: string
   type?: string
   disabled?: boolean
   separator?: boolean
@@ -36,12 +35,20 @@ function getPopupUrl(): string {
   return 'file://' + path.join(app.getAppPath(), 'dist', 'popup.html')
 }
 
+function getPreloadPath(): string {
+  if (process.env.VITE_DEV_SERVER_URL) {
+    return path.join(app.getAppPath(), 'dist-electron', 'preload.js')
+  }
+  return path.join(app.getAppPath(), 'dist-electron', 'popup-preload.js')
+}
+
 function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
+  const contentBounds = targetWin.getContentBounds()
   const popupWin = new BrowserWindow({
-    x: targetWin.getBounds().x,
-    y: targetWin.getBounds().y,
-    width: targetWin.getBounds().width,
-    height: targetWin.getBounds().height,
+    x: contentBounds.x,
+    y: contentBounds.y,
+    width: contentBounds.width,
+    height: contentBounds.height,
     frame: false,
     skipTaskbar: true,
     resizable: false,
@@ -53,7 +60,7 @@ function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: preloadPath,
+      preload: getPreloadPath(),
     }
   })
 
@@ -89,7 +96,7 @@ export function showPopup(options: PopupOptions, win: BrowserWindow): void {
   const popupWin = createPopupWindow(targetWin)
   popupWindow = popupWin
 
-  const bounds = targetWin.getBounds()
+  const contentBounds = targetWin.getContentBounds()
   const popupWidth = options.width || 200
   const estimatedHeight = options.height || Math.min(
     (options.data?.items?.length || 0) * 28 + 16, 400
@@ -98,11 +105,11 @@ export function showPopup(options: PopupOptions, win: BrowserWindow): void {
   let popupX = options.x
   let popupY = options.y
 
-  if (popupX + popupWidth > bounds.x + bounds.width) {
-    popupX = bounds.x + bounds.width - popupWidth
+  if (popupX + popupWidth > contentBounds.x + contentBounds.width) {
+    popupX = contentBounds.x + contentBounds.width - popupWidth
   }
-  if (popupY + estimatedHeight > bounds.y + bounds.height) {
-    popupY = bounds.y + bounds.height - estimatedHeight
+  if (popupY + estimatedHeight > contentBounds.y + contentBounds.height) {
+    popupY = contentBounds.y + contentBounds.height - estimatedHeight
   }
 
   popupWin.loadURL(getPopupUrl())
@@ -126,8 +133,8 @@ export function showPopup(options: PopupOptions, win: BrowserWindow): void {
         data: options.data,
         context: options.context,
         theme,
-        x: popupX - bounds.x,
-        y: popupY - bounds.y,
+        x: popupX - contentBounds.x,
+        y: popupY - contentBounds.y,
         width: popupWidth,
         height: estimatedHeight,
       })

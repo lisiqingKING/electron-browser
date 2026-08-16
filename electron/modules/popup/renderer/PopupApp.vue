@@ -50,7 +50,6 @@ onMounted(() => {
     }
   })
 
-  // 窗口失去焦点时隐藏菜单
   window.addEventListener('blur', () => {
     window.ipcRenderer.send('popup:hide')
   })
@@ -69,12 +68,18 @@ onMounted(() => {
 
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  background: transparent;
+}
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12px;
   user-select: none;
-  background: transparent;
   overflow: visible;
+  background: transparent;
 }
 .popup {
   background: var(--color-bg-primary);
