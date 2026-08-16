@@ -84,7 +84,8 @@ export function createInternalTab(
   const existing = findExistingInternalTab(win, url)
   if (existing) {
     console.log(`[create${title}] 已存在，切换到:`, existing.info.id)
-    return switchToExistingTab(win, existing)
+    switchToExistingTab(win, existing)
+    return existing.info.id || null
   }
   const time = Date.now()
   const id: string = insertTab({ title, url, time })

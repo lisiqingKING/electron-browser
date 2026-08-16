@@ -18,11 +18,13 @@ export function registerSettingsHandlers() {
       return false
     }
     if (key === 'theme') {
+      console.log('[settingsHandlers] broadcasting theme:', value)
       for (const w of getAllWindows()) {
         w.webContents.send('settings:theme-changed', value)
         const ctx = getTabContext(w)
         for (const [, tab] of ctx.webContentViewMap) {
-          if (isInternalTab(tab)) {
+          if (isInternalTab(tab) && tab.view) {
+            console.log('[settingsHandlers] sending to tab:', tab.info.id, 'url:', tab.info.url)
             tab.view.webContents.send('settings:theme-changed', value)
           }
         }
