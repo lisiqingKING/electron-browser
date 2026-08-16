@@ -11,8 +11,10 @@ export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y:
   const dragTabEl = ref<HTMLElement | null>(null)
   const dragGhost = ref<HTMLElement | null>(null)
 
-  const onMouseDown = (e: MouseEvent, tab: { id?: string }) => {
+  const onMouseDown = (e: MouseEvent, tab: { id?: string; isHome?: boolean }, currentTabId: string | null) => {
     if (e.button !== 0) return
+    // 禁止拖拽首页或非当前选中 tab
+    if (tab.isHome || tab.id !== currentTabId) return
     isDragging.value = true
     dragStartPos.value = { x: e.clientX, y: e.clientY }
     dragTabId.value = tab.id || null

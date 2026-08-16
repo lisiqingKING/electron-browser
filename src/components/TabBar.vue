@@ -180,7 +180,7 @@ onUnmounted(() => {
           class="tab"
           :class="{ active: tab.id === currentTabId }"
           @click="emit('switch', tab.id!)"
-          @mousedown="onTabMouseDown($event, tab)"
+          @mousedown="onTabMouseDown($event, tab, currentTabId)"
           @mouseenter="onTabEnter($event, tab)"
           @mouseleave="onTabLeave"
           @contextmenu="handleContextMenu($event, tab.id!)"
