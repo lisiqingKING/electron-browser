@@ -1,11 +1,14 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, WebContentsView } from 'electron'
 import { ipcLogger } from '../shared/logger'
 import { closeWindow, getAllWindows, activateReserveWindow } from '../windows/windowManager'
 import { getTabContext, getTabListData, switchTab, addTabToWindow, removeTabFromWindow } from '../tabs/state'
 import { getTabEntry, getTabBrowserWindow } from '../tabs/state/windowTabs'
 import { env } from '../shared/env'
-import { createTabAndShow } from '../tabs/tabNavigation'
+import { createTabAndShow, resolveAppsUrl } from '../tabs/tabNavigation'
 import { setupWindow } from './windowEvents'
+import { createTabView } from '../tabs/state/tabCore'
+import { registerWebContentsEvents } from '../tabs/tabEvents'
+import { isUrl } from '@renderer/utils'
 
 export function registerWindowIpc() {
   ipcMain.handle('window:minimize', (event) => {
@@ -63,11 +66,22 @@ export function registerWindowIpc() {
       return false
     }
     const oldCurTabId = getTabContext(oldWin).curTabId
-    const { view } = tabEntry
-    if (!view) return false
+    let { view } = tabEntry
 
     const newWin = activateReserveWindow()
     if (newWin.isDestroyed()) return false
+
+    // 如果 view 不存在（懒加载 tab），先创建 view
+    if (!view) {
+      view = createTabView(tabEntry.tabInfo, newWin)
+      registerWebContentsEvents(view, tabEntry.tabInfo, newWin)
+      const resolvedUrl = resolveAppsUrl(tabEntry.tabInfo.url)
+      if (isUrl(resolvedUrl)) {
+        view.webContents.loadURL(resolvedUrl)
+      } else {
+        view.webContents.loadFile(resolvedUrl)
+      }
+    }
 
     // 定位窗口到鼠标位置（仅拖拽场景）
     if (screenPos) {
