@@ -3,6 +3,10 @@ import { env, PROTOCOL_LSQAPP } from '../../shared/env'
 import { getTabContext } from './context'
 import type { TabInfo } from './types'
 import { updateCurTabBounds } from './tabBounds'
+import { createTabView } from './tabCore'
+import { registerWebContentsEvents } from '../tabEvents'
+import { resolveAppsUrl } from '../tabNavigation'
+import { isUrl } from '@renderer/utils'
 
 export const DEFAULT_TAB = {
   title: '首页',
@@ -52,11 +56,27 @@ export function findExistingInternalTab(win: BrowserWindow, url: string) {
   })
 }
 
-export function switchToExistingTab(win: BrowserWindow, existing: { info: TabInfo; view: WebContentsView }) {
+export function switchToExistingTab(win: BrowserWindow, existing: { info: TabInfo; view: WebContentsView | null }) {
   const ctx = getTabContext(win)
   const curTab = ctx.curTabId ? ctx.webContentViewMap.get(ctx.curTabId) : null
   if (curTab?.view) win.contentView.removeChildView(curTab.view)
-  win.contentView.addChildView(existing.view)
+
+  if (!existing.view) {
+    // 懒加载：view 还没创建，需要先创建并加载
+    const view = createTabView(existing.info, win)
+    registerWebContentsEvents(view, existing.info, win)
+    const resolvedUrl = resolveAppsUrl(existing.info.url)
+    if (isUrl(resolvedUrl)) {
+      view.webContents.loadURL(resolvedUrl)
+    } else {
+      view.webContents.loadFile(resolvedUrl)
+    }
+    win.contentView.addChildView(view)
+    existing.view = view
+  } else {
+    win.contentView.addChildView(existing.view)
+  }
+
   updateCurTabBounds(existing, win)
   ctx.curTabId = existing.info.id!
 

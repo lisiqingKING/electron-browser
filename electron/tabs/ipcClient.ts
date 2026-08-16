@@ -14,6 +14,7 @@ export const tabsChannels = {
   close: 'tabs:close',
   refresh: 'tabs:refresh',
   updateUrl: 'tabs:updateUrl',
+  updateInfo: 'tabs:updateInfo',
   openDevTools: 'tabs:openDevTools',
 }
 

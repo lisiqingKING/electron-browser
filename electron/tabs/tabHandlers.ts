@@ -18,6 +18,7 @@ import {
   closeTabsToRight,
   openDevTools,
 } from './tabManager'
+import { updateTabInfo } from './tabsDb'
 import { getWindowByWebContentsId } from './state'
 
 export { createTabAndShow } from './tabManager'
@@ -105,6 +106,10 @@ export function registerTabHandlers() {
     const win = getWindowFromEvent(event)
     if (!win) return
     updateUrl(win, url)
+  })
+
+  ipcMain.on('tabs:updateInfo', (_event, tabId: string, data: { title?: string; url?: string; favicon?: string }) => {
+    updateTabInfo(tabId, data)
   })
 
   ipcMain.handle('tabs:switch', async (event, tabId: string) => {

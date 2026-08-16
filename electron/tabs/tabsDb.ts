@@ -7,6 +7,7 @@ export interface TabRow {
   url: string
   createdAt: number
   updatedAt: number
+  favicon?: string
 }
 
 export function saveTabs(
@@ -59,9 +60,35 @@ export function deleteTab(id: string): void {
   database.prepare('DELETE FROM tabs WHERE id = ?').run(id)
 }
 
-export function updateTabUrl(id: string, url: string): void {
+export function updateTabInfo(id: string, data: { title?: string; url?: string; favicon?: string }): void {
   const database = getDatabase()
+  const sets: string[] = []
+  const values: (string | number)[] = []
+
+  if (data.title !== undefined) {
+    sets.push('title = ?')
+    values.push(data.title)
+  }
+  if (data.url !== undefined) {
+    sets.push('url = ?')
+    values.push(data.url)
+  }
+  if (data.favicon !== undefined) {
+    sets.push('favicon = ?')
+    values.push(data.favicon)
+  }
+
+  if (sets.length === 0) return
+
+  sets.push('updatedAt = ?')
+  values.push(Date.now())
+  values.push(id)
+
   database
-    .prepare('UPDATE tabs SET url = ?, updatedAt = ? WHERE id = ?')
-    .run(url, Date.now(), id)
+    .prepare(`UPDATE tabs SET ${sets.join(', ')} WHERE id = ?`)
+    .run(...values)
+}
+
+export function updateTabUrl(id: string, url: string): void {
+  updateTabInfo(id, { url })
 }

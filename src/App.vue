@@ -125,6 +125,11 @@ window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
       currentUrl.value = tabInfo.url
     }
   }
+  // 同步更新数据库（单向数据流：事件 -> IPC -> DB）
+  const { id, title, url, favicon } = tabInfo
+  if (id) {
+    window.ipcRenderer.send('tabs:updateInfo', id, { title, url, favicon })
+  }
 })
 
 window.ipcRenderer.on('tab:list-changed', (_event, data: { tabs: TabInfo[], currentTabId: string | null }) => {

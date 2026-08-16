@@ -26,7 +26,7 @@ function restoreTabs(win: Electron.BrowserWindow) {
     for (const savedTab of savedTabs) {
       try {
         createTabCore(
-          { title: savedTab.title, url: savedTab.url },
+          { title: savedTab.title, url: savedTab.url, favicon: savedTab.favicon },
           win,
           undefined,
           savedTab.id,
