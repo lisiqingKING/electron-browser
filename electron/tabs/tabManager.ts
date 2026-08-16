@@ -39,12 +39,15 @@ export function createTab(
   afterTabId?: string
 ): string | null {
   if (!win) return null
+  // 未指定 afterTabId 时，默认插到当前标签后面
+  const tabContext = getTabContext(win)
+  const effectiveAfterTabId = afterTabId ?? tabContext.curTabId ?? undefined
   if (tabInfo.isHome) {
-    return createTabAndShow(tabInfo, win, afterTabId)
+    return createTabAndShow(tabInfo, win, effectiveAfterTabId)
   }
   const time = Date.now()
   const id: string = insertTab({ title: tabInfo.title, url: tabInfo.url, time })
-  return createTabAndShow({ title: tabInfo.title, url: tabInfo.url }, win, afterTabId, id)
+  return createTabAndShow({ title: tabInfo.title, url: tabInfo.url }, win, effectiveAfterTabId, id)
 }
 
 export function createHomeTab(win: BrowserWindow): string | null {

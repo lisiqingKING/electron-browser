@@ -50,3 +50,14 @@ export function moveTabToWindow(tabId: string, targetWin: BrowserWindow): void {
 export function cleanupWindowTabs(winId: number): void {
   windowTabContexts.delete(winId)
 }
+
+export function getWindowByWebContentsId(wcId: number): BrowserWindow | null {
+  for (const [winId, ctx] of windowTabContexts) {
+    for (const entry of ctx.webContentViewMap.values()) {
+      if (entry.view && entry.view.webContents.id === wcId) {
+        return BrowserWindow.fromId(winId)
+      }
+    }
+  }
+  return null
+}

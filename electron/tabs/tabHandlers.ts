@@ -18,11 +18,14 @@ import {
   closeTabsToRight,
   openDevTools,
 } from './tabManager'
+import { getWindowByWebContentsId } from './state'
 
 export { createTabAndShow } from './tabManager'
 
 function getWindowFromEvent(event: { sender: Electron.WebContents }): BrowserWindow | null {
-  return BrowserWindow.fromWebContents(event.sender)
+  const fromWebContents = BrowserWindow.fromWebContents(event.sender)
+  if (fromWebContents) return fromWebContents
+  return getWindowByWebContentsId(event.sender.id)
 }
 
 export function registerTabHandlers() {

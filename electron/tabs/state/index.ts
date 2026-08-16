@@ -14,7 +14,7 @@ export { updateCurTabBounds } from './tabBounds'
 export { openDevToolsForTab, openDevToolsForCurTab } from './devTools'
 
 // Window-Tab relationship
-export { getTabEntry, getTabBrowserWindow, moveTabToWindow, cleanupWindowTabs } from './windowTabs'
+export { getTabEntry, getTabBrowserWindow, getWindowByWebContentsId, moveTabToWindow, cleanupWindowTabs } from './windowTabs'
 
 // History
 export { tabNavHistoryMap, pushHistory, goBackInHistory, goForwardInHistory, canGoBackInHistory, canGoForwardInHistory, removeNavHistory } from './history'

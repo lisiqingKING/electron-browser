@@ -1,8 +1,5 @@
 import { BrowserWindow, app } from 'electron'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+import path from 'node:path'
 
 export interface MenuItem {
   label?: string
