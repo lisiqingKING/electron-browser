@@ -2,6 +2,7 @@ export interface MenuItem {
   label?: string
   action?: string
   icon?: string
+  favicon?: string | null
   disabled?: boolean
   separator?: boolean
   children?: MenuItem[]

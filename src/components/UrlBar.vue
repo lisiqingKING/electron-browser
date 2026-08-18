@@ -33,7 +33,6 @@ const handleGoForward = () => {
 }
 
 const handleMoreClick = async (event: MouseEvent) => {
-  // 动态获取收藏列表作为子菜单
   let favoritesChildren: any[] = []
   try {
     const list = await window.ipcRenderer.invoke('favorites:list')
@@ -134,6 +133,7 @@ const handleMoreClick = async (event: MouseEvent) => {
 .url-bar {
   padding: 0 12px;
   height: 48px;
+  width: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
   display: flex;
@@ -147,7 +147,7 @@ const handleMoreClick = async (event: MouseEvent) => {
   align-items: center;
   gap: 2px;
   width: 100%;
-  height: 34px;
+  height: 100%;
 }
 
 /* ── 导航按钮 ── */
@@ -194,7 +194,7 @@ const handleMoreClick = async (event: MouseEvent) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 100%;
+  height: 34px;
   padding: 0 12px;
   min-width: 0;
   background: var(--urlbar-input-bg);
@@ -204,12 +204,7 @@ const handleMoreClick = async (event: MouseEvent) => {
   transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.url-input-wrap:hover {
-  background: var(--urlbar-input-bg);
-}
-
 .url-input-wrap:focus-within {
-  background: var(--urlbar-input-bg);
   border-color: var(--urlbar-input-border-focus);
   box-shadow: 0 0 0 1px var(--urlbar-input-border-focus);
 }
@@ -217,10 +212,6 @@ const handleMoreClick = async (event: MouseEvent) => {
 .security-icon {
   flex-shrink: 0;
   opacity: 0.7;
-}
-
-.url-input-wrap:focus-within .security-icon {
-  opacity: 1;
 }
 
 .url-input {

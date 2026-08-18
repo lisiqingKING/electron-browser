@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
+import FavoritesQuick from './components/FavoritesQuick.vue'
 import { isUrl, isNewTabUrl } from './utils'
 import { usePopup } from './composables/usePopup'
 
@@ -172,12 +173,42 @@ const handleGoForward = () => {
   window.ipcRenderer.send('tabs:goForward')
 }
 
+const handleFavoriteSelect = async (url: string) => {
+  await window.ipcRenderer.invoke('tabs:create', { title: '加载中...', url }, currentTabId.value || undefined)
+}
+
 const handleToggleFavorite = async () => {
   if (!currentUrl.value) return
   try {
     const tab = tabs.value.find(t => t.id === currentTabId.value)
-    const title = tab?.title || currentUrl.value
-    const favicon = tab?.favicon || undefined
+
+    // 取消收藏：无限制
+    if (isFavorited.value) {
+      isFavorited.value = await window.ipcRenderer.invoke('favorites:toggle', currentUrl.value, '', undefined)
+      return
+    }
+
+    // 添加收藏：需要页面加载完成 + 有效标题 + 有效图标
+    if (tab?.isLoading) {
+      console.log('[handleToggleFavorite] 页面加载中，不允许收藏')
+      return
+    }
+
+    const title = tab?.title || ''
+    const favicon = tab?.favicon || ''
+
+    // 验证标题：不能为空且不能是 URL（fallback 的情况）
+    if (!title || title === currentUrl.value) {
+      console.log('[handleToggleFavorite] 标题无效，不允许收藏')
+      return
+    }
+
+    // 验证图标：必须有
+    if (!favicon) {
+      console.log('[handleToggleFavorite] 图标无效，不允许收藏')
+      return
+    }
+
     isFavorited.value = await window.ipcRenderer.invoke('favorites:toggle', currentUrl.value, title, favicon)
   } catch (e) {
     console.error('[handleToggleFavorite]', e)
@@ -267,6 +298,7 @@ onMounted(() => {
       @openAI="openInternalPage('tabs:createAI')"
       @toggleFavorite="handleToggleFavorite"
     />
+    <FavoritesQuick @select="handleFavoriteSelect" />
   </div>
 </template>
 

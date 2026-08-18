@@ -63,11 +63,14 @@ function hasSubmenu(item: MenuItem): boolean {
         v-else
         class="item"
         :class="{ disabled: item.disabled, 'has-submenu': hasSubmenu(item) }"
-        @click="() => { if (!item.disabled && item.action) emit('action', item.action, context) }"
+        @click="() => { if (!item.disabled && item.action) emit('action', item.action, item.context ?? context) }"
         @mouseenter="() => { if (hasSubmenu(item)) showSubmenu(i) }"
         @mouseleave="hideSubmenu"
       >
-        <span v-if="item.icon" class="icon">
+        <span v-if="item.favicon" class="icon favicon-icon">
+          <img :src="item.favicon" width="16" height="16" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+        </span>
+        <span v-else-if="item.icon" class="icon">
           <svg v-if="getIconPath(item.icon)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
             <path :d="getIconPath(item.icon) ?? undefined" />
           </svg>
