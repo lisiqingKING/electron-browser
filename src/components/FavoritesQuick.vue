@@ -132,7 +132,7 @@ onUnmounted(() => {
 
 <template>
   <div ref="containerRef" class="favorites-quick">
-    <div v-if="favorites.length === 0" class="favorites-empty">暂无收藏</div>
+    <div v-if="favorites.length === 0" class="favorites-empty">还没有收藏，点击工具栏 ★ 添加</div>
     <template v-else>
       <div
         v-for="(item, index) in visibleItems"
@@ -226,7 +226,7 @@ onUnmounted(() => {
 
 .favorites-empty {
   font-size: 12px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   padding: 0 8px;
 }
 </style>
