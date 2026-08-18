@@ -77,3 +77,22 @@ contextBridge.exposeInMainWorld('bridge', {
     return ipcRenderer.off(channel, listener)
   }
 })
+
+// 注入脚本（webviewSource）和设置页需要调用的 channel
+contextBridge.exposeInMainWorld('ipcRenderer', {
+  invoke: (channel: string, ...args: any[]) => {
+    const allowed = [
+      'downloads:direct-download-url',
+      'blob-download:write',
+      'blob-download:error',
+      'window:getDownloadDir',
+      'window:selectDownloadDir',
+      'window:openPath',
+    ]
+    if (allowed.includes(channel)) {
+      return ipcRenderer.invoke(channel, ...args)
+    }
+    console.warn('[preload] ipcRenderer.invoke blocked for unauthorized channel:', channel)
+    return Promise.reject(new Error(' unauthorized channel'))
+  },
+})

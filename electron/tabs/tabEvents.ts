@@ -25,7 +25,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
   const ctx = getTabContext(win)
 
   view.webContents.setWindowOpenHandler((event) => {
-    console.log('[tabEvents] 拦截到 window.open, url:', event.url)
+    const url = event.url
 
     if (win.isDestroyed()) return { action: 'deny' }
 

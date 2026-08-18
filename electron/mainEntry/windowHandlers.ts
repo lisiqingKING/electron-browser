@@ -1,6 +1,7 @@
-import { ipcMain, BrowserWindow, WebContentsView } from 'electron'
+import { ipcMain, BrowserWindow, dialog, shell, app } from 'electron'
 import { ipcLogger } from '../shared/logger'
 import { closeWindow, getAllWindows, activateReserveWindow } from '../windows/windowManager'
+import { getSetting as getSettingsValue } from '../modules/settings/manager'
 import { getTabContext, getTabListData, switchTab, addTabToWindow, removeTabFromWindow } from '../tabs/state'
 import { getTabEntry, getTabBrowserWindow } from '../tabs/state/windowTabs'
 import { env } from '../shared/env'
@@ -123,5 +124,26 @@ export function registerWindowIpc() {
     }
 
     return true
+  })
+
+  ipcMain.handle('window:selectDownloadDir', async (_event, currentPath: string) => {
+    const result = await dialog.showOpenDialog({
+      title: '选择下载文件夹',
+      defaultPath: currentPath,
+      properties: ['openDirectory']
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle('window:openPath', async (_event, fullPath: string) => {
+    return shell.openPath(fullPath)
+  })
+
+  ipcMain.handle('window:getDownloadDir', () => {
+    const saved = getSettingsValue('download_save_dir')
+    return saved || app.getPath('downloads')
   })
 }

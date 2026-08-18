@@ -1,7 +1,9 @@
+import { Notification } from 'electron'
 import type { DownloadEvent, DownloadProgress } from '../downloadTypes'
 import { DownloadTask } from './task'
 import { DownloadTaskStore } from './taskStore'
 import { broadcast } from '../../../shared/broadcast'
+import { getSetting } from '../../settings/manager'
 
 const PROGRESS_FLUSH_INTERVAL_MS = 250  // DB 写入节流
 const PROGRESS_EMIT_INTERVAL_MS = 250   // IPC 推送节流 (4Hz). chunk 来再快也只发 4 次/秒, 避免 UI 闪烁.
@@ -53,6 +55,27 @@ export class DownloadNotifier {
     this.clearTimer(task.id)
     this.flushNow(task)
     this.emitProgress(task)
+    if (task.status === 'completed') {
+      this.notifyDownloadComplete(task)
+    }
+  }
+
+  // 直接完成一个任务（不经过 scheduler，用于 blob 下载）
+  completeTask(task: DownloadTask): void {
+    task.setStatus('completed')
+    this.emitAdded(task)
+    this.emitProgress(task)
+    this.notifyDownloadComplete(task)
+  }
+
+  private notifyDownloadComplete(task: DownloadTask): void {
+    if (getSetting('download_notify_on_complete') !== 'true') return
+    if (Notification.isSupported()) {
+      new Notification({
+        title: '下载完成',
+        body: task.filename,
+      }).show()
+    }
   }
 
   // 立即推一次 (状态变更、终态用). 不走节流.

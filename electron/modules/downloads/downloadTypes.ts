@@ -43,6 +43,7 @@ export type DownloadEvent =
 export interface AddHttpInput {
   url: string
   filename?: string
+  // saveDir 由 handler 内部处理，不暴露给 caller
   method?: 'GET' | 'POST'
   postBody?: string | null
   headers?: Record<string, string>
