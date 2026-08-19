@@ -25,7 +25,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
   const ctx = getTabContext(win)
 
   view.webContents.setWindowOpenHandler((event) => {
-    const url = event.url
+    // event.url is used in createTabCore and loadURL/loadFile
 
     if (win.isDestroyed()) return { action: 'deny' }
 

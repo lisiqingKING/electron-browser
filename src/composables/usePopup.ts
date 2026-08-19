@@ -1,38 +1,14 @@
-export interface MenuItem {
-  label?: string
-  action?: string
-  icon?: string
-  favicon?: string | null
-  disabled?: boolean
-  separator?: boolean
-  children?: MenuItem[]
-}
-
 interface PopupOptions {
   x: number
   y: number
-  type: 'menu' | string
-  data: any
+  component: string
+  props?: Record<string, any>
   width?: number
   height?: number
   context?: any
 }
 
 export function usePopup() {
-  const showMenu = (event: MouseEvent, items: MenuItem[], context?: any) => {
-    event.preventDefault()
-
-    const options: PopupOptions = {
-      x: event.screenX,
-      y: event.screenY,
-      type: 'menu',
-      data: { items },
-      context
-    }
-
-    window.ipcRenderer.send('popup:show', options)
-  }
-
   const show = (options: PopupOptions) => {
     window.ipcRenderer.send('popup:show', options)
   }
@@ -57,5 +33,5 @@ export function usePopup() {
     }
   }
 
-  return { show, showMenu, hide, onAction }
+  return { show, hide, onAction }
 }

@@ -18,7 +18,7 @@ const emit = defineEmits<{
   (e: 'toggleFavorite'): void
 }>()
 
-const { showMenu } = usePopup()
+const { show } = usePopup()
 
 const handleRefresh = () => {
   window.ipcRenderer.send('tabs:refresh')
@@ -32,41 +32,13 @@ const handleGoForward = () => {
   if (props.canGoForward) emit('goForward')
 }
 
-const handleMoreClick = async (event: MouseEvent) => {
-  let favoritesChildren: any[] = []
-  try {
-    const list = await window.ipcRenderer.invoke('favorites:list')
-    if (list && list.length > 0) {
-      favoritesChildren = list.slice(0, 5).map((item: any) => {
-        return {
-          label: item.title || item.url,
-          action: 'openUrl',
-          context: { url: item.url },
-          favicon: item.favicon || null,
-        }
-      })
-    } else {
-      favoritesChildren = [{ label: '暂无收藏', disabled: true }]
-    }
-  } catch {
-    favoritesChildren = [{ label: '加载失败', disabled: true }]
-  }
-
-  showMenu(event, [
-    {
-      label: '收藏夹',
-      icon: 'star',
-      children: [
-        ...favoritesChildren,
-        { type: 'separator' },
-        { label: '管理收藏夹...', action: 'openFavorites' },
-      ],
-    },
-    { label: '历史记录', action: 'openHistory', icon: 'history' },
-    { label: '下载记录', action: 'openDownloads', icon: 'downloads' },
-    { label: '日志管理', action: 'openLogs', icon: 'logs' },
-    { label: '设置', action: 'openSettings', icon: 'settings' },
-  ])
+const handleMoreClick = (event: MouseEvent) => {
+  show({
+    x: event.screenX,
+    y: event.screenY,
+    component: 'UrlBarMoreMenu',
+    props: { currentUrl: props.modelValue },
+  })
 }
 </script>
 

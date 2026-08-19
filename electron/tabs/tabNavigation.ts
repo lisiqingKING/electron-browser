@@ -233,8 +233,10 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
   registerWebContentsEvents(view, enrichedTabInfo, win)
   win.contentView.addChildView(view, insertIndex)
   updateCurTabBounds(ctx.webContentViewMap.get(enrichedTabInfo.id!)!, win)
-  win.webContents.send('tab:list-changed', getTabListData(win))
-  win.webContents.send('tab:loading', { id: enrichedTabInfo.id, isLoading: true })
+  if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+    win.webContents.send('tab:list-changed', getTabListData(win))
+    win.webContents.send('tab:loading', { id: enrichedTabInfo.id, isLoading: true })
+  }
 
   return enrichedTabInfo.id ?? null
 }

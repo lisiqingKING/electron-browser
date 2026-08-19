@@ -4,7 +4,6 @@ import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
 import FavoritesQuick from './components/FavoritesQuick.vue'
 import { isUrl, isNewTabUrl } from './utils'
-import { usePopup } from './composables/usePopup'
 
 interface TabInfo {
   title: string
@@ -215,35 +214,9 @@ const handleToggleFavorite = async () => {
   }
 }
 
-// 内部页面菜单 action 映射
-const internalPageActions: Record<string, string> = {
-  openFavorites: 'tabs:createFavorites',
-  openHistory: 'tabs:createHistory',
-  openSettings: 'tabs:createSettings',
-  openDownloads: 'tabs:createDownloads',
-  openLogs: 'tabs:createLogs',
-  openAI: 'tabs:createAI',
-}
-
 const openInternalPage = async (channel: string) => {
   await window.ipcRenderer.invoke(channel, currentTabId.value || undefined)
 }
-
-// Popup 菜单处理
-const { onAction, hide } = usePopup()
-onAction(async (action, context) => {
-  hide()
-  // 直接打开 URL
-  if (action === 'openUrl' && context?.url) {
-    // 在当前活跃标签后面新建标签
-    await window.ipcRenderer.invoke('tabs:create', { title: '加载中...', url: context.url }, currentTabId.value || undefined)
-    return
-  }
-  const channel = internalPageActions[action]
-  if (channel) {
-    await openInternalPage(channel)
-  }
-})
 
 // 加载主题设置
 const loadTheme = async () => {

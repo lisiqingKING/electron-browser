@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { cloneDeep } from 'lodash'
 import { usePopup } from '../composables/usePopup'
 
 const emit = defineEmits<{
   (e: 'select', url: string): void
 }>()
 
-const { showMenu } = usePopup()
+const { show } = usePopup()
 
 const favorites = ref<any[]>([])
 const containerWidth = ref(0)
@@ -82,17 +83,21 @@ const handleSelect = (url: string) => {
 }
 
 const handleMoreClick = (event: MouseEvent) => {
-  const remaining = favorites.value.slice(maxCount.value)
+  const remaining = cloneDeep(favorites.value.slice(maxCount.value))
   if (remaining.length === 0) return
 
-  const menuItems = remaining.map((item: any) => ({
-    label: item.title || item.url,
-    action: 'openUrl',
-    context: { url: item.url },
-    favicon: item.favicon || null,
-  }))
+  const POPUP_WIDTH = 200
+  const ICON_HEIGHT = 20
+  // 右对齐，图标下方显示
+  const x = event.screenX - POPUP_WIDTH
+  const y = event.screenY  + ICON_HEIGHT
 
-  showMenu(event, menuItems)
+  show({
+    x,
+    y,
+    component: 'FavoritesMoreMenu',
+    props: { favorites: remaining },
+  })
 }
 
 const updateWidth = () => {

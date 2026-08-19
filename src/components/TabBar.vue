@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { cloneDeep } from 'lodash'
 import WindowControls from './WindowControls.vue'
 import { usePopup } from '../composables/usePopup'
 import { useTabDrag } from '../composables/useTabDrag'
-import { getInternalIconFromUrl, getRouteFromUrl } from '../utils/tabIcons'
-import { isNewTabUrl } from '../utils'
+import { getInternalIconFromUrl } from '../utils/tabIcons'
 
 const props = defineProps<{
   tabs: { title: string; url: string; id?: string; wcId?: number; isLoading?: boolean; favicon?: string; loadError?: { url: string; code: number; message: string }; isHome?: boolean }[]
@@ -52,76 +52,16 @@ const emit = defineEmits<{
 const tabsContainer = ref<HTMLDivElement | null>(null)
 
 // 右键菜单
-const { showMenu, hide: hidePopup, onAction } = usePopup()
-
-const tabMenuItems = [
-  { label: '刷新', action: 'reload', icon: '↻' },
-  { label: '在新标签页中打开', action: 'openInNewTab', icon: '+' },
-  { label: '在新窗口中打开', action: 'openInNewWindow', icon: '⧉' },
-  { type: 'separator', action: 'sep1' },
-  { label: '关闭', action: 'close', icon: '×' },
-  { label: '关闭左侧标签页', action: 'closeLeft', icon: '←' },
-  { label: '关闭其他标签页', action: 'closeOthers', icon: '⊗' },
-  { label: '关闭右侧标签页', action: 'closeRight', icon: '→' },
-]
+const { show } = usePopup()
 
 const handleContextMenu = (event: MouseEvent, tabId: string) => {
-  const tab = props.tabs.find(t => t.id === tabId)
-  const isHome = tab?.isHome
-  const isInternal = tab ? getRouteFromUrl(tab.url) !== null : false
-  const isNewTab = tab ? isNewTabUrl(tab.url) : false
-
-  const closeActions = ['close', 'closeLeft']
-  const items = tabMenuItems.map(item => {
-    if (item.action === 'openInNewTab') {
-      // 内部页面（除新标签页）禁用"在新标签页中打开"
-      return { ...item, disabled: isHome || (isInternal && !isNewTab) }
-    }
-    if (item.action === 'openInNewWindow') {
-      return { ...item, disabled: isHome }
-    }
-    if (closeActions.includes(item.action)) {
-      return { ...item, disabled: isHome }
-    }
-    return item
+  show({
+    x: event.screenX,
+    y: event.screenY,
+    component: 'TabContextMenu',
+    props: { tabId, tabs: cloneDeep(props.tabs) },
   })
-
-  showMenu(event, items, { tabId })
 }
-
-const cleanupOnAction = onAction(async (action, context) => {
-  const tabId = context?.tabId
-  if (!tabId) return
-
-  switch (action) {
-    case 'reload':
-      window.ipcRenderer.send('tabs:reload', tabId)
-      break
-    case 'openInNewTab': {
-      const tab = props.tabs.find(t => t.id === tabId)
-      if (tab) {
-        window.ipcRenderer.invoke('tabs:create', { title: tab.title, url: tab.url }, tabId)
-      }
-      break
-    }
-    case 'openInNewWindow':
-      window.ipcRenderer.invoke('window:adopt-tab', tabId)
-      break
-    case 'close':
-      emit('close', tabId)
-      break
-    case 'closeOthers':
-      window.ipcRenderer.send('tabs:closeOthers', tabId)
-      break
-    case 'closeLeft':
-      window.ipcRenderer.send('tabs:closeLeft', tabId)
-      break
-    case 'closeRight':
-      window.ipcRenderer.send('tabs:closeRight', tabId)
-      break
-  }
-  hidePopup()
-})
 
 // 滚动到当前激活的 tab
 const scrollToActiveTab = () => {
@@ -154,7 +94,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  cleanupOnAction()
   resizeObserver?.disconnect()
   if (resizeRaf != null) cancelAnimationFrame(resizeRaf)
 })

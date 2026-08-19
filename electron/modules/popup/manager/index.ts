@@ -14,8 +14,8 @@ export interface MenuItem {
 export interface PopupOptions {
   x: number
   y: number
-  type: 'menu' | string
-  data: any
+  component: string
+  props?: Record<string, any>
   width?: number
   height?: number
   context?: any
@@ -95,8 +95,10 @@ export function showPopup(options: PopupOptions, win: BrowserWindow): void {
 
   const contentBounds = targetWin.getContentBounds()
   const popupWidth = options.width || 200
+  const favorites = options.props?.favorites
+  const items = options.props?.items
   const estimatedHeight = options.height || Math.min(
-    (options.data?.items?.length || 0) * 28 + 16, 400
+    ((favorites?.length || items?.length || 0) + 1) * 32 + 8, 400
   )
 
   let popupX = options.x
@@ -126,14 +128,15 @@ export function showPopup(options: PopupOptions, win: BrowserWindow): void {
       }
 
       popupWin.webContents.send('popup:render', {
-        type: options.type,
-        data: options.data,
+        component: options.component,
+        props: options.props,
         context: options.context,
         theme,
         x: popupX - contentBounds.x,
         y: popupY - contentBounds.y,
         width: popupWidth,
         height: estimatedHeight,
+        windowId: targetWin.id,
       })
 
       popupWin.showInactive()

@@ -77,7 +77,7 @@ export function switchToExistingTab(win: BrowserWindow, existing: { info: TabInf
     win.contentView.addChildView(existing.view)
   }
 
-  updateCurTabBounds(existing, win)
+  updateCurTabBounds(existing as { info: TabInfo; view: WebContentsView }, win)
   ctx.curTabId = existing.info.id!
 
   const canGoBack = existing.view.webContents.canGoBack()
