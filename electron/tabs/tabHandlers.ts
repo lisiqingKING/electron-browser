@@ -37,14 +37,16 @@ export function registerTabHandlers() {
     return listTabs(win)
   })
 
-  ipcMain.handle('tabs:create', async (event, tabInfo: { title: string; url: string; isHome?: boolean }, afterTabId?: string, windowId?: number) => {
+  ipcMain.handle('tabs:create', async (event, tabInfo: { title: string; url: string; isHome?: boolean }, afterTabId?: string, windowId?: number, silent?: boolean) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
     }
     if (!win || win.isDestroyed()) return null
     const result = createTab(win, tabInfo, afterTabId)
-    saveTabs(getTabContext(win).tabs)
+    if (!silent) {
+      saveTabs(getTabContext(win).tabs)
+    }
     return result
   })
 
@@ -256,7 +258,7 @@ export function registerTabHandlers() {
     if (savedTabs.length === 0) return
 
     for (const savedTab of savedTabs) {
-      await createTab(win, { title: savedTab.title, url: savedTab.url }, undefined)
+      await createTab(win, { title: savedTab.title, url: savedTab.url }, undefined, undefined, true)
     }
 
     const ctx = getTabContext(win)
@@ -264,6 +266,7 @@ export function registerTabHandlers() {
     if (firstTab?.id) {
       switchToTab(win, firstTab.id)
     }
+    saveTabs(ctx.tabs)
     win.webContents.send('tab:list-changed', getTabListData(win))
   })
 

@@ -6,7 +6,7 @@ import { switchTab as doSwitchTab, closeTab as doCloseTab } from './state/tabCor
 import { updateCurTabBounds } from './state/tabBounds'
 import { openDevToolsForCurTab } from './state/devTools'
 import { env } from '../shared/env'
-import { insertTab, deleteTab, updateTabUrl as updateTabUrlDb } from './tabsDb'
+import { updateTabUrl as updateTabUrlDb } from './tabsDb'
 
 export { createTabAndShow }
 
@@ -39,15 +39,12 @@ export function createTab(
   afterTabId?: string
 ): string | null {
   if (!win) return null
-  // 未指定 afterTabId 时，默认插到当前标签后面
   const tabContext = getTabContext(win)
   const effectiveAfterTabId = afterTabId ?? tabContext.curTabId ?? undefined
   if (tabInfo.isHome) {
     return createTabAndShow(tabInfo, win, effectiveAfterTabId)
   }
-  const time = Date.now()
-  const id: string = insertTab({ title: tabInfo.title, url: tabInfo.url, time })
-  return createTabAndShow({ title: tabInfo.title, url: tabInfo.url }, win, effectiveAfterTabId, id)
+  return createTabAndShow({ title: tabInfo.title, url: tabInfo.url }, win, effectiveAfterTabId)
 }
 
 export function createHomeTab(win: BrowserWindow): string | null {
@@ -65,9 +62,7 @@ export function createDefaultTab(win: BrowserWindow, afterTabId?: string): strin
   if (!win) return null
   const url = env.getNewTabUrl()
   console.log('[createDefault] 加载 URL:', url)
-  const time = Date.now()
-  const id: string = insertTab({ title: '新标签页', url, time })
-  return createTabAndShow({ title: '新标签页', url }, win, afterTabId, id)
+  return createTabAndShow({ title: '新标签页', url }, win, afterTabId)
 }
 
 export function createInternalTab(
@@ -87,9 +82,7 @@ export function createInternalTab(
     switchToExistingTab(win, existing)
     return existing.info.id || null
   }
-  const time = Date.now()
-  const id: string = insertTab({ title, url, time })
-  return createTabAndShow({ title, url }, win, afterTabId, id)
+  return createTabAndShow({ title, url }, win, afterTabId)
 }
 
 // ============ Switch ============
@@ -147,10 +140,7 @@ export function updateUrl(win: BrowserWindow, url: string): void {
 
 export function closeTab(win: BrowserWindow, tabId: string): string | null {
   if (!win) return null
-
-  const newCurTabId = doCloseTab(tabId, win)
-  deleteTab(tabId)
-  return newCurTabId
+  return doCloseTab(tabId, win)
 }
 
 export function reloadTab(win: BrowserWindow, tabId: string): void {
@@ -169,7 +159,6 @@ export function closeOtherTabs(win: BrowserWindow, tabId: string): void {
   const closedIds = ctx.tabs.filter((t) => t.id !== tabId && !t.isHome).map((t) => t.id!)
 
   closedIds.forEach((id: string) => doCloseTab(id, win))
-  closedIds.forEach((id: string) => deleteTab(id))
 }
 
 export function closeTabsToLeft(win: BrowserWindow, tabId: string): void {
@@ -181,7 +170,6 @@ export function closeTabsToLeft(win: BrowserWindow, tabId: string): void {
   const closedIds = ctx.tabs.slice(0, targetIndex).filter((t) => !t.isHome).map((t) => t.id!)
 
   closedIds.forEach((id: string) => doCloseTab(id, win))
-  closedIds.forEach((id: string) => deleteTab(id))
 }
 
 export function closeTabsToRight(win: BrowserWindow, tabId: string): void {
@@ -193,7 +181,6 @@ export function closeTabsToRight(win: BrowserWindow, tabId: string): void {
   const closedIds = ctx.tabs.slice(targetIndex + 1).filter((t) => !t.isHome).map((t) => t.id!)
 
   closedIds.forEach((id: string) => doCloseTab(id, win))
-  closedIds.forEach((id: string) => deleteTab(id))
 }
 
 // ============ DevTools ============

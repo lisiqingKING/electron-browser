@@ -7,7 +7,7 @@ import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, esca
 import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
 import { isUrl } from '@renderer/utils'
 import { env, PROTOCOL_LSQAPP } from '../shared/env'
-import { insertTab, updateTabUrl } from './tabsDb'
+import { updateTabUrl } from './tabsDb'
 import { mainLogger as logger } from '../shared/logger'
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
@@ -47,7 +47,6 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     registerWebContentsEvents(newView, newTabInfo, win)
     win.contentView.addChildView(newView)
     updateCurTabBounds(ctx.webContentViewMap.get(newTabInfo.id!)!, win)
-    insertTab({ title: newTabInfo.title, url: newTabInfo.url, time: newTabInfo.time! })
     win.webContents.send('tab:list-changed', getTabListData(win))
 
     return { action: 'deny' }

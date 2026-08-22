@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import TabContextMenu from './components/TabContextMenu.vue'
 import UrlBarMoreMenu from './components/UrlBarMoreMenu.vue'
 import FavoritesMoreMenu from './components/FavoritesMoreMenu.vue'
@@ -53,17 +53,20 @@ window.ipcRenderer.on('popup:hide', () => {
   popupStyle.value = { display: 'none' }
 })
 
-onMounted(() => {
-  document.addEventListener('mousedown', (e: MouseEvent) => {
-    const popup = document.getElementById('popup')
-    if (popup && !popup.contains(e.target as Node)) {
-      window.ipcRenderer.send('popup:hide')
-    }
-  })
-
-  window.addEventListener('blur', () => {
+function onDocumentClick(e: MouseEvent) {
+  const popup = document.getElementById('popup')
+  if (popup && !popup.contains(e.target as Node)) {
     window.ipcRenderer.send('popup:hide')
-  })
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', onDocumentClick)
+  window.addEventListener('blur', () => window.ipcRenderer.send('popup:hide'))
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', onDocumentClick)
 })
 </script>
 

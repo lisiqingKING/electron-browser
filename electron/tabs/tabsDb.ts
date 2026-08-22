@@ -24,7 +24,6 @@ export function saveTabs(
       updatedAt: Date.now(),
     }))
   setCache(CACHE_KEY_TABS, JSON.stringify(nonHomeTabs))
-  console.log('[Cache] Saved', nonHomeTabs.length, 'tabs')
 }
 
 export function loadTabs(): TabRow[] {
@@ -32,7 +31,6 @@ export function loadTabs(): TabRow[] {
   if (!json) return []
   try {
     const tabs = JSON.parse(json) as TabRow[]
-    console.log('[Cache] Loaded', tabs.length, 'tabs')
     return tabs
   } catch {
     return []

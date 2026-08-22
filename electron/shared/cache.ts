@@ -18,8 +18,6 @@ export function getCache(key: string): string | null {
 
 export function setCache(key: string, value: string): void {
   ensureCacheTable()
-  const tabCount = (() => { try { return JSON.parse(value).length } catch { return -1 } })()
-  console.log('[setCache] key:', key, 'tabCount:', tabCount, 'callers:', new Error().stack?.split('\n').slice(1, 4).join(' | '))
   getDatabase()
     .prepare('INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)')
     .run(key, value)
