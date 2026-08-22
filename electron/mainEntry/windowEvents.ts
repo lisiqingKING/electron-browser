@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron'
-import { activateReserveWindow, setWindowAsCurrentMain, getAllWindows } from '../windows/windowManager'
+import { activateReserveWindow, setWindowAsCurrentMain } from '../windows/windowManager'
 import { getTabContext, updateCurTabBounds } from '../tabs/state'
 import { destroyTray } from '../windows/tray/trayManager'
 import { closeDatabase } from '../shared/database/index'

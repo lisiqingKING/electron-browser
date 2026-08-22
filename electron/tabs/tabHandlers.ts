@@ -149,8 +149,8 @@ export function registerTabHandlers() {
     updateUrl(win, url)
   })
 
-  ipcMain.on('tabs:updateInfo', (_event, tabId: string, data: { title?: string; url?: string; favicon?: string }) => {
-    updateTabInfo(tabId, data)
+  ipcMain.on('tabs:updateInfo', (_event, _tabId: string, _data: { title?: string; url?: string; favicon?: string }) => {
+    updateTabInfo()
   })
 
   ipcMain.handle('tabs:switch', async (event, tabId: string) => {
@@ -258,7 +258,7 @@ export function registerTabHandlers() {
     if (savedTabs.length === 0) return
 
     for (const savedTab of savedTabs) {
-      await createTab(win, { title: savedTab.title, url: savedTab.url }, undefined, undefined, true)
+      await createTab(win, { title: savedTab.title, url: savedTab.url }, undefined)
     }
 
     const ctx = getTabContext(win)

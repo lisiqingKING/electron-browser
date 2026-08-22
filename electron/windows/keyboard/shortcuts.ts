@@ -14,13 +14,13 @@ function handleCloseTab(win: BrowserWindow) {
     const lastNonHomeTab = [...ctx.tabs].reverse().find(t => !t.isHome)
     if (lastNonHomeTab?.id) {
       closeTab(lastNonHomeTab.id, win)
-      deleteTab(lastNonHomeTab.id)
+      deleteTab()
       win.webContents.send('tab:list-changed', getTabListData(win))
     }
   } else {
     const tabId = curTab.info.id!
     closeTab(tabId, win)
-    deleteTab(tabId)
+    deleteTab()
     win.webContents.send('tab:list-changed', getTabListData(win))
   }
 }

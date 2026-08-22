@@ -132,7 +132,7 @@ export function updateUrl(win: BrowserWindow, url: string): void {
   const curTab = getCurTab(win)
   if (curTab) {
     updateCurTabBounds(ctx.webContentViewMap.get(curTab.info.id!)!, win)
-    updateTabUrlDb(curTab.info.id!, resolvedUrl)
+    updateTabUrlDb()
   }
 }
 

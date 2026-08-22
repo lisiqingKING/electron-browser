@@ -143,7 +143,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         tab.info.url = newUrl
         tab.info.title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title)
         recordVisit(tab.info.title, newUrl, tab.info.favicon)
-        updateTabUrl(tabId, newUrl)
+        updateTabUrl()
         win.webContents.send('tab:info-changed', tab.info)
       }
       updateNavigationState(tabId, win)
