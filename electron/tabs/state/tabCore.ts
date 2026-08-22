@@ -1,6 +1,5 @@
 import { WebContentsView, BrowserWindow } from 'electron'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { setCurrentTabId } from '../../shared/windowConfig'
 import { moveTabToWindow } from './windowTabs'
@@ -12,13 +11,9 @@ import { getTabContext, getCurTab } from './context'
 import { updateCurTabBounds } from './tabBounds'
 import type { TabInfo } from './types'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
 function getPreloadPath(): string {
-  const isDev = !!process.env.VITE_DEV_SERVER_URL
-  return isDev
-    ? path.join(__dirname, '..', 'dist-electron', 'preload-app.mjs')
-    : path.join(__dirname, '..', 'preload-app.mjs')
+  const preloadAppPath = path.join(process.env.APP_ROOT!, 'dist-electron', 'preload-app.mjs')
+  return preloadAppPath
 }
 
 export function createTabCore(

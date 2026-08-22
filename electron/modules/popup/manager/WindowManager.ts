@@ -1,4 +1,4 @@
-import { BrowserWindow, app } from 'electron'
+import { BrowserWindow } from 'electron'
 import path from 'node:path'
 
 export const popupSourceMap = new Map<number, number>()
@@ -10,10 +10,7 @@ export function setPopupWindow(win: BrowserWindow): void {
 }
 
 function getPreloadPath(): string {
-  if (process.env.VITE_DEV_SERVER_URL) {
-    return path.join(app.getAppPath(), 'dist-electron', 'preload.js')
-  }
-  return path.join(app.getAppPath(), 'dist-electron', 'popup-preload.js')
+  return path.join(process.env.APP_ROOT!, 'dist-electron', 'preload.js')
 }
 
 export function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {

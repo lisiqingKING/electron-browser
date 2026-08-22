@@ -1,13 +1,10 @@
 import { BrowserWindow, Menu } from 'electron'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { getTabListData, cleanupWindowContext, createTabCore, destroyAllTabViews } from '../tabs/state'
 import { cleanupWindowTabs } from '../tabs/state/windowTabs'
 import { env } from '../shared/env'
 import { setupWindow } from '../mainEntry/windowEvents'
 import { mainLogger as logger } from '../shared/logger'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
@@ -37,7 +34,7 @@ function createWindowCore(): BrowserWindow {
     minWidth: 800,
     minHeight: 500,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(MAIN_DIST(), 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       webviewTag: true,
