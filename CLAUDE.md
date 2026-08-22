@@ -25,6 +25,7 @@
 │   └─ subapp-server/        →  本地 HTTP 服务器            │
 │        └─ 监听随机端口                                   │
 │             ├─ /proxy/* → 通用 HTTP 代理                  │
+│             ├─ /ai/*   → AI 请求代理 (aiProxy)           │
 │             └─ /*       → 读 apps/<name>/dist/ 静态文件   │
 └─────────────────────────────────────────────────────────┘
             │
@@ -41,20 +42,34 @@
 
 - [electron/main.ts](electron/main.ts) — 主进程入口，仅调用 `init()`
 - [electron/mainEntry/](electron/mainEntry/) — 启动入口模块化
-  - [appReady.ts](electron/mainEntry/appReady.ts) — 应用就绪初始化链
+  - [index.ts](electron/mainEntry/index.ts) — `init()` 聚合器，统一调用各模块初始化
+  - [appReady.ts](electron/mainEntry/appReady.ts) — 应用就绪初始化链 (popup handlers / tray / reserve window / download manager 等)
   - [protocol.ts](electron/mainEntry/protocol.ts) — 注册 `lsqapp://` 协议
   - [windowEvents.ts](electron/mainEntry/windowEvents.ts) — 窗口事件注册
   - [windowHandlers.ts](electron/mainEntry/windowHandlers.ts) — 窗口级 IPC handlers
 - [electron/subapp-server/](electron/subapp-server/) — 本地 HTTP 服务器
+  - `/proxy/*` → 通用 HTTP 代理；`/ai/*` → AI 请求代理
+  - [ai-providers/](electron/subapp-server/ai-providers/) — AI provider 实现 (Anthropic / OpenAI)
 - [electron/tabs/](electron/tabs/) — 标签页模块
+  - [tabManager.ts](electron/tabs/tabManager.ts) — 标签页公共 API (createTab / listTabs / switchToTab / closeTab 等)
+  - [tabsDb.ts](electron/tabs/tabsDb.ts) — 标签页持久化
   - [tabHandlers.ts](electron/tabs/tabHandlers.ts) — 标签页 IPC handlers
-  - [state/](electron/tabs/state/) — 状态管理 (tabCore / context / history 等)
   - [tabEvents.ts](electron/tabs/tabEvents.ts) — webContents 事件监听
   - [tabNavigation.ts](electron/tabs/tabNavigation.ts) — 导航操作 (后退/前进/刷新)
+  - [state/](electron/tabs/state/) — 状态管理
+    - `coreUtils` / `devTools` / `history` / `context` / `windowTabs` / `tabBounds` / `tabCore` / `types`
 - [electron/preload.ts](electron/preload.ts) — 基础 ipcRenderer 桥 (`window.ipcRenderer`)
 - [preload/preload-app.ts](preload/preload-app.ts) — 子应用专用桥 (`window.bridge.getModules`)
-- [electron/modules/](electron/modules/) — 各 IPC 模块，每个模块统一结构: ipcClient / handlers / db / manager
-- [electron/shared/](electron/shared/) — 共享工具 (database / env / broadcast / memory 等)
+- [electron/modules/](electron/modules/) — 各 IPC 模块，标准结构: ipcClient / handlers / db / manager
+  - `tabs` / `history` / `ai` / `downloads` / `favorites` / `settings` / `logs`
+  - `popup` — 弹出面板 (不走标准模块路径，由 `appReady.ts` 单独注册)
+  - `updater` — 自动更新 (已实现但未启用)
+  - `icons` — 图标管理 (不对外暴露)
+- [electron/windows/](electron/windows/) — 窗口管理
+  - [windowManager.ts](electron/windows/windowManager.ts) — createWindow / ensureReserveWindow / getAllWindows
+  - [tray/trayManager.ts](electron/windows/tray/trayManager.ts) — 系统托盘
+  - [keyboard/shortcuts.ts](electron/windows/keyboard/shortcuts.ts) — 快捷键
+- [electron/shared/](electron/shared/) — 共享工具 (database / env / broadcast / cache / logger / windowConfig / windowUtils)
 - [src/App.vue](src/App.vue) — 容器 UI (标签栏 + URL 栏 + 书签栏)
 
 ## 跨项目契约 (CRITICAL — 改任何一边必须同步另一边)
@@ -74,14 +89,16 @@ http://localhost:<subappPort>/<appName>/index.html#/<route>
 ```js
 window.bridge.getModules(['history', 'ai'])  // 按需拿模块
 ```
-当前已注册的模块 (在 [preload/preload-app.ts](preload/preload-app.ts) 和 [electron/modules/](electron/modules/)):
+当前已注册的模块 (在 [preload/preload-app.ts](preload/preload-app.ts) `moduleRegistry`):
 - `tabs` — 标签页操作
 - `history` — 历史记录 CRUD
 - `ai` — AI 会话 CRUD
 - `downloads` — 下载管理
 - `favorites` — 收藏夹
 - `settings` — 设置
-- `popup` — 弹出面板
+- `logs` — 日志
+
+**注意**: `popup` 不走标准模块路径，由 `appReady.ts` 的 `registerPopupHandlers()` 单独注册。
 
 **新增模块时** 三处必须同步:
 1. 新建 `electron/modules/<name>/`, 实现 ipcClient / handlers / db / manager 四件套
