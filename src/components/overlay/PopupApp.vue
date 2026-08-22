@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import TabContextMenu from './components/TabContextMenu.vue'
 import UrlBarMoreMenu from './components/UrlBarMoreMenu.vue'
 import FavoritesMoreMenu from './components/FavoritesMoreMenu.vue'
+import RestoreTabsPrompt from './components/RestoreTabsPrompt.vue'
 import '../../styles/tokens/primitive.css'
 import '../../styles/tokens/light.css'
 import '../../styles/tokens/dark.css'
@@ -15,6 +16,7 @@ const componentMap: Record<string, any> = {
   TabContextMenu,
   UrlBarMoreMenu,
   FavoritesMoreMenu,
+  RestoreTabsPrompt,
 }
 const currentComponent = computed(() => componentMap[component.value] || TabContextMenu)
 

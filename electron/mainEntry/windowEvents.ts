@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron'
-import { activateReserveWindow, setWindowAsCurrentMain } from '../windows/windowManager'
+import { activateReserveWindow, setWindowAsCurrentMain, getAllWindows } from '../windows/windowManager'
 import { getTabContext, updateCurTabBounds } from '../tabs/state'
 import { destroyTray } from '../windows/tray/trayManager'
 import { closeDatabase } from '../shared/database/index'
@@ -27,6 +27,7 @@ export function registerWindowEvents() {
   })
 
   app.on('will-quit', () => {
+    // 窗口 close 时已经保存 tabs，这里不再保存
     destroyTray()
     closeDatabase()
     stopSubappServer()

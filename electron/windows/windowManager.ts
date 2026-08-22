@@ -1,10 +1,11 @@
 import { BrowserWindow, Menu } from 'electron'
 import path from 'node:path'
-import { getTabListData, cleanupWindowContext, createTabCore, destroyAllTabViews } from '../tabs/state'
+import { getTabListData, cleanupWindowContext, createTabCore, destroyAllTabViews, getTabContext } from '../tabs/state'
 import { cleanupWindowTabs } from '../tabs/state/windowTabs'
 import { env } from '../shared/env'
 import { setupWindow } from '../mainEntry/windowEvents'
 import { mainLogger as logger } from '../shared/logger'
+import { saveTabs } from '../tabs/tabsDb'
 
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
@@ -42,6 +43,10 @@ function createWindowCore(): BrowserWindow {
   })
 
   allWindows.add(win)
+  win.on('close', () => {
+    console.log('[window] close, saving tabs')
+    saveTabs(getTabContext(win).tabs)
+  })
   win.on('closed', () => {
     allWindows.delete(win)
     cleanupWindowContext(win)

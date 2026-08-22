@@ -40,6 +40,11 @@ CREATE TABLE IF NOT EXISTS settings (
     value       TEXT    NOT NULL DEFAULT ''
 );
 
+CREATE TABLE IF NOT EXISTS cache (
+    key         TEXT    PRIMARY KEY,
+    value       TEXT    NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tabs (
     id          TEXT    PRIMARY KEY,
     title       TEXT    NOT NULL,

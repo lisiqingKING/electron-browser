@@ -244,6 +244,7 @@ window.ipcRenderer.on('settings:theme-changed', (_event, theme: string) => {
 
 onMounted(() => {
   loadTheme()
+  window.ipcRenderer.send('tabs:showRestorePrompt')
 })
 
 
