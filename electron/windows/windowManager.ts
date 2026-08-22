@@ -26,7 +26,7 @@ export function getAllWindows(): BrowserWindow[] {
   return [...allWindows]
 }
 
-function createWindowCore(): BrowserWindow {
+function createWindowCore(isMain = false): BrowserWindow {
   Menu.setApplicationMenu(null)
 
   const win = new BrowserWindow({
@@ -41,10 +41,10 @@ function createWindowCore(): BrowserWindow {
       webviewTag: true,
     },
   })
+  ;(win as any).isMainWindow = isMain
 
   allWindows.add(win)
   win.on('close', () => {
-    console.log('[window] close, saving tabs')
     saveTabs(getTabContext(win).tabs)
   })
   win.on('closed', () => {
@@ -57,9 +57,9 @@ function createWindowCore(): BrowserWindow {
   createTabCore({ title: '首页', url: env.getAppUrl(), isHome: true }, win, undefined, undefined, true)
 
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL + (VITE_DEV_SERVER_URL.includes('?') ? '&' : '?') + `windowId=${win.id}`)
+    win.loadURL(VITE_DEV_SERVER_URL + (VITE_DEV_SERVER_URL.includes('?') ? '&' : '?') + `windowId=${win.id}&isMain=${isMain}`)
   } else {
-    win.loadFile(path.join(RENDERER_DIST(), 'index.html'), { query: { windowId: String(win.id) } })
+    win.loadFile(path.join(RENDERER_DIST(), 'index.html'), { query: { windowId: String(win.id), isMain: String(isMain) } })
   }
 
   // 主进程推送初始 tab 列表（渲染进程 mount 后注册好 listener）
@@ -77,9 +77,10 @@ function createWindowCore(): BrowserWindow {
   return win
 }
 
-export function createWindow(options?: { show?: boolean; tabInfo?: unknown }): BrowserWindow {
+export function createWindow(options?: { show?: boolean; tabInfo?: unknown; isMain?: boolean }): BrowserWindow {
   const show = options?.show ?? true
-  const win = createWindowCore()
+  const isMain = options?.isMain ?? false
+  const win = createWindowCore(isMain)
   if (!show) {
     win.hide()
   }
@@ -88,7 +89,7 @@ export function createWindow(options?: { show?: boolean; tabInfo?: unknown }): B
 
 export function ensureReserveWindow(): void {
   if (!reserveWindow || reserveWindow.isDestroyed()) {
-    reserveWindow = createWindowCore()
+    reserveWindow = createWindowCore(false)
     setupWindow(reserveWindow)
     reserveWindow.hide()
   }
@@ -107,6 +108,7 @@ export function activateReserveWindow(): BrowserWindow {
     return win
   }
 
+  ;(win as any).isMainWindow = true
   win.show()
   win.focus()
   setWindowAsCurrentMain(win)

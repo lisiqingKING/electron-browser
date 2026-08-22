@@ -270,6 +270,7 @@ export function registerTabHandlers() {
     win.webContents.send('tab:list-changed', getTabListData(win))
   })
 
+  // 用 once：只有主窗口会发送此消息，且只需处理一次
   ipcMain.once('tabs:showRestorePrompt', (event) => {
     const win = getWindowFromEvent(event)
     if (!win) return

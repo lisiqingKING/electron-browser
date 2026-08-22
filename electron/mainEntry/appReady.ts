@@ -25,7 +25,7 @@ function restoreTabs(win: Electron.BrowserWindow) {
 }
 
 export function createMainWindow(): Electron.BrowserWindow {
-  const win = createWindow({ show: true })
+  const win = createWindow({ show: true, isMain: true })
 
   setupWindow(win)
 

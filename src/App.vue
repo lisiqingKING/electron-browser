@@ -244,7 +244,10 @@ window.ipcRenderer.on('settings:theme-changed', (_event, theme: string) => {
 
 onMounted(() => {
   loadTheme()
-  window.ipcRenderer.send('tabs:showRestorePrompt')
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.get('isMain') === 'true') {
+    window.ipcRenderer.send('tabs:showRestorePrompt')
+  }
 })
 
 

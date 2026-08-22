@@ -17,13 +17,25 @@ export function saveTabs(
   const nonHomeTabs = tabList
     .filter(t => !t.isHome && t.id)
     .map(t => ({
-      id: t.id,
+      id: t.id as string,
       title: t.title,
       url: t.url,
       createdAt: t.time || Date.now(),
       updatedAt: Date.now(),
     }))
-  setCache(CACHE_KEY_TABS, JSON.stringify(nonHomeTabs))
+
+  if (nonHomeTabs.length === 0) return
+
+  // 合并已有 tabs，避免被覆盖
+  const existing = loadTabs()
+  const merged = [...existing]
+  for (const tab of nonHomeTabs) {
+    if (!merged.find(t => t.url === tab.url)) {
+      merged.push(tab)
+    }
+  }
+
+  setCache(CACHE_KEY_TABS, JSON.stringify(merged))
 }
 
 export function loadTabs(): TabRow[] {
