@@ -24,3 +24,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     return ipcRenderer.invoke(channel, ...omit)
   },
 })
+
+ipcRenderer.on('popup:hide', () => {
+  window.close()
+})

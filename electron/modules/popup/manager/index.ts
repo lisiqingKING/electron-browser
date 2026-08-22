@@ -1,5 +1,24 @@
-import { BrowserWindow, app } from 'electron'
+import { app } from 'electron'
 import path from 'node:path'
+import type { BrowserWindow } from 'electron'
+import { calculatePopupPosition } from './PositionCalculator'
+import { detectWindowTheme } from './ThemeDetector'
+import {
+  createPopupWindow,
+  destroyPopupWindow,
+  showPopupInactive,
+  sendRenderData,
+  hidePopupWindow,
+  popupSourceMap,
+  setPopupWindow,
+} from './WindowManager'
+
+function getPopupUrl(): string {
+  if (process.env.VITE_DEV_SERVER_URL) {
+    return process.env.VITE_DEV_SERVER_URL + 'popup.html'
+  }
+  return 'file://' + path.join(app.getAppPath(), 'dist', 'popup.html')
+}
 
 export interface MenuItem {
   label?: string
@@ -15,145 +34,58 @@ export interface PopupOptions {
   x: number
   y: number
   component: string
-  props?: Record<string, any>
+  props?: Record<string, unknown>
   width?: number
   height?: number
-  context?: any
+  context?: unknown
 }
 
-let popupWindow: BrowserWindow | null = null
+export { popupSourceMap }
 
-export const popupSourceMap = new Map<number, number>()
-
-function getPopupUrl(): string {
-  if (process.env.VITE_DEV_SERVER_URL) {
-    return process.env.VITE_DEV_SERVER_URL + 'popup.html'
-  }
-  return 'file://' + path.join(app.getAppPath(), 'dist', 'popup.html')
-}
-
-function getPreloadPath(): string {
-  if (process.env.VITE_DEV_SERVER_URL) {
-    return path.join(app.getAppPath(), 'dist-electron', 'preload.js')
-  }
-  return path.join(app.getAppPath(), 'dist-electron', 'popup-preload.js')
-}
-
-function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
-  const contentBounds = targetWin.getContentBounds()
-  const popupWin = new BrowserWindow({
-    x: contentBounds.x,
-    y: contentBounds.y,
-    width: contentBounds.width,
-    height: contentBounds.height,
-    frame: false,
-    skipTaskbar: true,
-    resizable: false,
-    movable: false,
-    show: false,
-    transparent: true,
-    backgroundColor: '#00000000',
-    focusable: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: getPreloadPath(),
-    }
-  })
-
-  popupWin.on('blur', () => {
-    try {
-      if (!popupWin.isDestroyed()) {
-        popupWin.destroy()
-      }
-    } catch {}
-  })
-
-  popupWin.on('closed', () => {
-    try {
-      popupSourceMap.delete(popupWin.webContents.id)
-    } catch {}
-    if (popupWindow === popupWin) {
-      popupWindow = null
-    }
-  })
-
-  return popupWin
-}
-
-export function showPopup(options: PopupOptions, win: BrowserWindow): void {
-  const targetWin = win
+export function showPopup(options: PopupOptions, targetWin: BrowserWindow): void {
   if (!targetWin || targetWin.isDestroyed()) return
 
-  if (popupWindow && !popupWindow.isDestroyed()) {
-    popupWindow.destroy()
-    popupWindow = null
-  }
-
-  const popupWin = createPopupWindow(targetWin)
-  popupWindow = popupWin
+  destroyPopupWindow()
 
   const contentBounds = targetWin.getContentBounds()
-  const popupWidth = options.width || 200
-  const favorites = options.props?.favorites
-  const items = options.props?.items
-  const estimatedHeight = options.height || Math.min(
-    ((favorites?.length || items?.length || 0) + 1) * 32 + 8, 400
-  )
+  const favorites = (options.props?.favorites as any[]) || []
+  const items = (options.props?.items as any[]) || []
+  const itemCount = favorites.length + items.length + 1
 
-  let popupX = options.x
-  let popupY = options.y
+  const position = calculatePopupPosition(contentBounds, {
+    preferred: { x: options.x, y: options.y },
+    size: { width: options.width, height: options.height },
+    itemCount,
+  })
 
-  if (popupX + popupWidth > contentBounds.x + contentBounds.width) {
-    popupX = contentBounds.x + contentBounds.width - popupWidth
-  }
-  if (popupY + estimatedHeight > contentBounds.y + contentBounds.height) {
-    popupY = contentBounds.y + contentBounds.height - estimatedHeight
-  }
-
-  popupWin.loadURL(getPopupUrl())
-
+  const popupWin = createPopupWindow(targetWin)
+  setPopupWindow(popupWin)
   popupSourceMap.set(popupWin.webContents.id, targetWin.id)
 
   const currentPopupId = popupWin.id
   popupWin.webContents.on('did-finish-load', async () => {
-    if (!popupWin.isDestroyed() && popupWin.id === currentPopupId) {
-      let theme = 'dark'
-      if (targetWin && !targetWin.isDestroyed()) {
-        try {
-          theme = await targetWin.webContents.executeJavaScript(
-            'document.documentElement.classList.contains("dark") ? "dark" : "light"'
-          )
-        } catch {}
-      }
+    if (popupWin.isDestroyed() || popupWin.id !== currentPopupId) return
 
-      popupWin.webContents.send('popup:render', {
-        component: options.component,
-        props: options.props,
-        context: options.context,
-        theme,
-        x: popupX - contentBounds.x,
-        y: popupY - contentBounds.y,
-        width: popupWidth,
-        height: estimatedHeight,
-        windowId: targetWin.id,
-      })
+    const theme = await detectWindowTheme(targetWin)
 
-      popupWin.showInactive()
-    }
+    sendRenderData(popupWin, {
+      component: options.component,
+      props: options.props,
+      context: options.context,
+      theme,
+      x: position.x - contentBounds.x,
+      y: position.y - contentBounds.y,
+      width: position.width,
+      height: position.height,
+      windowId: targetWin.id,
+    })
+
+    showPopupInactive(popupWin)
   })
+
+  popupWin.loadURL(getPopupUrl())
 }
 
 export function hidePopup(): void {
-  if (!popupWindow) return
-  try {
-    if (popupWindow.isDestroyed()) {
-      popupWindow = null
-      return
-    }
-    popupWindow.webContents.send('popup:hide')
-    popupWindow.hide()
-  } catch {
-    popupWindow = null
-  }
+  hidePopupWindow()
 }

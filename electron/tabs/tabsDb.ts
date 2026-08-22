@@ -74,8 +74,9 @@ export function updateTabInfo(id: string, data: { title?: string; url?: string; 
     values.push(data.url)
   }
   if (data.favicon !== undefined) {
-    sets.push('favicon = ?')
-    values.push(data.favicon)
+    // TODO: tabs 表暂无 favicon 列，先跳过数据库更新
+    // sets.push('favicon = ?')
+    // values.push(data.favicon)
   }
 
   if (sets.length === 0) return

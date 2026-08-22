@@ -10,3 +10,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   },
   invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
 })
+
+ipcRenderer.on('popup:hide', () => {
+  window.close()
+})

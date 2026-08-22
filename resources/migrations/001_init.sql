@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS tabs (
     id          TEXT    PRIMARY KEY,
     title       TEXT    NOT NULL,
     url         TEXT    NOT NULL,
+    favicon     TEXT,
     createdAt   INTEGER NOT NULL,
     updatedAt   INTEGER NOT NULL,
     isHome      INTEGER NOT NULL DEFAULT 0

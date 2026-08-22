@@ -157,9 +157,10 @@ export function reloadTab(win: BrowserWindow, tabId: string): void {
   if (!win) return
   const ctx = getTabContext(win)
   const tab = ctx.webContentViewMap.get(tabId)
-  if (tab) {
-    tab.view.webContents.reload()
+  if (!tab || !tab.view) {
+    return
   }
+  tab.view.webContents.reload()
 }
 
 export function closeOtherTabs(win: BrowserWindow, tabId: string): void {
