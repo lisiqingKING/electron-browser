@@ -9,8 +9,6 @@ import {
   showPopupInactive,
   sendRenderData,
   hidePopupWindow,
-  popupSourceMap,
-  setPopupWindow,
 } from './WindowManager'
 
 function getPopupUrl(): string {
@@ -40,8 +38,6 @@ export interface PopupOptions {
   context?: unknown
 }
 
-export { popupSourceMap }
-
 export function showPopup(options: PopupOptions, targetWin: BrowserWindow): void {
   if (!targetWin || targetWin.isDestroyed()) return
 
@@ -59,8 +55,6 @@ export function showPopup(options: PopupOptions, targetWin: BrowserWindow): void
   })
 
   const popupWin = createPopupWindow(targetWin)
-  setPopupWindow(popupWin)
-  popupSourceMap.set(popupWin.webContents.id, targetWin.id)
 
   const currentPopupId = popupWin.id
   popupWin.webContents.on('did-finish-load', async () => {

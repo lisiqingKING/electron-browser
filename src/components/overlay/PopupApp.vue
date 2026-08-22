@@ -24,7 +24,7 @@ const popupStyle = ref<Record<string, string>>({})
 
 function handleAction(action: string, ctx?: any) {
   const safeContext = ctx ? JSON.parse(JSON.stringify(ctx)) : undefined
-  window.ipcRenderer.send('popup:action', { action, context: safeContext })
+  window.ipcRenderer.send('popup:action', { action, context: safeContext, windowId: props.value.windowId })
 }
 
 // Register IPC listener immediately (before onMounted) to catch popup:render

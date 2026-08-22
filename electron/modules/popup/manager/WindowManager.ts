@@ -1,13 +1,7 @@
 import { BrowserWindow } from 'electron'
 import path from 'node:path'
 
-export const popupSourceMap = new Map<number, number>()
-
 let popupWindow: BrowserWindow | null = null
-
-export function setPopupWindow(win: BrowserWindow): void {
-  popupWindow = win
-}
 
 function getPreloadPath(): string {
   return path.join(process.env.APP_ROOT!, 'dist-electron', 'preload.js')
@@ -46,25 +40,17 @@ export function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
   })
 
   popupWin.on('closed', () => {
-    try {
-      if (!popupWin.isDestroyed() && !popupWin.webContents.isDestroyed()) {
-        popupSourceMap.delete(popupWin.webContents.id)
-      }
-    } catch (e) {
-      console.warn('[PopupWindow] closed cleanup error:', e)
-    }
     if (popupWindow === popupWin) {
       popupWindow = null
     }
   })
 
+  popupWindow = popupWin
   return popupWin
 }
 
 export function destroyPopupWindow(): void {
   if (popupWindow && !popupWindow.isDestroyed()) {
-    const wcId = popupWindow.webContents.id
-    popupSourceMap.delete(wcId)
     popupWindow.destroy()
   }
   popupWindow = null
