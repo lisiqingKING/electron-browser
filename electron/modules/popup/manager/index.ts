@@ -65,6 +65,7 @@ export function showPopup(options: PopupOptions, targetWin: BrowserWindow): void
   const currentPopupId = popupWin.id
   popupWin.webContents.on('did-finish-load', async () => {
     if (popupWin.isDestroyed() || popupWin.id !== currentPopupId) return
+    if (targetWin.isDestroyed()) return
 
     const theme = await detectWindowTheme(targetWin)
 

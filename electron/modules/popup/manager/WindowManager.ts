@@ -40,13 +40,19 @@ export function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
       if (!popupWin.isDestroyed()) {
         popupWin.destroy()
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[PopupWindow] blur destroy error:', e)
+    }
   })
 
   popupWin.on('closed', () => {
     try {
-      popupSourceMap.delete(popupWin.webContents.id)
-    } catch {}
+      if (!popupWin.isDestroyed() && !popupWin.webContents.isDestroyed()) {
+        popupSourceMap.delete(popupWin.webContents.id)
+      }
+    } catch (e) {
+      console.warn('[PopupWindow] closed cleanup error:', e)
+    }
     if (popupWindow === popupWin) {
       popupWindow = null
     }
@@ -57,6 +63,8 @@ export function createPopupWindow(targetWin: BrowserWindow): BrowserWindow {
 
 export function destroyPopupWindow(): void {
   if (popupWindow && !popupWindow.isDestroyed()) {
+    const wcId = popupWindow.webContents.id
+    popupSourceMap.delete(wcId)
     popupWindow.destroy()
   }
   popupWindow = null
@@ -74,9 +82,8 @@ export function hidePopupWindow(): void {
       return
     }
     popupWindow.destroy()
-  } catch {
-    popupWindow = null
-  } finally {
+  } catch (e) {
+    console.warn('[PopupWindow] hide error:', e)
     popupWindow = null
   }
 }
