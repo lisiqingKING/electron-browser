@@ -1,5 +1,6 @@
 import log from 'electron-log'
 import path from 'node:path'
+import fs from 'node:fs'
 import { app } from 'electron'
 
 export const LOG_MODULES = ['main', 'render', 'network', 'ipc', 'sql'] as const
@@ -20,14 +21,31 @@ export let networkLogger: typeof log = log
  * 每个模块路由到 logs/{module}/{module}-{date}.log
  */
 export function initLoggers(): void {
+  // dev 模式下文件日志级别为 info，生产环境为 warn
+  const fileLevel = app.isPackaged ? 'warn' : 'info'
+
   for (const module of LOG_MODULES) {
     const logger = (log.create as any)()
+
+    // 确保日志目录存在
+    const logDir = path.join(app.getPath('logs'), module)
+    try {
+      fs.mkdirSync(logDir, { recursive: true })
+    } catch {}
+
     // @ts-ignore - electron-log internal
+    // electron-log 的 resolvePathFn 不解析 {y}/{m}/{d} 模板，需手动替换
+    const now = new Date()
+    const y = String(now.getFullYear())
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    const fileName = `${module}-${y}-${m}-${d}.log`
+
     logger.transports.file.resolvePathFn = () => {
-      return path.join(app.getPath('logs'), module, `${module}-{y}-{m}-{d}.log`)
+      return path.join(logDir, fileName)
     }
     logger.transports.file.maxSize = 10 * 1024 * 1024 // 10MB
-    logger.transports.file.level = 'warn' // 只写 warn 和 error，info/debug 只打印到终端
+    logger.transports.file.level = fileLevel
     moduleLoggers[module] = logger
   }
   mainLogger = moduleLoggers.main
