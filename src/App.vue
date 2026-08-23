@@ -223,12 +223,15 @@ const loadTheme = async () => {
   try {
     const theme = await window.ipcRenderer.invoke('settings:get', 'theme')
     if (theme === 'light') {
+      document.documentElement.classList.add('light')
       document.documentElement.classList.remove('dark')
     } else {
+      document.documentElement.classList.remove('light')
       document.documentElement.classList.add('dark')
     }
   } catch {
-    // 默认黑夜模式
+    // 默认暗黑模式
+    document.documentElement.classList.remove('light')
     document.documentElement.classList.add('dark')
   }
 }
@@ -236,8 +239,10 @@ const loadTheme = async () => {
 // 监听主题变化
 window.ipcRenderer.on('settings:theme-changed', (_event, theme: string) => {
   if (theme === 'light') {
+    document.documentElement.classList.add('light')
     document.documentElement.classList.remove('dark')
   } else {
+    document.documentElement.classList.remove('light')
     document.documentElement.classList.add('dark')
   }
 })

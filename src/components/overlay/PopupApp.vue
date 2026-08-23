@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
+import { useEventListener } from '@vueuse/core'
 import TabContextMenu from './components/TabContextMenu.vue'
 import UrlBarMoreMenu from './components/UrlBarMoreMenu.vue'
 import FavoritesMoreMenu from './components/FavoritesMoreMenu.vue'
 import RestoreTabsPrompt from './components/RestoreTabsPrompt.vue'
-import '../../styles/tokens/primitive.css'
-import '../../styles/tokens/light.css'
-import '../../styles/tokens/dark.css'
 
 const component = ref('Menu')
 const props = ref<Record<string, any>>({})
@@ -31,8 +29,10 @@ function handleAction(action: string, ctx?: any) {
 window.ipcRenderer.on('popup:render', (_event: any, payload: any) => {
   if (payload.theme === 'dark') {
     document.documentElement.classList.add('dark')
+    document.documentElement.classList.remove('light')
   } else {
     document.documentElement.classList.remove('dark')
+    document.documentElement.classList.add('light')
   }
 
   component.value = payload.component || 'Menu'
@@ -60,14 +60,8 @@ function onDocumentClick(e: MouseEvent) {
   }
 }
 
-onMounted(() => {
-  document.addEventListener('mousedown', onDocumentClick)
-  window.addEventListener('blur', () => window.ipcRenderer.send('popup:hide'))
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', onDocumentClick)
-})
+useEventListener(document, 'mousedown', onDocumentClick)
+useEventListener(window, 'blur', () => window.ipcRenderer.send('popup:hide'))
 </script>
 
 <template>
@@ -76,7 +70,7 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style>
+<style lang="scss">
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
   width: 100%;

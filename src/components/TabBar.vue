@@ -166,7 +166,7 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .tab-bar {
   height: 48px;
   display: flex;
@@ -178,27 +178,29 @@ onUnmounted(() => {
 }
 
 .tab-bar-logo {
+  @include flex-center;
   flex-shrink: 0;
   align-self: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin: auto 8px auto 12px;
   color: var(--color-accent);
   -webkit-app-region: no-drag;
   cursor: pointer;
   height: 36px;
   margin-top: 12px;
-}
+  border-radius: var(--radius-md);
+  padding: 4px;
+  @include transition(background opacity);
 
-.tab-bar-logo:hover {
-  opacity: 0.8;
+  &:hover {
+    background: var(--tabbar-hover-bg);
+    opacity: 1;
+  }
 }
 
 .tab {
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 10px;
   height: 36px;
   background: transparent;
   cursor: pointer;
@@ -207,67 +209,66 @@ onUnmounted(() => {
   position: relative;
   min-width: 40px;
   max-width: 220px;
-  transition: background 0.15s ease;
+  @include transition(background transform);
   -webkit-app-region: no-drag;
-}
 
-.tab::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 30%;
-  bottom: 30%;
-  width: 1px;
-  background: var(--tabbar-divider);
-}
+  &::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 30%;
+    bottom: 30%;
+    width: 1px;
+    background: var(--tabbar-divider);
+  }
 
-.tab::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: transparent;
-  transition: background 0.15s ease;
-}
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    @include transition(background);
+  }
 
-.tab:hover {
-  background: var(--tabbar-hover-bg);
-}
+  &:hover {
+    background: var(--tabbar-hover-bg);
+  }
 
-.tab:hover::after,
-.tab.active::after {
-  opacity: 0;
-}
+  &:hover::after,
+  &.active::after {
+    opacity: 0;
+  }
 
-/* hovered/active tab 左侧相邻 tab 的分割线 */
-.tab:has(+ .tab:hover)::after,
-.tab:has(+ .tab.active)::after {
-  opacity: 0;
-}
+  /* hovered/active tab 左侧相邻 tab 的分割线 */
+  &:has(+ .tab:hover)::after,
+  &:has(+ .tab.active)::after {
+    opacity: 0;
+  }
 
-.tab:hover .close-btn {
-  opacity: 1;
-}
+  &:hover .close-btn {
+    opacity: 1;
+  }
 
-.tab.active {
-  background: var(--tabbar-active-bg);
-  z-index: 1;
+  &.active {
+    background: var(--tabbar-active-bg);
+    z-index: 1;
+    box-shadow: var(--shadow-tab-active);
+  }
 }
 
 .tab-favicon {
+  @include flex-center;
   width: 16px;
   height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: var(--color-accent);
   flex-shrink: 0;
 }
 
 .loading-spinner {
-  animation: spin 1s linear infinite;
+  animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   color: var(--color-accent);
 }
 
@@ -289,45 +290,36 @@ onUnmounted(() => {
 .tab-title {
   color: var(--tabbar-text-active);
   font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include text-ellipsis;
   text-align: left;
   flex: 1;
   min-width: 0;
-}
 
-.tab:not(.active) .tab-title {
-  color: var(--tabbar-text);
+  .tab:not(.active) & {
+    color: var(--tabbar-text);
+  }
 }
 
 .close-btn {
+  @include button-reset;
   width: 0;
   height: 20px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--tabbar-text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: var(--radius-sm);
   opacity: 0;
   overflow: hidden;
-  transition: opacity 0.15s ease, background 0.15s ease, width 0.15s ease;
+  @include transition(opacity background width color);
   flex-shrink: 0;
-  padding: 0;
-}
 
-.close-btn:hover {
-  background: var(--tabbar-hover-bg);
-  color: var(--tabbar-text-active);
-}
+  &:hover {
+    background: var(--tabbar-hover-bg);
+    color: var(--tabbar-text-active);
+  }
 
-.tab.active .close-btn,
-.tab:hover .close-btn {
-  opacity: 1;
-  width: 20px;
+  .tab.active &,
+  .tab:hover & {
+    opacity: 1;
+    width: 20px;
+  }
 }
 
 /* 滚动容器 */
@@ -346,34 +338,28 @@ onUnmounted(() => {
   align-items: flex-end;
   scrollbar-width: none;
   -ms-overflow-style: none;
-}
 
-.tabs-scroll::-webkit-scrollbar {
-  display: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* 添加按钮 - 固定在右侧 */
 .add-btn {
+  @include button-reset;
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--tabbar-text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   align-self: flex-end;
   margin: 0 4px 4px 8px;
-  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: var(--radius-md);
+  @include transition(background color);
   -webkit-app-region: no-drag;
-}
 
-.add-btn:hover {
-  background: var(--tabbar-hover-bg);
-  color: var(--tabbar-text-active);
+  &:hover {
+    background: var(--tabbar-hover-bg);
+    color: var(--color-accent);
+  }
 }
 
 .fade-enter-active,

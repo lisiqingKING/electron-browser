@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { cloneDeep } from 'lodash'
 import { usePopup } from '../composables/usePopup'
+import { getInternalIconFromUrl } from '../utils/tabIcons'
 
 const emit = defineEmits<{
   (e: 'select', url: string): void
@@ -67,6 +68,13 @@ const maxCount = computed(() => {
 const visibleItems = computed(() => {
   return favorites.value.slice(0, maxCount.value)
 })
+
+const visibleItemsWithIcons = computed(() =>
+  visibleItems.value.map(item => ({
+    ...item,
+    icon: getInternalIconFromUrl(item.url),
+  }))
+)
 
 const hasMore = computed(() => favorites.value.length > maxCount.value)
 
@@ -140,21 +148,24 @@ onUnmounted(() => {
     <div v-if="favorites.length === 0" class="favorites-empty">还没有收藏，点击工具栏 ★ 添加</div>
     <template v-else>
       <div
-        v-for="(item, index) in visibleItems"
+        v-for="(item, index) in visibleItemsWithIcons"
         :key="item.url"
         :ref="el => { if (el) itemsRef[index] = el as HTMLElement }"
         class="favorite-item"
         :title="item.title || item.url"
         @click="handleSelect(item.url)"
       >
+        <svg v-if="item.icon" class="favorite-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path :d="item.icon" />
+        </svg>
         <img
-          v-if="item.favicon"
+          v-else-if="item.favicon"
           :src="item.favicon"
           class="favorite-icon"
           @error="($event.target as HTMLImageElement).style.display='none'"
         />
         <svg v-else class="favorite-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
         </svg>
         <span class="favorite-title">{{ item.title || item.url }}</span>
       </div>
@@ -167,10 +178,9 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .favorites-quick {
-  display: flex;
-  align-items: center;
+  @include flex-y-center;
   gap: 8px;
   padding: 0 12px;
   height: 36px;
@@ -181,19 +191,20 @@ onUnmounted(() => {
 }
 
 .favorite-item {
-  display: flex;
-  align-items: center;
+  @include flex-y-center;
   gap: 4px;
   height: 28px;
-  padding: 0 8px;
-  border-radius: 4px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.1s ease;
+  @include transition(background transform box-shadow);
   flex-shrink: 0;
-}
 
-.favorite-item:hover {
-  background: var(--window-btn-hover);
+  &:hover {
+    background: var(--window-btn-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 .favorite-icon {
@@ -201,32 +212,30 @@ onUnmounted(() => {
   height: 16px;
   flex-shrink: 0;
   border-radius: 2px;
+  color: var(--color-accent);
 }
 
 .favorite-title {
   font-size: 12px;
   color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @include text-ellipsis;
   max-width: 120px;
 }
 
 .favorite-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include flex-center;
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--urlbar-icon);
-  transition: background 0.1s ease;
-}
+  @include transition(background color);
 
-.favorite-more:hover {
-  background: var(--window-btn-hover);
+  &:hover {
+    background: var(--window-btn-hover);
+    color: var(--urlbar-icon-hover);
+  }
 }
 
 .favorites-empty {

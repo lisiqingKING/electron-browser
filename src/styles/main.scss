@@ -1,0 +1,136 @@
+// Main Styles — 全局样式入口
+
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 主题变量
+.light {
+  color-scheme: light;
+  --color-bg-primary: #fafafa;
+  --color-bg-secondary: #f4f4f5;
+  --color-bg-tertiary: #ffffff;
+  --color-text-primary: #18181b;
+  --color-text-secondary: #71717a;
+  --color-text-tertiary: #a1a1aa;
+  --color-accent: #10b981;
+  --color-accent-hover: #059669;
+  --color-border: #e4e4e7;
+  --color-divider: #e4e4e7;
+  --tabbar-bg: #f4f4f5;
+  --tabbar-active-bg: #ffffff;
+  --tabbar-hover-bg: rgba(0, 0, 0, 0.03);
+  --tabbar-text: #71717a;
+  --tabbar-text-active: #18181b;
+  --tabbar-divider: rgba(0, 0, 0, 0.06);
+  --urlbar-bg: #ffffff;
+  --urlbar-input-bg: #f4f4f5;
+  --urlbar-input-border: #e4e4e7;
+  --urlbar-input-border-focus: #10b981;
+  --urlbar-icon: #a1a1aa;
+  --urlbar-icon-hover: #18181b;
+  --urlbar-icon-disabled: #d4d4d8;
+  --window-btn-icon: #a1a1aa;
+  --window-btn-hover: #e4e4e7;
+  --window-btn-close-hover: #ef4444;
+  --tooltip-bg: #3f3f46;
+  --tooltip-border: #52525b;
+  --tooltip-text: #e4e4e7;
+  --shadow-tab-active: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --color-bg-primary: #0a0a0b;
+  --color-bg-secondary: #18181b;
+  --color-bg-tertiary: #1c1c1e;
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #71717a;
+  --color-accent: #34d399;
+  --color-accent-hover: #6ee7b7;
+  --color-border: #3f3f46;
+  --color-divider: rgba(255, 255, 255, 0.06);
+  --tabbar-bg: #18181b;
+  --tabbar-active-bg: #27272a;
+  --tabbar-hover-bg: rgba(255, 255, 255, 0.05);
+  --tabbar-text: #a1a1aa;
+  --tabbar-text-active: #f4f4f5;
+  --tabbar-divider: rgba(255, 255, 255, 0.04);
+  --urlbar-bg: #27272a;
+  --urlbar-input-bg: #18181b;
+  --urlbar-input-border: #3f3f46;
+  --urlbar-input-border-focus: #10b981;
+  --urlbar-icon: #a1a1aa;
+  --urlbar-icon-hover: #f4f4f5;
+  --urlbar-icon-disabled: #52525b;
+  --window-btn-icon: #a1a1aa;
+  --window-btn-hover: rgba(255, 255, 255, 0.08);
+  --window-btn-close-hover: #ef4444;
+  --tooltip-bg: #3f3f46;
+  --tooltip-border: #52525b;
+  --tooltip-text: #e4e4e7;
+  --shadow-tab-active: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+// 全局过渡曲线
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 美化滚动条
+html {
+  @include custom-scrollbar;
+}
+
+// Toast 提示样式 (全局使用)
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  z-index: 10001;
+  animation: toastFadeIn 0.2s ease;
+  pointer-events: none;
+  max-width: 80%;
+  text-align: center;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

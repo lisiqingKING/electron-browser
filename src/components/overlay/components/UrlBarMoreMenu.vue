@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { TAB_ICON_MAP } from '@renderer/utils/tabIcons'
+import { ref, computed } from 'vue'
+import { TAB_ICON_MAP, getInternalIconFromUrl } from '@renderer/utils/tabIcons'
 
 const props = defineProps<{
   currentUrl?: string
@@ -54,12 +54,26 @@ function isUnicodeChar(icon?: string): boolean {
 }
 
 const menuItems = [
-  { label: '收藏夹', icon: 'star', hasSubmenu: true },
+  { label: '收藏夹', icon: 'favorites', hasSubmenu: true },
   { label: '历史记录', icon: 'history', action: 'openHistory' },
   { label: '下载记录', icon: 'downloads', action: 'openDownloads' },
   { label: '日志管理', icon: 'logs', action: 'openLogs' },
   { label: '设置', icon: 'settings', action: 'openSettings' },
 ]
+
+const menuItemsWithIcons = computed(() =>
+  menuItems.map(item => ({
+    ...item,
+    iconPath: getIconPath(item.icon),
+  }))
+)
+
+const favoritesWithIcons = computed(() =>
+  favorites.value.slice(0, 8).map(fav => ({
+    ...fav,
+    icon: getInternalIconFromUrl(fav.url),
+  }))
+)
 
 function handleClick(action: string) {
   switch (action) {
@@ -93,7 +107,7 @@ function openFavorites() {
 <template>
   <div class="menu">
     <div
-      v-for="(item, i) in menuItems"
+      v-for="(item, i) in menuItemsWithIcons"
       :key="i"
       class="item"
       :class="{ 'has-submenu': item.hasSubmenu }"
@@ -102,8 +116,8 @@ function openFavorites() {
       @mouseleave="hideSubmenu"
     >
       <span class="icon">
-        <svg v-if="getIconPath(item.icon)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-          <path :d="getIconPath(item.icon) ?? undefined" />
+        <svg v-if="item.iconPath" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path :d="item.iconPath" />
         </svg>
         <span v-else-if="isUnicodeChar(item.icon)" class="unicode-icon">{{ item.icon }}</span>
       </span>
@@ -112,19 +126,20 @@ function openFavorites() {
 
       <!-- Submenu: Favorites -->
       <div v-if="item.hasSubmenu && activeSubmenu === i" class="submenu">
-        <template v-if="favorites.length > 0">
+        <template v-if="favoritesWithIcons.length > 0">
           <div
-            v-for="fav in favorites.slice(0, 8)"
+            v-for="fav in favoritesWithIcons"
             :key="fav.url"
             class="item"
             @click.stop="openFavorite(fav.url)"
           >
-            <span v-if="fav.favicon" class="icon favicon-icon">
-              <img :src="fav.favicon" width="16" height="16" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
-            </span>
-            <span v-else class="icon">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            <span class="icon">
+              <svg v-if="fav.icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path :d="fav.icon" />
+              </svg>
+              <img v-else-if="fav.favicon" :src="fav.favicon" width="16" height="16" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+              <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
               </svg>
             </span>
             <span class="label">{{ fav.title || fav.url }}</span>
@@ -185,16 +200,6 @@ function openFavorites() {
 .unicode-icon {
   font-size: 14px;
   color: var(--color-text-secondary);
-}
-.favicon-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.favicon-icon img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
 }
 .label {
   flex: 1;

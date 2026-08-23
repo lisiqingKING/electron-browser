@@ -6,11 +6,20 @@ import vue from '@vitejs/plugin-vue'
 const alias = {
   '@main': path.resolve(__dirname, 'electron'),
   '@renderer': path.resolve(__dirname, 'src'),
+  '@': path.resolve(__dirname, 'src'),
 }
 
 // https://vitejs.dev/config/
 export default defineConfig({
   resolve: { alias },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@use "@/styles/tokens" as *; @use "@/styles/mixins" as *;`,
+        api: 'modern-compiler',
+      },
+    },
+  },
   build: {
     rollupOptions: {
       input: {

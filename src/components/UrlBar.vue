@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePopup } from '../composables/usePopup'
+import { getTabIcon } from '../utils/tabIcons'
 
 const props = defineProps<{
   modelValue: string
@@ -83,17 +84,17 @@ const handleMoreClick = (event: MouseEvent) => {
       </div>
 
       <button class="star-btn" :class="{ active: props.isFavorited }" title="收藏" @click="emit('toggleFavorite')">
-        <svg viewBox="0 0 24 24" width="18" height="18" :fill="props.isFavorited ? '#facc15' : 'currentColor'">
+        <svg viewBox="0 0 24 24" width="18" height="18" :fill="props.isFavorited ? 'var(--color-accent)' : 'currentColor'">
           <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
         </svg>
       </button>
       <button class="ai-btn" title="AI 助手" @click="emit('openAI')">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" :style="{ color: 'var(--color-accent)' }">
+          <path :d="getTabIcon('ai') ?? undefined" />
         </svg>
       </button>
       <button class="more-btn" title="更多" @click="handleMoreClick">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" :style="{ color: 'var(--color-accent)' }">
           <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
         </svg>
       </button>
@@ -101,7 +102,7 @@ const handleMoreClick = (event: MouseEvent) => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .url-bar {
   padding: 0 12px;
   height: 48px;
@@ -117,7 +118,7 @@ const handleMoreClick = (event: MouseEvent) => {
 .url-bar-inner {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   width: 100%;
   height: 100%;
 }
@@ -131,54 +132,43 @@ const handleMoreClick = (event: MouseEvent) => {
 }
 
 .nav-btn {
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
+  @include circle-button(32px);
   color: var(--urlbar-icon);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.12s ease, color 0.12s ease;
-}
+  @include transition(background color);
 
-.nav-btn:hover {
-  background: var(--window-btn-hover);
-  color: var(--urlbar-icon-hover);
-}
+  &:hover {
+    color: var(--urlbar-icon-hover);
+  }
 
-.nav-btn:active {
-  background: var(--window-btn-hover);
-}
+  &:active {
+    transform: scale(0.95);
+  }
 
-.nav-btn.disabled {
-  color: var(--urlbar-icon-disabled);
-  cursor: default;
-  pointer-events: none;
+  &.disabled {
+    color: var(--urlbar-icon-disabled);
+    cursor: default;
+    pointer-events: none;
+  }
 }
 
 /* ── 地址输入区 ── */
 .url-input-wrap {
   flex: 1;
-  display: flex;
-  align-items: center;
+  @include flex-y-center;
   gap: 8px;
-  height: 34px;
-  padding: 0 12px;
+  height: 36px;
+  padding: 0 14px;
   min-width: 0;
   background: var(--urlbar-input-bg);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--urlbar-input-border);
   margin: 0 8px;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
+  @include transition(background border-color box-shadow);
 
-.url-input-wrap:focus-within {
-  border-color: var(--urlbar-input-border-focus);
-  box-shadow: 0 0 0 1px var(--urlbar-input-border-focus);
+  &:focus-within {
+    border-color: var(--urlbar-input-border-focus);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  }
 }
 
 .security-icon {
@@ -195,88 +185,43 @@ const handleMoreClick = (event: MouseEvent) => {
   font-size: 14px;
   outline: none;
   min-width: 0;
+
+  &::placeholder {
+    color: var(--color-text-tertiary);
+  }
 }
 
-.url-input::placeholder {
-  color: var(--color-text-tertiary);
+/* ── 图标按钮通用样式 ── */
+%icon-btn {
+  @include circle-button(32px);
+  color: var(--urlbar-icon);
+  @include transition(background color transform);
+
+  &:hover {
+    color: var(--urlbar-icon-hover);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 /* ── 更多按钮 ── */
 .more-btn {
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--urlbar-icon);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.more-btn:hover {
-  background: var(--window-btn-hover);
-  color: var(--urlbar-icon-hover);
-}
-
-.more-btn:active {
-  background: var(--window-btn-hover);
+  @extend %icon-btn;
 }
 
 /* ── AI 助手按钮 ── */
 .ai-btn {
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--urlbar-icon);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.ai-btn:hover {
-  background: var(--window-btn-hover);
-  color: var(--urlbar-icon-hover);
-}
-
-.ai-btn:active {
-  background: var(--window-btn-hover);
+  @extend %icon-btn;
 }
 
 /* ── 收藏按钮 ── */
 .star-btn {
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--urlbar-icon);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.12s ease, color 0.12s ease;
-}
+  @extend %icon-btn;
 
-.star-btn:hover {
-  background: var(--window-btn-hover);
-  color: var(--urlbar-icon-hover);
-}
-
-.star-btn:active {
-  background: var(--window-btn-hover);
-}
-
-.star-btn.active {
-  color: #facc15;
+  &.active {
+    color: var(--color-accent);
+  }
 }
 </style>
