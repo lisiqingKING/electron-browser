@@ -37,7 +37,7 @@ function runMigration(v: number): void {
 
   const sql = fs.readFileSync(path.join(dir, files[0]), 'utf8')
   db!.exec(sql)
-  console.log(`[Database] Ran migration ${files[0]}`)
+  logger.info(`[Database] Ran migration ${files[0]}`)
 }
 
 export function initDatabase(): Database.Database {
@@ -62,7 +62,7 @@ export function initDatabase(): Database.Database {
   }
 
   setSetting('db_version', CURRENT_VERSION.toString())
-  console.log('[Database] Initialized at:', DB_PATH)
+  logger.info('[Database] Initialized at:', DB_PATH)
 
   return db
 }
@@ -78,6 +78,6 @@ export function closeDatabase(): void {
   if (db) {
     db.close()
     db = null
-    console.log('[Database] Closed')
+    logger.info('[Database] Closed')
   }
 }

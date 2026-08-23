@@ -2,6 +2,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { app } from 'electron'
 import { handleRequest } from './router'
+import { mainLogger as logger } from '../shared/logger'
 
 // ============================================================================
 // 状态
@@ -33,7 +34,7 @@ export async function startSubappServer(): Promise<number> {
         return
       }
       serverPort = addr.port
-      console.log(`[subappServer] 启动成功，端口: ${serverPort}，appsDir: ${appsDir}`)
+      logger.info(`[subappServer] 启动成功，端口: ${serverPort}，appsDir: ${appsDir}`)
       resolve(serverPort)
     })
 

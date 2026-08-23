@@ -3,7 +3,7 @@ import { networkLogger as logger } from '../shared/logger'
 
 export function handleProxyRequest(url: string, req: http.IncomingMessage, res: http.ServerResponse) {
   const targetUrl = url.replace('/proxy/', '')
-  console.log(`[network] 代理请求: ${url} -> ${targetUrl}`)
+  logger.info(`[network] 代理请求: ${url} -> ${targetUrl}`)
 
   const proxyReq = http.request(targetUrl, {
     method: req.method,

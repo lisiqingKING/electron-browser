@@ -1,4 +1,5 @@
 import { WebContentsView, BrowserWindow } from 'electron'
+import { mainLogger as logger } from '../../shared/logger'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { setCurrentTabId } from '../../shared/windowConfig'
@@ -81,9 +82,9 @@ export function createTabView(tabInfo: TabInfo, win: BrowserWindow): WebContents
 
 export function switchTab(id: string, win: BrowserWindow): boolean {
   const ctx = getTabContext(win)
-  console.log('[switchTab] id:', id, 'map keys:', [...ctx.webContentViewMap.keys()])
+  logger.info('[switchTab] id:', id, 'map keys:', [...ctx.webContentViewMap.keys()])
   if (!ctx.webContentViewMap.has(id)) {
-    console.log('[switchTab] id not found in map')
+    logger.info('[switchTab] id not found in map')
     return false
   }
 
@@ -96,7 +97,7 @@ export function switchTab(id: string, win: BrowserWindow): boolean {
   const targetTab = ctx.webContentViewMap.get(id)!
 
   if (!targetTab.view) {
-    console.log('[switchTab] creating view for tab:', id)
+    logger.info('[switchTab] creating view for tab:', id)
     const view = createTabView(targetTab.info, win)
     registerWebContentsEvents(view, targetTab.info, win)
     const resolvedUrl = resolveTabUrl(targetTab.info.url)
@@ -108,13 +109,13 @@ export function switchTab(id: string, win: BrowserWindow): boolean {
     win.contentView.addChildView(view)
     updateCurTabBounds(targetTab, win)
   } else {
-    console.log('[switchTab] view already exists for tab:', id)
+    logger.info('[switchTab] view already exists for tab:', id)
     win.contentView.addChildView(targetTab.view)
     updateCurTabBounds(targetTab, win)
   }
 
   setCurrentTabId(win.id, id)
-  console.log('[switchTab] done, ctx.curTabId now:', ctx.curTabId)
+  logger.info('[switchTab] done, ctx.curTabId now:', ctx.curTabId)
 
   return true
 }

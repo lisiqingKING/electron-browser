@@ -1,4 +1,5 @@
 import { BrowserWindow } from 'electron'
+import { mainLogger as logger } from '../shared/logger'
 import { getCurTab, createTabCore, updateCurTabBounds, getTabListData, getTabContext, switchTab, TabInfo } from './state'
 import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString } from './state/coreUtils'
 import { registerWebContentsEvents } from './tabEvents'
@@ -54,20 +55,20 @@ export function tryRestoreLoadError(tab: { info: TabInfo }, newUrl: string): boo
 export function goBack(win: BrowserWindow) {
   const tab = getCurTab(win)
   if (!tab) {
-    console.log('[goBack] no current tab')
+    logger.info('[goBack] no current tab')
     return
   }
 
   const canGoBack = tab.view.webContents.canGoBack()
-  console.log('[goBack] canGoBack:', canGoBack)
+  logger.debug('[goBack] canGoBack:', canGoBack)
 
   if (!canGoBack) {
-    console.log('[goBack] no back history in browser')
+    logger.info('[goBack] no back history in browser')
     return
   }
 
   const finishHandler = () => {
-    console.log('[goBack] navigation finished, newUrl:', tab.view.webContents.getURL())
+    logger.info('[goBack] navigation finished, newUrl:', tab.view.webContents.getURL())
     const newUrl = tab.view.webContents.getURL()
 
     if (tryRestoreLoadError(tab, newUrl)) {
@@ -91,20 +92,20 @@ export function goBack(win: BrowserWindow) {
 export function goForward(win: BrowserWindow) {
   const tab = getCurTab(win)
   if (!tab) {
-    console.log('[goForward] no current tab')
+    logger.info('[goForward] no current tab')
     return
   }
 
   const canGoForward = tab.view.webContents.canGoForward()
-  console.log('[goForward] canGoForward:', canGoForward)
+  logger.debug('[goForward] canGoForward:', canGoForward)
 
   if (!canGoForward) {
-    console.log('[goForward] no forward history in browser')
+    logger.info('[goForward] no forward history in browser')
     return
   }
 
   const finishHandler = () => {
-    console.log('[goForward] navigation finished, newUrl:', tab.view.webContents.getURL())
+    logger.info('[goForward] navigation finished, newUrl:', tab.view.webContents.getURL())
     const newUrl = tab.view.webContents.getURL()
 
     if (tryRestoreLoadError(tab, newUrl)) {

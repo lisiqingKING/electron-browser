@@ -1,4 +1,5 @@
 import { BrowserWindow } from 'electron'
+import { mainLogger as logger } from '../shared/logger'
 import { getTabContext, getCurTab, getTabListData } from './state'
 import { findExistingInternalTab, switchToExistingTab } from './state/coreUtils'
 import { goBack as navGoBack, goForward as navGoForward, refreshCurTab, updateCurTabUrl, createTabAndShow, resolveAppsUrl } from './tabNavigation'
@@ -54,14 +55,14 @@ export function createHomeTab(win: BrowserWindow): string | null {
   if (existing) return existing.info.id ?? null
 
   const url = env.getAppUrl()
-  console.log('[createHome] 加载 URL:', url)
+  logger.info('[createHome] 加载 URL:', url)
   return createTabAndShow({ title: '首页', url, isHome: true }, win)
 }
 
 export function createDefaultTab(win: BrowserWindow, afterTabId?: string): string | null {
   if (!win) return null
   const url = env.getNewTabUrl()
-  console.log('[createDefault] 加载 URL:', url)
+  logger.info('[createDefault] 加载 URL:', url)
   return createTabAndShow({ title: '新标签页', url }, win, afterTabId)
 }
 
@@ -75,10 +76,10 @@ export function createInternalTab(
   const url = page.url
   const title = page.title
 
-  console.log(`[create${title}] 加载 URL:`, url)
+  logger.info(`[create${title}] 加载 URL:`, url)
   const existing = findExistingInternalTab(win, url)
   if (existing) {
-    console.log(`[create${title}] 已存在，切换到:`, existing.info.id)
+    logger.info(`[create${title}] 已存在，切换到:`, existing.info.id)
     switchToExistingTab(win, existing)
     return existing.info.id || null
   }

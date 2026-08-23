@@ -5,6 +5,7 @@ import { blobChannels } from '../../channels'
 import { getDownloadManager, getDownloadSaveDir } from '../index'
 import { getSetting } from '../../../settings/manager'
 import { broadcast } from '../../../../shared/broadcast'
+import { ipcLogger } from '../../../../shared/logger'
 
 export function getBlobInjectScript(): string {
   return `
@@ -102,7 +103,7 @@ export function initBlobInject(): void {
   initialized = true
 
   ipcMain.handle(blobChannels.error, async (_event, { error }) => {
-    console.error('[blobInject] blobChannels.error:', error)
+    ipcLogger.error('[blobInject] blobChannels.error:', error)
   })
 
   ipcMain.handle(blobChannels.write, async (_event, opts: {
@@ -148,7 +149,7 @@ export function initBlobInject(): void {
       await manager.addBlobTask({ savePath: finalSavePath, filename, mimeType: mimeType || null, referrer: referrer || null, url })
       broadcast(blobChannels.done, { savePath: finalSavePath })
     } catch (err) {
-      console.error('[blobInject] write failed:', err)
+      ipcLogger.error('[blobInject] write failed:', err)
     }
   })
 }
