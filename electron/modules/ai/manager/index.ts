@@ -33,3 +33,9 @@ export function deleteChatSession(convId: string): void {
 export function updatePinned(convId: string, pinned: number): void {
   aiConversationDb.updatePinned(convId, pinned)
 }
+
+// ============ 统一 ID 生成 ============
+
+export function generateMessageId(): string {
+  return `msg-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
+}

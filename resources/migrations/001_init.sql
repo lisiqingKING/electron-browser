@@ -79,3 +79,27 @@ CREATE TABLE IF NOT EXISTS downloads (
 );
 CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status);
 CREATE INDEX IF NOT EXISTS idx_downloads_created ON downloads(created_at DESC);
+
+-- AI 流式聊天表（规范化 schema）
+CREATE TABLE IF NOT EXISTS conversations (
+    id          TEXT    PRIMARY KEY,
+    title       TEXT    NOT NULL DEFAULT '新对话',
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id              TEXT    PRIMARY KEY,
+    conversation_id TEXT    NOT NULL,
+    role            TEXT    NOT NULL,
+    content         TEXT    NOT NULL DEFAULT '',
+    status          TEXT    NOT NULL DEFAULT 'sending',
+    halt_reason     TEXT,
+    model           TEXT,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
+CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
