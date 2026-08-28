@@ -155,3 +155,48 @@ pnpm build && electron-builder
 - [ ] 新增了 IPC 模块? 三处同步: 模块实现 / preload 注册 / bootstrap 注册.
 - [ ] 新增了子应用? 扩展顶部"子应用地图" + 在 [electron/subapp-server/](electron/subapp-server/) 配置 dev 端口转发.
 - [ ] 不要直接编辑 `apps/<name>/dist/` 下的产物, 那是从子项目 `dist/` 拷贝过来的构建结果.
+
+## Vue 组件规范
+
+### 事件监听: 用 `useEventListener` 替代裸 `addEventListener`
+
+**必须用 `@vueuse/core` 的 `useEventListener`**（自动配对 `removeEventListener`，组件卸载时自动清理）:
+
+```vue
+<script setup>
+import { useEventListener } from '@vueuse/core'
+
+// ✅ 正确：自动配对
+useEventListener(messagesRef.value, 'scroll', handleScroll)
+useEventListener(window, 'resize', handleResize)
+
+// ❌ 禁止裸写，容易遗漏清理
+onMounted(() => window.addEventListener('resize', handleResize))
+onUnmounted(() => window.removeEventListener('resize', handleResize))
+</script>
+```
+
+### 组件拆分时机
+
+- 单文件超过 300 行时，考虑拆分
+- 模板里存在独立功能区块（菜单、弹窗、空状态、错误提示）时，拆成独立组件
+- 拆分后的组件 Props/Emit 应自描述，不依赖父组件内部状态
+
+### 流式输出 auto-scroll 行为
+
+流式输出时不要每次数据变化都强制滚动到底部 — 判断用户是否在看底部（距底部 < 100px），只有在看底部时才 auto-scroll，用户往上翻看历史时不打断：
+
+```ts
+function isNearBottom(): boolean {
+  const el = messagesRef.value
+  if (!el) return true
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 100
+}
+
+async function scrollToBottom() {
+  await nextTick()
+  if (messagesRef.value && isNearBottom()) {
+    messagesRef.value.scrollTop = messagesRef.value.scrollHeight
+  }
+}
+```

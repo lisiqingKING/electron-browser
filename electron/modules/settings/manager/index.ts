@@ -22,8 +22,8 @@ export function getSetting(key: string): string | null {
 }
 
 export function setSetting(key: string, value: string): void {
-  settingsCache.set(key, value)
   setSettingToDb(key, value)
+  settingsCache.set(key, value)
 }
 
 export function getAllSettings(): SettingItem[] {

@@ -8,11 +8,14 @@ import { createSettingsProxy } from '../electron/modules/settings/ipcClient'
 // import { createUpdaterProxy } from '../electron/modules/updater/ipcClient'
 import { createFavoritesProxy } from '../electron/modules/favorites/ipcClient'
 
+// AI 模块 proxy（流式订阅方法已封装，渲染进程无需接触 ai:stream channel）
+const aiProxy = createAIConversationProxy()
+
 // 模块注册表 - 可以动态添加新模块
 const moduleRegistry: Record<string, () => Record<string, Function>> = {
   tabs: () => createTabsProxy(ipcRenderer),
   history: () => createHistoryProxy(ipcRenderer),
-  ai: () => createAIConversationProxy(ipcRenderer),
+  ai: () => aiProxy,
   downloads: () => createDownloadsProxy(ipcRenderer),
   logs: () => createLogsProxy(ipcRenderer),
   settings: () => createSettingsProxy(ipcRenderer),
@@ -93,6 +96,10 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // 暴露 bridge API
 contextBridge.exposeInMainWorld('bridge', {
+  // 直接访问 AI 模块（推荐方式）
+  ai: aiProxy,
+
+  // 按需获取模块（legacy 方式）
   getModules(moduleNames?: string[]) {
     if (!moduleNames || moduleNames.length === 0) {
       return allModules
