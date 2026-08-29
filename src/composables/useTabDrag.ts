@@ -10,10 +10,10 @@ export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y:
   const dragTabId = ref<string | null>(null)
   const dragTabEl = ref<HTMLElement | null>(null)
   const dragGhost = ref<HTMLElement | null>(null)
+  const adoptedWindowId = ref<number | null>(null)
 
   const onMouseDown = (e: MouseEvent, tab: { id?: string; isHome?: boolean }, currentTabId: string | null) => {
     if (e.button !== 0) return
-    // 禁止拖拽首页或非当前选中 tab
     if (tab.isHome || tab.id !== currentTabId) return
     isDragging.value = true
     dragStartPos.value = { x: e.clientX, y: e.clientY }
@@ -21,7 +21,9 @@ export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y:
     dragTabEl.value = e.currentTarget as HTMLElement
   }
 
-  const onMouseMove = (e: MouseEvent) => {
+  const isAdopting = ref(false)
+
+  const onMouseMove = async (e: MouseEvent) => {
     if (!isDragging.value || !dragTabId.value) return
 
     const dy = e.clientY - dragStartPos.value.y
@@ -34,8 +36,20 @@ export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y:
     }
 
     if (dy > DRAG_TRIGGER_DISTANCE && dragTabId.value) {
-      onDragOut(dragTabId.value, { x: e.screenX, y: e.screenY })
-      cleanupDrag()
+      if (adoptedWindowId.value === null && !isAdopting.value) {
+        // 首次超过阈值，创建新窗口
+        isAdopting.value = true
+        const pos = { x: e.screenX - dragStartPos.value.x, y: e.screenY - dragStartPos.value.y - 30 }
+        const winId = await onDragOut(dragTabId.value, pos)
+        adoptedWindowId.value = winId ?? null
+        isAdopting.value = false
+      } else if (typeof adoptedWindowId.value === 'number') {
+        // 持续更新窗口位置
+        window.ipcRenderer.invoke('window:update-position', adoptedWindowId.value, {
+          x: e.screenX - dragStartPos.value.x,
+          y: e.screenY - dragStartPos.value.y - 30,
+        })
+      }
     }
   }
 
@@ -65,6 +79,7 @@ export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y:
     dragStartPos.value = { x: 0, y: 0 }
     dragTabId.value = null
     dragTabEl.value = null
+    adoptedWindowId.value = null
     if (dragGhost.value) {
       dragGhost.value.remove()
       dragGhost.value = null

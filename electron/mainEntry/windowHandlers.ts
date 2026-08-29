@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, dialog, shell, app } from 'electron'
 import { ipcLogger } from '../shared/logger'
-import { closeWindow, getAllWindows, activateReserveWindow } from '../windows/windowManager'
+import { closeWindow, getAllWindows, activateReserveWindow, setReserveWindowPosition } from '../windows/windowManager'
 import { getSetting as getSettingsValue } from '../modules/settings/manager'
 import { getTabContext, getTabListData, switchTab, addTabToWindow, removeTabFromWindow } from '../tabs/state'
 import { getTabEntry, getTabBrowserWindow } from '../tabs/state/windowTabs'
@@ -69,6 +69,10 @@ export function registerWindowIpc() {
     const oldCurTabId = getTabContext(oldWin).curTabId
     let { view } = tabEntry
 
+    // 在 show() 之前设置位置，避免 setPosition 触发 autoresize
+    if (screenPos) {
+      setReserveWindowPosition(Math.floor(screenPos.x), Math.floor(screenPos.y))
+    }
     const newWin = activateReserveWindow()
     if (newWin.isDestroyed()) return false
 
@@ -82,11 +86,6 @@ export function registerWindowIpc() {
       } else {
         view.webContents.loadFile(resolvedUrl)
       }
-    }
-
-    // 定位窗口到鼠标位置（仅拖拽场景）
-    if (screenPos) {
-      newWin.setPosition(screenPos.x - Math.floor(newWin.getSize()[0] / 2), screenPos.y - 48)
     }
 
     // 清空新窗口的非 home tab（reserveWindow 可能有残留）
@@ -123,7 +122,18 @@ export function registerWindowIpc() {
       newWin.webContents.send('tab:list-changed', getTabListData(newWin))
     }
 
-    return true
+    return newWin.id
+  })
+
+  const WINDOW_W = 800
+  const WINDOW_H = 600
+
+  ipcMain.handle('window:update-position', (_event, windowId: number, pos: { x: number; y: number }) => {
+    const win = BrowserWindow.fromId(windowId)
+    if (win && !win.isDestroyed()) {
+      win.setPosition(Math.floor(pos.x), Math.floor(pos.y))
+      win.setSize(WINDOW_W, WINDOW_H)
+    }
   })
 
   ipcMain.handle('window:selectDownloadDir', async (_event, currentPath: string) => {

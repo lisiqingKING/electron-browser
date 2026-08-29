@@ -20,6 +20,7 @@ export const VITE_PUBLIC = () => VITE_DEV_SERVER_URL ? path.join(getAppRoot(), '
 
 let reserveWindow: BrowserWindow | null = null
 let currentMainWindow: BrowserWindow | null = null
+let pendingWindowPosition: { x: number; y: number } | null = null
 
 const allWindows = new Set<BrowserWindow>()
 
@@ -33,6 +34,8 @@ function createWindowCore(isMain = false): BrowserWindow {
   const win = new BrowserWindow({
     icon: path.join(VITE_PUBLIC(), 'electron-vite.svg'),
     frame: false,
+    width: 800,
+    height: 600,
     minWidth: 800,
     minHeight: 500,
     webPreferences: {
@@ -110,12 +113,22 @@ export function activateReserveWindow(): BrowserWindow {
   }
 
   ;(win as any).isMainWindow = true
+  // show() 之前设置位置，避免 setPosition 触发 autoresize
+  if (pendingWindowPosition) {
+    win.setPosition(pendingWindowPosition.x, pendingWindowPosition.y)
+    pendingWindowPosition = null
+  }
   win.show()
+  win.setAlwaysOnTop(false, 'normal')
   win.focus()
   setWindowAsCurrentMain(win)
 
   ensureReserveWindow()
   return win
+}
+
+export function setReserveWindowPosition(x: number, y: number) {
+  pendingWindowPosition = { x, y }
 }
 
 export function setWindowAsCurrentMain(win: BrowserWindow): void {
