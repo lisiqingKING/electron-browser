@@ -202,11 +202,6 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
     }
   }
 
-  const curTab = getCurTab(win)
-  if (curTab?.view) {
-    win.contentView.removeChildView(curTab.view)
-  }
-
   let title = tabInfo.title
   if (!title) {
     if (isInternalUrl(tabInfo.url)) {
@@ -218,12 +213,23 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
     }
   }
 
+  // 目标：切换时把旧 tab 的 view 从 contentView 移除，让新 tab 的 view 可见
+  // 旧 tab 的 id 必须在 createTabCore 之前保存，因为 createTabCore 会把 ctx.curTabId 改成新的
+  const prevTabId = ctx.curTabId
+
   const { view, tabInfo: enrichedTabInfo, insertIndex } = createTabCore({ ...tabInfo, title }, win, afterTabId, externalId)
   if (!view) {
     return null
   }
-  enrichedTabInfo.isLoading = true
 
+  if (prevTabId && prevTabId !== enrichedTabInfo.id) {
+    const prevEntry = ctx.webContentViewMap.get(prevTabId)
+    if (prevEntry?.view) {
+      win.contentView.removeChildView(prevEntry.view)
+    }
+  }
+
+  enrichedTabInfo.isLoading = true
   const resolvedUrl = resolveAppsUrl(tabInfo.url)
   if (isUrl(resolvedUrl)) {
     view.webContents.loadURL(resolvedUrl)

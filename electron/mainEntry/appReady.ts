@@ -31,10 +31,6 @@ export function createMainWindow(): Electron.BrowserWindow {
 
   setupWindow(win)
 
-  if (process.env.VITE_DEV_SERVER_URL) {
-    win.webContents.openDevTools()
-  }
-
   restoreTabs(win)
 
   const ctx = getTabContext(win)
