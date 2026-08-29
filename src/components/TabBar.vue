@@ -188,13 +188,7 @@ onUnmounted(() => {
   height: 36px;
   margin-top: 12px;
   border-radius: var(--radius-md);
-  padding: 4px;
   @include transition(background opacity);
-
-  &:hover {
-    background: var(--tabbar-hover-bg);
-    opacity: 1;
-  }
 }
 
 .tab {
