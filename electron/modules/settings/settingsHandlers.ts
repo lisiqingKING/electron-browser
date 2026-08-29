@@ -1,5 +1,6 @@
-import { ipcMain } from 'electron'
+import { ipcMain, nativeTheme } from 'electron'
 import { ipcLogger } from '../../shared/logger'
+import type { Theme } from '../../shared/types'
 import { getSetting, setSetting, getAllSettings } from './manager'
 import { isInternalTab } from '../../tabs/tabCore'
 import { getAllWindows } from '../../windows/windowManager'
@@ -18,6 +19,7 @@ export function registerSettingsHandlers() {
       return false
     }
     if (key === 'theme') {
+      nativeTheme.themeSource = value as Theme
       ipcLogger.info('[settingsHandlers] broadcasting theme:', value)
       for (const w of getAllWindows()) {
         w.webContents.send('settings:theme-changed', value)

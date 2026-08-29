@@ -13,6 +13,9 @@ import { env } from '../shared/env'
 import { createTabAndShow } from '../tabs/tabNavigation'
 import { createTray } from '../windows/tray/trayManager'
 import { getTabListData, switchTab, getTabContext } from '../tabs/state'
+import { nativeTheme } from 'electron'
+import { getSetting } from '../modules/settings/manager'
+import type { Theme } from '../shared/types'
 
 function restoreTabs(win: Electron.BrowserWindow) {
   // 默认选中首页，tabs 恢复由弹窗决定
@@ -61,6 +64,11 @@ export async function appReadyInit() {
   registerAllHandlers()
 
   getDownloadManager().init()
+
+  // 同步原生菜单主题
+  const savedTheme = getSetting('theme') || 'dark'
+  nativeTheme.themeSource = savedTheme as Theme
+
   createMainWindow()
   ensureReserveWindow()
 }
