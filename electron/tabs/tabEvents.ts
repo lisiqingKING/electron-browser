@@ -14,7 +14,9 @@ import { mainLogger as logger } from '../shared/logger'
 function broadcastFavoritesChanged() {
   const favorites = getAllFavorites()
   for (const w of BrowserWindow.getAllWindows()) {
-    w.webContents.send('favorites:changed', favorites)
+    if (!w.isDestroyed()) {
+      w.webContents.send('favorites:changed', favorites)
+    }
   }
 }
 
@@ -31,6 +33,12 @@ function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): stri
 export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInfo, win: BrowserWindow) {
   const tabId = tabInfo.id!
   const ctx = getTabContext(win)
+
+  const safeSend = (channel: string, ...args: any[]) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send(channel, ...args)
+    }
+  }
 
   view.webContents.setWindowOpenHandler((event) => {
     // event.url is used in createTabCore and loadURL/loadFile
@@ -55,7 +63,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     registerWebContentsEvents(newView, newTabInfo, win)
     win.contentView.addChildView(newView)
     updateCurTabBounds(ctx.webContentViewMap.get(newTabInfo.id!)!, win)
-    win.webContents.send('tab:list-changed', getTabListData(win))
+    safeSend('tab:list-changed', getTabListData(win))
 
     return { action: 'deny' }
   })
@@ -64,7 +72,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     const tab = ctx.webContentViewMap.get(tabId)
     if (tab) {
       tab.info.isLoading = true
-      win.webContents.send('tab:loading', { id: tabId, isLoading: true })
+      safeSend('tab:loading', { id: tabId, isLoading: true })
 
       let newTitle: string | null = null
       if (isInternalUrl(tab.info.url)) {
@@ -75,7 +83,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
 
       if (newTitle && newTitle !== tab.info.title) {
         tab.info.title = newTitle
-        win.webContents.send('tab:info-changed', tab.info)
+        safeSend('tab:info-changed', tab.info)
       }
     }
   })
@@ -84,7 +92,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     const tab = ctx.webContentViewMap.get(tabId)
     if (tab) {
       tab.info.isLoading = false
-      win.webContents.send('tab:loading', { id: tabId, isLoading: false })
+      safeSend('tab:loading', { id: tabId, isLoading: false })
     }
   })
 
@@ -116,8 +124,8 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         code: errorCode,
         message: errorDescription
       }
-      win.webContents.send('tab:loading', { id: tabId, isLoading: false })
-      win.webContents.send('tab:info-changed', tab.info)
+      safeSend('tab:loading', { id: tabId, isLoading: false })
+      safeSend('tab:info-changed', tab.info)
 
       const errorUrl = env.getErrorUrl({
         url: validatedURL,
@@ -135,7 +143,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       const newUrl = view.webContents.getURL()
 
       if (tryRestoreLoadError(tab, newUrl)) {
-        win.webContents.send('tab:info-changed', tab.info)
+        safeSend('tab:info-changed', tab.info)
         updateNavigationState(tabId, win)
         return
       }
@@ -152,7 +160,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         tab.info.title = getTitleForUrl(tab, view.webContents.getTitle() || tab.info.title)
         recordVisit(tab.info.title, newUrl, tab.info.favicon)
         updateTabUrl()
-        win.webContents.send('tab:info-changed', tab.info)
+        safeSend('tab:info-changed', tab.info)
       }
       updateNavigationState(tabId, win)
     }
@@ -178,7 +186,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     const tab = ctx.webContentViewMap.get(tabId)
     if (tab) {
       if (tryRestoreLoadError(tab, url)) {
-        win.webContents.send('tab:info-changed', tab.info)
+        safeSend('tab:info-changed', tab.info)
         updateNavigationState(tabId, win)
         return
       }
@@ -191,7 +199,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
         tab.info.url = url
         tab.info.title = getTitleForUrl(tab, view.webContents.getTitle())
       }
-      win.webContents.send('tab:info-changed', tab.info)
+      safeSend('tab:info-changed', tab.info)
       updateNavigationState(tabId, win)
     }
   })
@@ -204,7 +212,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       const newTitle = getTitleForUrl(tab, title)
       if (newTitle !== tab.info.title) {
         tab.info.title = newTitle
-        win.webContents.send('tab:info-changed', tab.info)
+        safeSend('tab:info-changed', tab.info)
       }
     }
   })
@@ -216,7 +224,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       // data: URL 直接使用
       if (iconUrl.startsWith('data:')) {
         tab.info.favicon = iconUrl
-        win.webContents.send('tab:info-changed', tab.info)
+        safeSend('tab:info-changed', tab.info)
         return
       }
       // 相对路径转为完整 URL
@@ -234,7 +242,7 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
       const base64Icon = await getOrFetchIcon(tab.info.url, iconUrl)
       if (base64Icon) {
         tab.info.favicon = base64Icon
-        win.webContents.send('tab:info-changed', tab.info)
+        safeSend('tab:info-changed', tab.info)
       }
     }
   })

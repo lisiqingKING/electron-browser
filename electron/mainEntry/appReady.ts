@@ -18,7 +18,6 @@ import { getSetting } from '../modules/settings/manager'
 import type { Theme } from '../shared/types'
 
 function restoreTabs(win: Electron.BrowserWindow) {
-  // 默认选中首页，tabs 恢复由弹窗决定
   const ctx = getTabContext(win)
   const homeTab = ctx.tabs.find(t => t.isHome)
   if (homeTab?.id) {
@@ -38,7 +37,6 @@ export function createMainWindow(): Electron.BrowserWindow {
 
   restoreTabs(win)
 
-  // 只有没有任何 tab 时才创建 home tab
   const ctx = getTabContext(win)
   if (ctx.tabs.length === 0) {
     const appUrl = env.getAppUrl()
@@ -65,7 +63,6 @@ export async function appReadyInit() {
 
   getDownloadManager().init()
 
-  // 同步原生菜单主题
   const savedTheme = getSetting('theme') || 'dark'
   nativeTheme.themeSource = savedTheme as Theme
 

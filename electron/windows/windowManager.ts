@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu } from 'electron'
+import { BrowserWindow, Menu, app } from 'electron'
 import path from 'node:path'
 import { getTabListData, cleanupWindowContext, createTabCore, destroyAllTabViews, getTabContext } from '../tabs/state'
 import { cleanupWindowTabs } from '../tabs/state/windowTabs'
@@ -6,6 +6,7 @@ import { env } from '../shared/env'
 import { setupWindow } from '../mainEntry/windowEvents'
 import { mainLogger as logger } from '../shared/logger'
 import { saveTabs } from '../tabs/tabsDb'
+import { destroyTray } from './tray/trayManager'
 
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
@@ -121,14 +122,31 @@ export function setWindowAsCurrentMain(win: BrowserWindow): void {
   currentMainWindow = win
 }
 
+export function closeReserveWindow(): void {
+  if (reserveWindow && !reserveWindow.isDestroyed()) {
+    reserveWindow.destroy()
+    reserveWindow = null
+  }
+}
+
 export function closeWindow(win: BrowserWindow): void {
   destroyAllTabViews(win)
-  win.destroy()
 
-  if (currentMainWindow === win) {
-    const otherWin = [...allWindows].find(w => !w.isDestroyed())
-    if (otherWin) {
-      setWindowAsCurrentMain(otherWin)
+  const visibleCount = BrowserWindow.getAllWindows()
+    .filter(w => !w.isDestroyed() && w.isVisible() && w !== win)
+    .length
+
+  if (visibleCount === 0) {
+    closeReserveWindow()
+    destroyTray()
+    app.quit()
+  } else {
+    win.destroy()
+    if (currentMainWindow === win) {
+      const otherWin = [...allWindows].find(w => !w.isDestroyed())
+      if (otherWin) {
+        setWindowAsCurrentMain(otherWin)
+      }
     }
   }
 }

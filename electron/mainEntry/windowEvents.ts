@@ -1,7 +1,6 @@
 import { app, BrowserWindow } from 'electron'
-import { activateReserveWindow, setWindowAsCurrentMain } from '../windows/windowManager'
+import { activateReserveWindow, setWindowAsCurrentMain, closeReserveWindow } from '../windows/windowManager'
 import { getTabContext, updateCurTabBounds } from '../tabs/state'
-import { destroyTray } from '../windows/tray/trayManager'
 import { closeDatabase } from '../shared/database/index'
 import { stopSubappServer } from '../subapp-server'
 import { getDownloadManager } from '../modules/downloads/manager'
@@ -22,13 +21,7 @@ export function setupWindow(win: BrowserWindow) {
 }
 
 export function registerWindowEvents() {
-  app.on('window-all-closed', () => {
-    // 不自动退出，让托盘保持应用运行
-  })
-
   app.on('will-quit', () => {
-    // 窗口 close 时已经保存 tabs，这里不再保存
-    destroyTray()
     closeDatabase()
     stopSubappServer()
     void getDownloadManager().shutdown()
@@ -46,6 +39,6 @@ export function registerWindowEvents() {
     setWindowAsCurrentMain(win)
     setupWindow(win)
     const appUrl = env.getAppUrl()
-    createTabAndShow({ title: '首页', url: appUrl, isHome: true }, win)
+    createTabAndShow({ title: '首页', url: appUrl }, win)
   })
 }
