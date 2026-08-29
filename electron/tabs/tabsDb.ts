@@ -49,6 +49,10 @@ export function loadTabs(): TabRow[] {
   }
 }
 
+export function clearTabs(): void {
+  setCache(CACHE_KEY_TABS, JSON.stringify([]))
+}
+
 // 以下函数已废弃，不再使用（增量写入已移除）
 export function insertTab(): string {
   return ''

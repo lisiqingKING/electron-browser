@@ -18,7 +18,7 @@ import {
   closeTabsToLeft,
   closeTabsToRight,
 } from './tabManager'
-import { loadTabs, saveTabs, updateTabInfo } from './tabsDb'
+import { loadTabs, saveTabs, clearTabs, updateTabInfo } from './tabsDb'
 import { getWindowByWebContentsId, getTabContext, getTabListData } from './state'
 import { showPopup } from '../modules/popup/manager'
 
@@ -283,5 +283,9 @@ export function registerTabHandlers() {
       component: 'RestoreTabsPrompt',
       props: { tabCount: savedTabs.length, windowId: win.id },
     }, win)
+  })
+
+  ipcMain.handle('tabs:clearSaved', () => {
+    clearTabs()
   })
 }

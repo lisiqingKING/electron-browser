@@ -12,6 +12,11 @@ async function handleRestore() {
   await window.ipcRenderer.invoke('tabs:restore', props.windowId)
   hide()
 }
+
+async function handleDecline() {
+  await window.ipcRenderer.invoke('tabs:clearSaved')
+  hide()
+}
 </script>
 
 <template>
@@ -19,7 +24,7 @@ async function handleRestore() {
     <div class="title">检测到上次退出前的标签页</div>
     <div class="desc">是否恢复 {{ tabCount ?? 0 }} 个标签页？</div>
     <div class="actions">
-      <div class="btn btn-secondary" @click="hide">否</div>
+      <div class="btn btn-secondary" @click="handleDecline">否</div>
       <div class="btn btn-primary" @click="handleRestore">是</div>
     </div>
   </div>
