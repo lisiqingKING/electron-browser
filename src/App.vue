@@ -253,6 +253,12 @@ onMounted(() => {
   if (urlParams.get('isMain') === 'true') {
     window.ipcRenderer.send('tabs:showRestorePrompt')
   }
+  // 监听收藏变化，重新检查当前 URL 的收藏状态
+  window.ipcRenderer.on('favorites:changed', async () => {
+    if (currentUrl.value && !isNewTabUrl(currentUrl.value)) {
+      isFavorited.value = await window.ipcRenderer.invoke('favorites:check', currentUrl.value)
+    }
+  })
 })
 
 

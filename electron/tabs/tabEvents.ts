@@ -5,10 +5,18 @@ import { getOrFetchIcon } from '../modules/icons/manager'
 import { getTabContext, TabInfo, createTabCore, updateCurTabBounds, getTabListData, getCurTab } from './state'
 import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString } from './state/coreUtils'
 import { updateNavigationState, tryRestoreLoadError, createTabAndShow } from './tabNavigation'
+import { checkFavorite, toggleFavorite, getAllFavorites } from '../modules/favorites/manager'
 import { isUrl } from '@renderer/utils'
 import { env, PROTOCOL_LSQAPP } from '../shared/env'
 import { updateTabUrl } from './tabsDb'
 import { mainLogger as logger } from '../shared/logger'
+
+function broadcastFavoritesChanged() {
+  const favorites = getAllFavorites()
+  for (const w of BrowserWindow.getAllWindows()) {
+    w.webContents.send('favorites:changed', favorites)
+  }
+}
 
 function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
   if (isInternalUrl(tab.info.url)) {
@@ -245,9 +253,26 @@ export function registerWebContentsEvents(view: WebContentsView, tabInfo: TabInf
     window: view.webContents,
     menu: (_defaultActions, parameters) => {
       const items: Electron.MenuItemConstructorOptions[] = []
+      const currentUrl = tabInfo.url
+      const isFavorited = checkFavorite(currentUrl)
 
+      // 前进 / 后退 / 刷新
+      items.push({ label: '后退', enabled: view.webContents.canGoBack(), click: () => view.webContents.goBack() })
+      items.push({ label: '前进', enabled: view.webContents.canGoForward(), click: () => view.webContents.goForward() })
       items.push({ label: '刷新', click: () => view.webContents.reload() })
       items.push({ type: 'separator' })
+
+      // 收藏 / 取消收藏
+      if (currentUrl) {
+        items.push({
+          label: isFavorited ? '取消收藏' : '添加收藏',
+          click: () => {
+            toggleFavorite(currentUrl, tabInfo.title || '', tabInfo.favicon)
+            broadcastFavoritesChanged()
+          }
+        })
+        items.push({ type: 'separator' })
+      }
 
       if (parameters.isEditable) {
         items.push({ label: '剪切', click: () => view.webContents.cut() })
