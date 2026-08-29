@@ -5,6 +5,7 @@ import { registerFavoritesHandlers } from './modules/favorites/favoritesHandlers
 import { registerSettingsHandlers } from './modules/settings/settingsHandlers'
 import { registerAIHandlers } from './modules/ai/aiHandlers'
 import { registerLogsHandlers } from './modules/logs/logsHandlers'
+import { registerClipboardHandlers } from './modules/clipboard/clipboardHandlers'
 // import { registerUpdaterHandlers } from './modules/updater/updaterHandlers'
 
 export function registerAllHandlers() {
@@ -15,5 +16,6 @@ export function registerAllHandlers() {
   registerSettingsHandlers()
   registerAIHandlers()
   registerLogsHandlers()
+  registerClipboardHandlers()
   // registerUpdaterHandlers()
 }

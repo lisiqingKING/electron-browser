@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { usePopup } from '../composables/usePopup'
 import { getTabIcon } from '../utils/tabIcons'
 
@@ -19,10 +20,83 @@ const emit = defineEmits<{
   (e: 'toggleFavorite'): void
 }>()
 
-const { show } = usePopup()
+const { show, onAction } = usePopup()
+const urlInputRef = ref<HTMLInputElement | null>(null)
+
+let removeActionListener: (() => void) | null = null
+
+onMounted(() => {
+  removeActionListener = onAction(async (action: string) => {
+    const input = urlInputRef.value
+    if (!input) return
+
+    switch (action) {
+      case 'cut': {
+        const start = input.selectionStart ?? 0
+        const end = input.selectionEnd ?? 0
+        if (end > start) {
+          const newValue = props.modelValue.slice(0, start) + props.modelValue.slice(end)
+          emit('update:modelValue', newValue)
+        }
+        break
+      }
+      case 'paste': {
+        const text = await window.ipcRenderer.invoke('clipboard:readText')
+        if (!text) return
+        const start = input.selectionStart ?? 0
+        const end = input.selectionEnd ?? 0
+        const newValue = props.modelValue.slice(0, start) + text + props.modelValue.slice(end)
+        emit('update:modelValue', newValue)
+        break
+      }
+      case 'selectAll': {
+        input.select()
+        break
+      }
+      case 'delete': {
+        emit('update:modelValue', '')
+        break
+      }
+      case 'pasteAndSearch': {
+        const text = await window.ipcRenderer.invoke('clipboard:readText')
+        if (!text) return
+        emit('update:modelValue', text)
+        emit('submit')
+        break
+      }
+      case 'clearAndPaste': {
+        const text = await window.ipcRenderer.invoke('clipboard:readText')
+        if (!text) return
+        emit('update:modelValue', text)
+        break
+      }
+    }
+  })
+})
+
+onUnmounted(() => {
+  removeActionListener?.()
+})
 
 const handleRefresh = () => {
   window.ipcRenderer.send('tabs:refresh')
+}
+
+const handleContextMenu = async (event: MouseEvent) => {
+  event.preventDefault()
+  const input = urlInputRef.value
+  if (!input) return
+  const clipboardText = await window.ipcRenderer.invoke('clipboard:readText').catch(() => '')
+  show({
+    x: event.screenX,
+    y: event.screenY,
+    component: 'UrlBarInputContextMenu',
+    props: {
+      clipboardText,
+      inputValue: input.value,
+      selectedText: input.value.slice(input.selectionStart ?? 0, input.selectionEnd ?? 0),
+    },
+  })
 }
 
 const handleGoBack = () => {
@@ -74,10 +148,12 @@ const handleMoreClick = (event: MouseEvent) => {
           </template>
         </svg>
         <input
+          ref="urlInputRef"
           :value="props.modelValue"
           type="text"
           placeholder="搜索或输入网址"
           class="url-input"
+          @contextmenu="handleContextMenu"
           @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
           @keyup.enter="emit('submit')"
         />
