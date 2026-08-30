@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron'
-import { activateReserveWindow, setWindowAsCurrentMain, closeReserveWindow } from '../windows/windowManager'
+import { activateReserveWindow, setWindowAsCurrentMain } from '../windows/windowManager'
 import { getTabContext, updateCurTabBounds } from '../tabs/state'
 import { closeDatabase } from '../shared/database/index'
 import { stopSubappServer } from '../subapp-server'

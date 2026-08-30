@@ -26,9 +26,6 @@ async function doAction(action: 'copy' | 'cut' | 'paste' | 'selectAll' | 'delete
   hide()
 }
 
-function truncate(text: string, maxLen: number): string {
-  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
-}
 </script>
 
 <template>

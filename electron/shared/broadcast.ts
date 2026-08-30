@@ -13,7 +13,7 @@ export function broadcast(channel: string, payload?: unknown): void {
     sendTo(win.webContents, channel, payload)
     const ctx = getTabContext(win)
     for (const [, tab] of ctx.webContentViewMap) {
-      if (!tab.view) continue
+      if (!tab.view?.webContents) continue
       sendTo(tab.view.webContents, channel, payload)
     }
   }
