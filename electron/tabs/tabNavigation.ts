@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { mainLogger as logger } from '../shared/logger'
 import { getCurTab, createTabCore, updateCurTabBounds, getTabListData, getTabContext, switchTab, TabInfo } from './state'
-import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString } from './state/coreUtils'
+import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString, findExistingInternalTab, switchToExistingTab } from './state/coreUtils'
 import { registerWebContentsEvents } from './tabEvents'
 import { isUrl } from '@renderer/utils'
 import { getSubappUrl } from '../subapp-server'
@@ -199,6 +199,15 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
     if (existingHomeTab?.id) {
       switchTab(existingHomeTab.id, win)
       return existingHomeTab.id
+    }
+  }
+
+  // 对于内部页面 URL，检查是否已存在 tab，存在则切换
+  if (!tabInfo.isHome && (isInternalUrl(tabInfo.url) || isAppUrl(tabInfo.url))) {
+    const existing = findExistingInternalTab(win, tabInfo.url)
+    if (existing) {
+      switchToExistingTab(win, existing)
+      return existing.info.id || null
     }
   }
 
