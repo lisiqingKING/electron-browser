@@ -1,7 +1,6 @@
 import { ref } from 'vue'
 import { useEventListener, useThrottleFn } from '@vueuse/core'
 
-const DRAG_THRESHOLD = 20
 const DRAG_TRIGGER_DISTANCE = 36
 const THROTTLE_MS = 16
 
@@ -14,80 +13,55 @@ export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y:
   const dragStartPos = ref({ x: 0, y: 0 })
   const dragTabId = ref<string | null>(null)
   const dragTabEl = ref<HTMLElement | null>(null)
-  const dragGhost = ref<HTMLElement | null>(null)
   const adoptedWindowId = ref<number | null>(null)
+  const windowInitMouse = ref({ x: 0, y: 0 })
+  const windowInitPos = ref({ x: 0, y: 0 })
+  const dragInitMouse = ref({ x: 0, y: 0 })
 
-  const onMouseDown = (e: MouseEvent, tab: { id?: string; isHome?: boolean }, currentTabId: string | null) => {
+  const onMouseDown = (e: MouseEvent, tab: { id?: string; isHome?: boolean }, tabId: string | null) => {
     if (e.button !== 0) return
-    if (tab.isHome || tab.id !== currentTabId) return
+    if (tab.isHome || tab.id !== tabId) return
     isDragging.value = true
-    dragStartPos.value = { x: e.clientX, y: e.clientY }
+    const tabRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    dragStartPos.value = { x: e.clientX - tabRect.left, y: e.clientY - tabRect.top }
+    dragInitMouse.value = { x: e.clientX, y: e.clientY }
     dragTabId.value = tab.id || null
     dragTabEl.value = e.currentTarget as HTMLElement
   }
 
-  const isAdopting = ref(false)
-
   const onMouseMove = async (e: MouseEvent) => {
     if (!isDragging.value || !dragTabId.value) return
 
-    const dy = e.clientY - dragStartPos.value.y
-
-    if (dragGhost.value) {
-      dragGhost.value.style.left = `${e.clientX - 60}px`
-      dragGhost.value.style.top = `${e.clientY - 15}px`
-    } else if (Math.abs(dy) > DRAG_THRESHOLD && dragTabEl.value) {
-      startDragGhost(dragTabEl.value)
-    }
+    const dy = e.clientY - dragInitMouse.value.y
 
     if (dy > DRAG_TRIGGER_DISTANCE && dragTabId.value) {
-      if (adoptedWindowId.value === null && !isAdopting.value) {
+      if (adoptedWindowId.value === null) {
         // 首次超过阈值，创建新窗口
-        isAdopting.value = true
-        const pos = { x: e.screenX - dragStartPos.value.x, y: e.screenY - dragStartPos.value.y - 30 }
+        const pos = {
+          x: e.screenX - (dragStartPos.value.x + 250),
+          y: e.screenY - e.clientY + 30,
+        }
+        windowInitMouse.value = { x: e.screenX, y: e.screenY }
+        windowInitPos.value = { ...pos }
         const winId = await onDragOut(dragTabId.value, pos)
         adoptedWindowId.value = winId ?? null
-        isAdopting.value = false
       } else if (typeof adoptedWindowId.value === 'number') {
+        // 拖拽更新：窗口当前位置 + (当前鼠标 - 窗口初始化时鼠标)
         updatePosition(adoptedWindowId.value, {
-          x: e.screenX - dragStartPos.value.x,
-          y: e.screenY - dragStartPos.value.y - 30,
+          x: windowInitPos.value.x + (e.screenX - windowInitMouse.value.x),
+          y: windowInitPos.value.y + (e.screenY - windowInitMouse.value.y),
         })
       }
     }
   }
 
-  const startDragGhost = (tabEl: HTMLElement) => {
-    if (dragGhost.value) dragGhost.value.remove()
-    const ghost = document.createElement('div')
-    ghost.className = 'drag-ghost'
-    ghost.textContent = tabEl.querySelector('.tab-title')?.textContent || ''
-    ghost.style.cssText = `
-      position: fixed;
-      pointer-events: none;
-      z-index: 9999;
-      background: var(--tabbar-active-bg);
-      color: var(--tabbar-text-active);
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      opacity: 0.9;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    `
-    document.body.appendChild(ghost)
-    dragGhost.value = ghost
-  }
-
   const cleanupDrag = () => {
     isDragging.value = false
     dragStartPos.value = { x: 0, y: 0 }
+    dragInitMouse.value = { x: 0, y: 0 }
     dragTabId.value = null
     dragTabEl.value = null
     adoptedWindowId.value = null
-    if (dragGhost.value) {
-      dragGhost.value.remove()
-      dragGhost.value = null
-    }
   }
 
   useEventListener(document, 'mousemove', onMouseMove)
