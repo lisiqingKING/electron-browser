@@ -4,7 +4,7 @@ import { getTabContext } from './context'
 import type { TabInfo } from './types'
 import { updateCurTabBounds } from './tabBounds'
 import { createTabView } from './tabCore'
-import { registerWebContentsEvents } from '../tabEvents'
+import { registerWebContentsEvents } from '../handlers'
 import { resolveAppsUrl } from '../tabNavigation'
 import { isUrl } from '@renderer/utils'
 
@@ -119,4 +119,24 @@ export function getTitleForInternalUrl(url: string): string | null {
 
 export function escapeForJsString(url: string): string {
   return url.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+}
+
+export function getTitleForUrl(tab: { info: { url: string } }, pageTitle: string): string {
+  if (isInternalUrl(tab.info.url)) {
+    return getTitleForInternalUrl(tab.info.url) || pageTitle || '首页'
+  }
+  if (isAppUrl(tab.info.url)) {
+    return '首页'
+  }
+  return pageTitle
+}
+
+const CRASH_SUFFIX = ' (已崩溃)'
+
+export function clearCrashTitle(title: string): string {
+  return title.endsWith(CRASH_SUFFIX) ? title.slice(0, -CRASH_SUFFIX.length) : title
+}
+
+export function appendCrashTitle(title: string): string {
+  return title.endsWith(CRASH_SUFFIX) ? title : title + CRASH_SUFFIX
 }

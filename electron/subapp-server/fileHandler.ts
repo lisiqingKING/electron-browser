@@ -16,6 +16,22 @@ export const CONTENT_TYPES: Record<string, string> = {
   '.ico': 'image/x-icon',
 }
 
+// ==================== 安全性：Content-Security-Policy ====================
+// 防止 XSS 注入。未来若引入外部 CDN，按注释在对应 directive 追加域名：
+//   style-src  → 字体 CDN（如 fonts.googleapis.com）
+//   font-src   → 字体文件 CDN（如 fonts.gstatic.com）
+//   script-src → 第三方 SDK CDN
+const HTML_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https:",
+  "connect-src 'self' http://localhost:* https://*",
+  "frame-src 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+].join('; ')
+
 // ============================================================================
 // 文件处理
 // ============================================================================
@@ -38,7 +54,13 @@ export function handleFileRequest(url: string, res: http.ServerResponse, appsDir
 
     const ext = path.extname(filePath).toLowerCase()
     const contentType = CONTENT_TYPES[ext] || 'application/octet-stream'
-    res.writeHead(200, { 'Content-Type': contentType })
+    const headers: Record<string, string> = { 'Content-Type': contentType }
+
+    if (ext === '.html') {
+      headers['Content-Security-Policy'] = HTML_CSP
+    }
+
+    res.writeHead(200, headers)
     res.end(data)
   })
 }
@@ -51,7 +73,10 @@ function handleFileError(err: NodeJS.ErrnoException, filePath: string, res: http
         res.writeHead(404)
         res.end('Not Found')
       } else {
-        res.writeHead(200)
+        res.writeHead(200, {
+          'Content-Type': 'text/html',
+          'Content-Security-Policy': HTML_CSP,
+        })
         res.end(data2)
       }
     })

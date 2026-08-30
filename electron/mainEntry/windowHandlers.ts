@@ -8,7 +8,7 @@ import { env } from '../shared/env'
 import { createTabAndShow, resolveAppsUrl } from '../tabs/tabNavigation'
 import { setupWindow } from './windowEvents'
 import { createTabView } from '../tabs/state/tabCore'
-import { registerWebContentsEvents } from '../tabs/tabEvents'
+import { registerWebContentsEvents } from '../tabs/handlers'
 import { isUrl } from '@renderer/utils'
 
 export function registerWindowIpc() {
