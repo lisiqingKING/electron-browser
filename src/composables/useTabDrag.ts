@@ -1,8 +1,13 @@
 import { ref } from 'vue'
-import { useEventListener } from '@vueuse/core'
+import { useEventListener, useThrottleFn } from '@vueuse/core'
 
 const DRAG_THRESHOLD = 20
 const DRAG_TRIGGER_DISTANCE = 36
+const THROTTLE_MS = 16
+
+const updatePosition = useThrottleFn((winId: number, pos: { x: number; y: number }) => {
+  window.ipcRenderer.invoke('window:update-position', winId, pos)
+}, THROTTLE_MS)
 
 export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y: number }) => void) {
   const isDragging = ref(false)
@@ -44,8 +49,7 @@ export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y:
         adoptedWindowId.value = winId ?? null
         isAdopting.value = false
       } else if (typeof adoptedWindowId.value === 'number') {
-        // 持续更新窗口位置
-        window.ipcRenderer.invoke('window:update-position', adoptedWindowId.value, {
+        updatePosition(adoptedWindowId.value, {
           x: e.screenX - dragStartPos.value.x,
           y: e.screenY - dragStartPos.value.y - 30,
         })

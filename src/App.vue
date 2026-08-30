@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
 import FavoritesQuick from './components/FavoritesQuick.vue'
@@ -247,11 +247,16 @@ window.ipcRenderer.on('settings:theme-changed', (_event, theme: string) => {
   }
 })
 
+const handleMainReadyForPopup = () => {
+  window.ipcRenderer.send('tabs:showRestorePrompt')
+}
+
 onMounted(() => {
   loadTheme()
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('isMain') === 'true') {
     window.ipcRenderer.send('tabs:showRestorePrompt')
+    window.ipcRenderer.on('main:ready-for-popup', handleMainReadyForPopup)
   }
   // 监听收藏变化，重新检查当前 URL 的收藏状态
   window.ipcRenderer.on('favorites:changed', async () => {
@@ -259,6 +264,10 @@ onMounted(() => {
       isFavorited.value = await window.ipcRenderer.invoke('favorites:check', currentUrl.value)
     }
   })
+})
+
+onUnmounted(() => {
+  window.ipcRenderer.off('main:ready-for-popup', handleMainReadyForPopup)
 })
 
 

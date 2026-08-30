@@ -38,6 +38,7 @@ function createWindowCore(isMain = false): BrowserWindow {
     height: 600,
     minWidth: 800,
     minHeight: 500,
+    show: false,
     webPreferences: {
       preload: path.join(MAIN_DIST(), 'preload.js'),
       nodeIntegration: false,
@@ -45,6 +46,13 @@ function createWindowCore(isMain = false): BrowserWindow {
       webviewTag: true,
     },
   })
+
+  if (isMain) {
+    win.webContents.once('did-finish-load', () => {
+      win.show()
+      win.webContents.send('main:ready-for-popup')
+    })
+  }
   ;(win as any).isMainWindow = isMain
 
   allWindows.add(win)
