@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow, dialog, shell, app } from 'electron'
 import { ipcLogger } from '../shared/logger'
-import { closeWindow, getAllWindows, activateReserveWindow, setReserveWindowPosition } from '../windows/windowManager'
+import { closeWindow, getAllWindows, activateReserveWindow, setReserveWindowPosition, setWindowAsCurrentMain } from '../windows/windowManager'
 import { getSetting as getSettingsValue } from '../modules/settings/manager'
 import { getTabContext, getTabListData, switchTab, addTabToWindow, removeTabFromWindow } from '../tabs/state'
 import { getTabEntry, getTabBrowserWindow } from '../tabs/state/windowTabs'
@@ -73,7 +73,8 @@ export function registerWindowIpc() {
     if (screenPos) {
       setReserveWindowPosition(Math.floor(screenPos.x), Math.floor(screenPos.y))
     }
-    const newWin = activateReserveWindow()
+    // 先不显示窗口，等视图移过来再显示，避免窗口出现时是空的
+    const newWin = activateReserveWindow(false)
     if (newWin.isDestroyed()) return false
 
     // 如果 view 不存在（懒加载 tab），先创建 view
@@ -107,6 +108,12 @@ export function registerWindowIpc() {
 
     // 添加到新窗口
     addTabToWindow(removed.tabInfo, view, newWin)
+
+    // 视图移入后再显示窗口，避免窗口出现时内容还没到位
+    newWin.show()
+    newWin.setAlwaysOnTop(false, 'normal')
+    newWin.focus()
+    setWindowAsCurrentMain(newWin)
 
     // 通知旧窗口切换 tab（切换到被移除tab左侧的tab）
     const oldCtx = getTabContext(oldWin)

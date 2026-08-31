@@ -107,7 +107,7 @@ export function ensureReserveWindow(): void {
   }
 }
 
-export function activateReserveWindow(): BrowserWindow {
+export function activateReserveWindow(show = true): BrowserWindow {
   if (!reserveWindow || reserveWindow.isDestroyed()) {
     ensureReserveWindow()
   }
@@ -126,10 +126,13 @@ export function activateReserveWindow(): BrowserWindow {
     win.setPosition(pendingWindowPosition.x, pendingWindowPosition.y)
     pendingWindowPosition = null
   }
-  win.show()
-  win.setAlwaysOnTop(false, 'normal')
-  win.focus()
-  setWindowAsCurrentMain(win)
+
+  if (show) {
+    win.show()
+    win.setAlwaysOnTop(false, 'normal')
+    win.focus()
+    setWindowAsCurrentMain(win)
+  }
 
   ensureReserveWindow()
   return win
