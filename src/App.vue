@@ -1,8 +1,33 @@
+<template>
+  <div class="app-container">
+    <TabBar
+      :tabs="tabs"
+      :current-tab-id="currentTabId"
+      @switch="switchTab"
+      @close="closeTab"
+      @add="addTabByButton"
+    />
+    <UrlBar
+      v-model="currentUrl"
+      :can-go-back="canGoBack"
+      :can-go-forward="canGoForward"
+      :is-favorited="isFavorited"
+      @submit="addTab"
+      @goBack="handleGoBack"
+      @goForward="handleGoForward"
+      @add="addTabByButton"
+      @openAI="openInternalPage('createAI')"
+      @toggleFavorite="handleToggleFavorite"
+    />
+    <FavoritesQuick @select="handleFavoriteSelect" />
+  </div>
+</template>
+
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
 import TabBar from './components/TabBar.vue'
 import UrlBar from './components/UrlBar.vue'
 import FavoritesQuick from './components/FavoritesQuick.vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { isUrl, isNewTabUrl } from './utils'
 
 interface TabInfo {
@@ -31,24 +56,29 @@ const isFavorited = ref(false)
 // 用于避免竞态：追踪当前 tab 的最新版本号
 let currentTabVersion = 0
 
+// 模块引用 — bridge 在 preload 阶段已注入，setup 顶层即可访问
+const tabsMod = window.bridge.getModules(['tabs']).tabs
+const favoritesMod = window.bridge.getModules(['favorites']).favorites
+const settingsMod = window.bridge.getModules(['settings']).settings
+
 const updateCurrentUrl = () => {
-   if(typeof currentTabId.value === 'string') {
-      const curTabInfo = tabs.value.find(item => item.id === currentTabId.value)
-      if(!curTabInfo) return
+  if(typeof currentTabId.value === 'string') {
+    const curTabInfo = tabs.value.find(item => item.id === currentTabId.value)
+    if(!curTabInfo) return
 
-      // 新标签页不显示 URL
-      if (isNewTabUrl(curTabInfo.url)) {
-        currentUrl.value = ''
-        return
-      }
-
-      // 加载失败时，显示原始 URL（非错误页面 URL）
-      if (curTabInfo.loadError) {
-        currentUrl.value = curTabInfo.loadError.url
-      } else {
-        currentUrl.value = curTabInfo.url
-      }
+    // 新标签页不显示 URL
+    if (isNewTabUrl(curTabInfo.url)) {
+      currentUrl.value = ''
+      return
     }
+
+    // 加载失败时，显示原始 URL（非错误页面 URL）
+    if (curTabInfo.loadError) {
+      currentUrl.value = curTabInfo.loadError.url
+    } else {
+      currentUrl.value = curTabInfo.url
+    }
+  }
 }
 
 watch(currentTabId, () => {
@@ -62,7 +92,7 @@ watch(currentUrl, async (url) => {
     return
   }
   try {
-    isFavorited.value = await window.ipcRenderer.invoke('favorites:check', url)
+    isFavorited.value = await favoritesMod.check(url)
   } catch {
     isFavorited.value = false
   }
@@ -88,92 +118,77 @@ const addTab = async () => {
   }
 
   currentUrl.value = url
-  window.ipcRenderer.send('tabs:updateUrl', url)
+  tabsMod.updateUrl(url)
 }
 
 const addTabByButton = async () => {
-  await window.ipcRenderer.invoke('tabs:createDefault')
-  // 标签列表通过 tab:list-changed 事件更新
+  await tabsMod.createDefault()
 }
 
 const switchTab = async (tabId: string) => {
-  await window.ipcRenderer.invoke('tabs:switch', tabId)
-  // 当前标签通过 tab:current-changed 事件更新
+  await tabsMod.switch(tabId)
   currentTabVersion++
 }
 
 const closeTab = async (tabId: string) => {
   const tab = tabs.value.find(t => t.id === tabId)
   if (tab?.isHome) return
-  await window.ipcRenderer.invoke('tabs:close', tabId)
-  // 标签列表通过 tab:list-changed 事件更新
+  await tabsMod.close(tabId)
 }
 
-window.ipcRenderer.on('tab:info-changed', (_event, tabInfo: TabInfo) => {
+const onTabInfoChanged = (tabInfo: TabInfo) => {
   const index = tabs.value.findIndex(t => t.id === tabInfo.id)
   if (index !== -1) {
     tabs.value[index] = tabInfo
   }
   if (tabInfo.id === currentTabId.value) {
-    // 新标签页不显示 URL
     if (isNewTabUrl(tabInfo.url)) {
       currentUrl.value = ''
     } else if (tabInfo.loadError) {
-      // 加载失败时，显示原始 URL
       currentUrl.value = tabInfo.loadError.url
     } else {
       currentUrl.value = tabInfo.url
     }
   }
-  // 同步更新数据库（单向数据流：事件 -> IPC -> DB）
   const { id, title, url, favicon } = tabInfo
   if (id) {
-    window.ipcRenderer.send('tabs:updateInfo', id, { title, url, favicon })
+    tabsMod.updateInfo(id, { title, url, favicon })
   }
-})
+}
 
-window.ipcRenderer.on('tab:list-changed', (_event, data: { tabs: TabInfo[], currentTabId: string | null }) => {
-  // 标签列表变化，更新列表和当前标签
+const onTabListChanged = (data: { tabs: TabInfo[], currentTabId: string | null }) => {
   tabs.value = data.tabs
   currentTabId.value = data.currentTabId
-})
+}
 
-window.ipcRenderer.on('tab:current-changed', (_event, data: { currentTabId: string }) => {
-  // 只切换当前标签，列表不变
+const onTabCurrentChanged = (data: { currentTabId: string }) => {
   currentTabId.value = data.currentTabId
-})
+}
 
-window.ipcRenderer.on('tab:can-navigate', (_event, data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
-  // 只有当前 tab 的导航状态才更新
-  // 用闭包捕获当前的 version，如果后续有新的 switch，version 会变化，这个旧事件就会被忽略
-  const expectedTabId = currentTabId.value
-  const expectedVersion = currentTabVersion
-  if (data.id === expectedTabId) {
+const onTabCanNavigate = (data: { id: string; canGoBack: boolean; canGoForward: boolean }) => {
+  if (data.id === currentTabId.value) {
     canGoBack.value = data.canGoBack
     canGoForward.value = data.canGoForward
-    console.log('[tab:can-navigate] updated, version:', expectedVersion, 'canGoBack:', data.canGoBack)
-  } else {
-    console.log('[tab:can-navigate] ignored, event tabId:', data.id, 'expected tabId:', expectedTabId)
   }
-})
+}
 
-window.ipcRenderer.on('tab:loading', (_event, data: { id: string; isLoading: boolean }) => {
+const onTabLoading = (data: { id: string; isLoading: boolean }) => {
   const index = tabs.value.findIndex(t => t.id === data.id)
   if (index !== -1) {
     tabs.value[index].isLoading = data.isLoading
   }
-})
+}
 
 const handleGoBack = () => {
-  window.ipcRenderer.send('tabs:goBack')
+  tabsMod.goBack()
 }
 
 const handleGoForward = () => {
-  window.ipcRenderer.send('tabs:goForward')
+  tabsMod.goForward()
 }
 
 const handleFavoriteSelect = async (url: string) => {
-  await window.ipcRenderer.invoke('tabs:create', { title: '加载中...', url }, currentTabId.value || undefined)
+  await tabsMod.create({ title: '加载中...', url }, currentTabId.value || undefined)
 }
 
 const handleToggleFavorite = async () => {
@@ -181,13 +196,11 @@ const handleToggleFavorite = async () => {
   try {
     const tab = tabs.value.find(t => t.id === currentTabId.value)
 
-    // 取消收藏：无限制
     if (isFavorited.value) {
-      isFavorited.value = await window.ipcRenderer.invoke('favorites:toggle', currentUrl.value, '', undefined)
+      isFavorited.value = await favoritesMod.toggle(currentUrl.value, '', undefined)
       return
     }
 
-    // 添加收藏：需要页面加载完成 + 有效标题 + 有效图标
     if (tab?.isLoading) {
       console.log('[handleToggleFavorite] 页面加载中，不允许收藏')
       return
@@ -196,48 +209,27 @@ const handleToggleFavorite = async () => {
     const title = tab?.title || ''
     const favicon = tab?.favicon || ''
 
-    // 验证标题：不能为空且不能是 URL（fallback 的情况）
     if (!title || title === currentUrl.value) {
       console.log('[handleToggleFavorite] 标题无效，不允许收藏')
       return
     }
 
-    // 验证图标：必须有
     if (!favicon) {
       console.log('[handleToggleFavorite] 图标无效，不允许收藏')
       return
     }
 
-    isFavorited.value = await window.ipcRenderer.invoke('favorites:toggle', currentUrl.value, title, favicon)
+    isFavorited.value = await favoritesMod.toggle(currentUrl.value, title, favicon)
   } catch (e) {
     console.error('[handleToggleFavorite]', e)
   }
 }
 
-const openInternalPage = async (channel: string) => {
-  await window.ipcRenderer.invoke(channel, currentTabId.value || undefined)
+const openInternalPage = async (method: string) => {
+  await tabsMod[method](currentTabId.value || undefined)
 }
 
-// 加载主题设置
-const loadTheme = async () => {
-  try {
-    const theme = await window.ipcRenderer.invoke('settings:get', 'theme')
-    if (theme === 'light') {
-      document.documentElement.classList.add('light')
-      document.documentElement.classList.remove('dark')
-    } else {
-      document.documentElement.classList.remove('light')
-      document.documentElement.classList.add('dark')
-    }
-  } catch {
-    // 默认暗黑模式
-    document.documentElement.classList.remove('light')
-    document.documentElement.classList.add('dark')
-  }
-}
-
-// 监听主题变化
-window.ipcRenderer.on('settings:theme-changed', (_event, theme: string) => {
+const onThemeChanged = (theme: string) => {
   if (theme === 'light') {
     document.documentElement.classList.add('light')
     document.documentElement.classList.remove('dark')
@@ -245,59 +237,51 @@ window.ipcRenderer.on('settings:theme-changed', (_event, theme: string) => {
     document.documentElement.classList.remove('light')
     document.documentElement.classList.add('dark')
   }
-})
-
-const handleMainReadyForPopup = () => {
-  window.ipcRenderer.send('tabs:showRestorePrompt')
 }
 
-onMounted(() => {
-  loadTheme()
-  const urlParams = new URLSearchParams(window.location.search)
-  if (urlParams.get('isMain') === 'true') {
-    window.ipcRenderer.send('tabs:showRestorePrompt')
-    window.ipcRenderer.on('main:ready-for-popup', handleMainReadyForPopup)
+const handleMainReadyForPopup = () => {
+  tabsMod.showRestorePrompt()
+}
+
+const onFavoritesChanged = async () => {
+  if (currentUrl.value && !isNewTabUrl(currentUrl.value)) {
+    isFavorited.value = await favoritesMod.check(currentUrl.value)
   }
-  // 监听收藏变化，重新检查当前 URL 的收藏状态
-  window.ipcRenderer.on('favorites:changed', async () => {
-    if (currentUrl.value && !isNewTabUrl(currentUrl.value)) {
-      isFavorited.value = await window.ipcRenderer.invoke('favorites:check', currentUrl.value)
-    }
-  })
-})
+}
 
+// 事件监听 — 必须在 setup 顶层注册，确保在 did-finish-load 之前完成
+window.bridge.on('tab:info-changed', onTabInfoChanged)
+window.bridge.on('tab:list-changed', onTabListChanged)
+window.bridge.on('tab:current-changed', onTabCurrentChanged)
+window.bridge.on('tab:can-navigate', onTabCanNavigate)
+window.bridge.on('tab:loading', onTabLoading)
+window.bridge.on('settings:theme-changed', onThemeChanged)
+window.bridge.on('main:ready-for-popup', handleMainReadyForPopup)
+window.bridge.on('favorites:changed', onFavoritesChanged)
+
+// 初始化主题
+settingsMod.get('theme').then((theme: string) => {
+  onThemeChanged(theme || 'dark')
+}).catch(() => onThemeChanged('dark'))
+
+// 恢复标签弹窗（主窗口且有 isMain 参数）
+const urlParams = new URLSearchParams(window.location.search)
+if (urlParams.get('isMain') === 'true') {
+  tabsMod.showRestorePrompt()
+}
+
+// 清理
 onUnmounted(() => {
-  window.ipcRenderer.off('main:ready-for-popup', handleMainReadyForPopup)
+  window.bridge.off('tab:info-changed', onTabInfoChanged)
+  window.bridge.off('tab:list-changed', onTabListChanged)
+  window.bridge.off('tab:current-changed', onTabCurrentChanged)
+  window.bridge.off('tab:can-navigate', onTabCanNavigate)
+  window.bridge.off('tab:loading', onTabLoading)
+  window.bridge.off('settings:theme-changed', onThemeChanged)
+  window.bridge.off('main:ready-for-popup', handleMainReadyForPopup)
+  window.bridge.off('favorites:changed', onFavoritesChanged)
 })
-
-
-
 </script>
-
-<template>
-  <div class="app-container">
-    <TabBar
-      :tabs="tabs"
-      :current-tab-id="currentTabId"
-      @switch="switchTab"
-      @close="closeTab"
-      @add="addTabByButton"
-    />
-    <UrlBar
-      v-model="currentUrl"
-      :can-go-back="canGoBack"
-      :can-go-forward="canGoForward"
-      :is-favorited="isFavorited"
-      @submit="addTab"
-      @goBack="handleGoBack"
-      @goForward="handleGoForward"
-      @add="addTabByButton"
-      @openAI="openInternalPage('tabs:createAI')"
-      @toggleFavorite="handleToggleFavorite"
-    />
-    <FavoritesQuick @select="handleFavoriteSelect" />
-  </div>
-</template>
 
 <style scoped>
 .app-container {

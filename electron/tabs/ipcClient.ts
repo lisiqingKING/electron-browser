@@ -9,6 +9,7 @@ export const tabsChannels = {
   createAI: 'tabs:createAI',
   createLogs: 'tabs:createLogs',
   createAiSaves: 'tabs:createAiSaves',
+  createFavorites: 'tabs:createFavorites',
   list: 'tabs:list',
   switch: 'tabs:switch',
   close: 'tabs:close',
@@ -16,13 +17,19 @@ export const tabsChannels = {
   updateUrl: 'tabs:updateUrl',
   updateInfo: 'tabs:updateInfo',
   openDevTools: 'tabs:openDevTools',
+  reload: 'tabs:reload',
+  closeLeft: 'tabs:closeLeft',
+  closeRight: 'tabs:closeRight',
+  closeOthers: 'tabs:closeOthers',
+  goBack: 'tabs:goBack',
+  goForward: 'tabs:goForward',
+  restore: 'tabs:restore',
+  clearSaved: 'tabs:clearSaved',
+  showRestorePrompt: 'tabs:showRestorePrompt',
 }
 
 // 返回值的方法（invoke）
-const invokeMethods = ['create', 'createDefault', 'createHome', 'createHistory', 'createDownloads', 'createSettings', 'createAI', 'createLogs', 'createAiSaves', 'list', 'switch', 'close']
-
-// 无返回值的方法（send）
-// const sendMethods = ['refresh', 'openDevTools']
+const invokeMethods = ['create', 'createDefault', 'createHome', 'createHistory', 'createDownloads', 'createSettings', 'createAI', 'createLogs', 'createAiSaves', 'createFavorites', 'list', 'switch', 'close', 'restore', 'clearSaved']
 
 export function createTabsProxy(ipcRenderer: Electron.IpcRenderer) {
   const proxy: Record<string, Function> = {}

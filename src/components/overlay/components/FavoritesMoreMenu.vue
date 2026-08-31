@@ -7,12 +7,14 @@ const props = defineProps<{
   windowId?: number
 }>()
 
+const tabsMod = window.bridge.getModules(['tabs']).tabs
+
 function hide() {
-  window.ipcRenderer.send('popup:hide')
+  window.bridge.send('popup:hide')
 }
 
 function openUrl(url: string) {
-  window.ipcRenderer.invoke('tabs:create', { title: '加载中...', url }, undefined, props.windowId)
+  tabsMod.create({ title: '加载中...', url }, undefined, props.windowId)
   hide()
 }
 

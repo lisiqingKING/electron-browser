@@ -9,18 +9,20 @@ const emit = defineEmits<{
   (e: 'action', action: 'cut' | 'paste' | 'selectAll' | 'delete' | 'pasteAndSearch' | 'clearAndPaste'): void
 }>()
 
+const clipboard = window.bridge.getModules(['clipboard']).clipboard
+
 function hide() {
-  window.ipcRenderer.send('popup:hide')
+  window.bridge.send('popup:hide')
 }
 
 async function doAction(action: 'copy' | 'cut' | 'paste' | 'selectAll' | 'delete' | 'pasteAndSearch' | 'clearAndPaste') {
   if (action === 'copy') {
-    await window.ipcRenderer.invoke('clipboard:writeText', props.selectedText || props.inputValue || '')
+    await clipboard.writeText(props.selectedText || props.inputValue || '')
     hide()
     return
   }
   if (action === 'cut') {
-    await window.ipcRenderer.invoke('clipboard:writeText', props.selectedText || '')
+    await clipboard.writeText(props.selectedText || '')
   }
   emit('action', action)
   hide()

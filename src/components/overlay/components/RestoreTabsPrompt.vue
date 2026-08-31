@@ -4,17 +4,19 @@ const props = defineProps<{
   windowId?: number
 }>()
 
+const tabsMod = window.bridge.getModules(['tabs']).tabs
+
 function hide() {
-  window.ipcRenderer.send('popup:hide')
+  window.bridge.send('popup:hide')
 }
 
 async function handleRestore() {
-  await window.ipcRenderer.invoke('tabs:restore', props.windowId)
+  await tabsMod.restore(props.windowId)
   hide()
 }
 
 async function handleDecline() {
-  await window.ipcRenderer.invoke('tabs:clearSaved')
+  await tabsMod.clearSaved()
   hide()
 }
 </script>

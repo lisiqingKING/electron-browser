@@ -9,8 +9,11 @@ const props = defineProps<{
   windowId?: number
 }>()
 
+const tabsMod = window.bridge.getModules(['tabs']).tabs
+const windowMod = window.bridge.getModules(['window']).window
+
 function hide() {
-  window.ipcRenderer.send('popup:hide')
+  window.bridge.send('popup:hide')
 }
 
 const tab = () => props.tabs.find(t => t.id === props.tabId)
@@ -55,25 +58,25 @@ function handleClick(action: string) {
 
   switch (action) {
     case 'reload':
-      window.ipcRenderer.send('tabs:reload', props.tabId, props.windowId)
+      tabsMod.reload(props.tabId, props.windowId)
       break
     case 'openInNewTab':
-      window.ipcRenderer.invoke('tabs:create', { title: currentTab.title, url: currentTab.url }, props.tabId, props.windowId)
+      tabsMod.create({ title: currentTab.title, url: currentTab.url }, props.tabId, props.windowId)
       break
     case 'openInNewWindow':
-      window.ipcRenderer.invoke('window:adopt-tab', props.tabId)
+      windowMod.adoptTab(props.tabId)
       break
     case 'close':
-      window.ipcRenderer.invoke('tabs:close', props.tabId, props.windowId)
+      tabsMod.close(props.tabId, props.windowId)
       break
     case 'closeLeft':
-      window.ipcRenderer.send('tabs:closeLeft', props.tabId, props.windowId)
+      tabsMod.closeLeft(props.tabId, props.windowId)
       break
     case 'closeRight':
-      window.ipcRenderer.send('tabs:closeRight', props.tabId, props.windowId)
+      tabsMod.closeRight(props.tabId, props.windowId)
       break
     case 'closeOthers':
-      window.ipcRenderer.send('tabs:closeOthers', props.tabId, props.windowId)
+      tabsMod.closeOthers(props.tabId, props.windowId)
       break
   }
   hide()

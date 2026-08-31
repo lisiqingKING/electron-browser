@@ -32,16 +32,9 @@ export const aiChannels = {
 }
 
 // push channel，不在 invoke proxy 中暴露
-export const AI_STREAM_CHANNEL = 'ai:stream'
+const AI_STREAM_CHANNEL = 'ai:stream'
 
-export interface AIStreamPayload {
-  messageId: string
-  type: 'start' | 'chunk' | 'complete' | 'halted' | 'error'
-  content?: string
-  reason?: 'user' | 'error' | 'network'
-}
-
-export type StreamCallback = (payload: AIStreamPayload) => void
+export type StreamCallback = (messageId: string, content?: string, reasoning?: string) => void
 
 export function createAIConversationProxy(): Record<string, any> {
   // invoke 代理（渲染进程调用主进程）
@@ -51,32 +44,51 @@ export function createAIConversationProxy(): Record<string, any> {
   }
 
   // push 订阅代理（封装 ai:stream，渲染进程不直接接触 channel 名）
-  const streamListeners = new Set<StreamCallback>()
+  const onStartFns = new Set<(messageId: string) => void>()
+  const onChunkFns = new Set<(messageId: string, content: string, reasoning?: string) => void>()
+  const onCompleteFns = new Set<(messageId: string) => void>()
+  const onHaltedFns = new Set<(messageId: string, reason: string) => void>()
+  const onErrorFns = new Set<(messageId: string, reason: string) => void>()
 
-  function handleStreamEvent(_event: Electron.IpcRendererEvent, payload: AIStreamPayload) {
-    for (const cb of streamListeners) {
-      cb(payload)
+  let listenerRegistered = false
+
+  function handleStreamEvent(_event: Electron.IpcRendererEvent, payload: any) {
+    const { messageId, type, content, reason, reasoning } = payload
+    if (type === 'start') onStartFns.forEach(fn => fn(messageId))
+    else if (type === 'chunk') onChunkFns.forEach(fn => fn(messageId, content || '', reasoning || ''))
+    else if (type === 'complete') onCompleteFns.forEach(fn => fn(messageId))
+    else if (type === 'halted') onHaltedFns.forEach(fn => fn(messageId, reason || ''))
+    else if (type === 'error') onErrorFns.forEach(fn => fn(messageId, reason || ''))
+  }
+
+  function ensureListener() {
+    if (!listenerRegistered) {
+      ipcRenderer.on(AI_STREAM_CHANNEL, handleStreamEvent)
+      listenerRegistered = true
+    }
+  }
+
+  function cleanupIfEmpty() {
+    if (!onStartFns.size && !onChunkFns.size && !onCompleteFns.size && !onHaltedFns.size && !onErrorFns.size) {
+      ipcRenderer.removeListener(AI_STREAM_CHANNEL, handleStreamEvent)
+      listenerRegistered = false
     }
   }
 
   return {
     ...invokeProxy,
 
-    // 订阅流式事件（渲染进程调用，无须知道 ai:stream channel 名）
-    onStream(cb: StreamCallback) {
-      if (streamListeners.size === 0) {
-        ipcRenderer.on(AI_STREAM_CHANNEL, handleStreamEvent)
-      }
-      streamListeners.add(cb)
-    },
+    onStart(fn: (messageId: string) => void) { ensureListener(); onStartFns.add(fn) },
+    onChunk(fn: (messageId: string, content: string, reasoning?: string) => void) { ensureListener(); onChunkFns.add(fn) },
+    onComplete(fn: (messageId: string) => void) { ensureListener(); onCompleteFns.add(fn) },
+    onHalted(fn: (messageId: string, reason: string) => void) { ensureListener(); onHaltedFns.add(fn) },
+    onError(fn: (messageId: string, reason: string) => void) { ensureListener(); onErrorFns.add(fn) },
 
-    // 取消订阅
-    offStream(cb: StreamCallback) {
-      streamListeners.delete(cb)
-      if (streamListeners.size === 0) {
-        ipcRenderer.removeListener(AI_STREAM_CHANNEL, handleStreamEvent)
-      }
-    },
+    offStart(fn: (messageId: string) => void) { onStartFns.delete(fn); cleanupIfEmpty() },
+    offChunk(fn: (messageId: string, content: string, reasoning?: string) => void) { onChunkFns.delete(fn); cleanupIfEmpty() },
+    offComplete(fn: (messageId: string) => void) { onCompleteFns.delete(fn); cleanupIfEmpty() },
+    offHalted(fn: (messageId: string, reason: string) => void) { onHaltedFns.delete(fn); cleanupIfEmpty() },
+    offError(fn: (messageId: string, reason: string) => void) { onErrorFns.delete(fn); cleanupIfEmpty() },
   }
 }
 

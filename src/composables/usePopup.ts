@@ -10,26 +10,26 @@ interface PopupOptions {
 
 export function usePopup() {
   const show = (options: PopupOptions) => {
-    window.ipcRenderer.send('popup:show', options)
+    window.bridge.send('popup:show', options)
   }
 
   const hide = () => {
-    window.ipcRenderer.send('popup:hide')
+    window.bridge.send('popup:hide')
   }
 
   const onAction = (callback: (action: string, context?: any) => void | Promise<void>) => {
-    const handler = async (_event: any, data: { action: string; context?: any }) => {
+    const handler = (data: { action: string; context?: any }) => {
       try {
-        await callback(data.action, data.context)
+        callback(data.action, data.context)
       } catch (err) {
         console.error('[usePopup] action handler error:', err)
       }
     }
 
-    window.ipcRenderer.on('popup:action', handler)
+    window.bridge.on('popup:action', handler)
 
     return () => {
-      window.ipcRenderer.off('popup:action', handler)
+      window.bridge.off('popup:action', handler)
     }
   }
 

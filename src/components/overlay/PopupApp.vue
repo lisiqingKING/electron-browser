@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import TabContextMenu from './components/TabContextMenu.vue'
 import UrlBarMoreMenu from './components/UrlBarMoreMenu.vue'
@@ -24,11 +24,10 @@ const popupStyle = ref<Record<string, string>>({})
 
 function handleAction(action: string, ctx?: any) {
   const safeContext = ctx ? JSON.parse(JSON.stringify(ctx)) : undefined
-  window.ipcRenderer.send('popup:action', { action, context: safeContext, windowId: props.value.windowId })
+  window.bridge.send('popup:action', { action, context: safeContext, windowId: props.value.windowId })
 }
 
-// Register IPC listener immediately (before onMounted) to catch popup:render
-window.ipcRenderer.on('popup:render', (_event: any, payload: any) => {
+const onPopupRender = (payload: any) => {
   if (payload.theme === 'dark') {
     document.documentElement.classList.add('dark')
     document.documentElement.classList.remove('light')
@@ -49,21 +48,30 @@ window.ipcRenderer.on('popup:render', (_event: any, payload: any) => {
     top: payload.y + 'px',
     width: 'fit-content',
   }
-})
+}
 
-window.ipcRenderer.on('popup:hide', () => {
+const onPopupHide = () => {
   popupStyle.value = { display: 'none' }
+}
+
+// Register IPC listener before onMounted to catch early events
+window.bridge.on('popup:render', onPopupRender)
+window.bridge.on('popup:hide', onPopupHide)
+
+onUnmounted(() => {
+  window.bridge.off('popup:render', onPopupRender)
+  window.bridge.off('popup:hide', onPopupHide)
 })
 
 function onDocumentClick(e: MouseEvent) {
   const popup = document.getElementById('popup')
   if (popup && !popup.contains(e.target as Node)) {
-    window.ipcRenderer.send('popup:hide')
+    window.bridge.send('popup:hide')
   }
 }
 
 useEventListener(document, 'mousedown', onDocumentClick)
-useEventListener(window, 'blur', () => window.ipcRenderer.send('popup:hide'))
+useEventListener(window, 'blur', () => window.bridge.send('popup:hide'))
 </script>
 
 <template>

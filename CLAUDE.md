@@ -65,6 +65,7 @@
   - `popup` — 弹出面板 (不走标准模块路径，由 `appReady.ts` 单独注册)
   - `updater` — 自动更新 (已实现但未启用)
   - `icons` — 图标管理 (不对外暴露)
+- [tests/](tests/) — 测试目录（单元 / 集成 / E2E），详见 [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
 - [electron/windows/](electron/windows/) — 窗口管理
   - [windowManager.ts](electron/windows/windowManager.ts) — createWindow / ensureReserveWindow / getAllWindows
   - [tray/trayManager.ts](electron/windows/tray/trayManager.ts) — 系统托盘
@@ -200,3 +201,7 @@ async function scrollToBottom() {
   }
 }
 ```
+
+## 测试规范
+
+详见 [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)，包含三层测试策略（单元 / 集成 / E2E）、数据库 in-memory 测试、mock 策略、TDD 流程。

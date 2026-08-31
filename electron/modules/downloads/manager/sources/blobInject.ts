@@ -28,6 +28,10 @@ export function getBlobInjectScript(): string {
     return name;
   }
 
+  function getDownloads() {
+    return window.bridge && window.bridge.getModules ? window.bridge.getModules(['downloads']).downloads : null;
+  }
+
   document.addEventListener('click', function(e) {
     var a = e.target.closest ? e.target.closest('a') : null;
     if (!a) return;
@@ -37,10 +41,12 @@ export function getBlobInjectScript(): string {
     e.preventDefault();
     e.stopPropagation();
 
+    var downloads = getDownloads();
+
     // 路径 A：取 data-original-url / data-src（如果有 http(s) 真实地址则走 URL 下载）
     var originalUrl = a.getAttribute('data-original-url') || a.getAttribute('data-src');
     if (originalUrl && (originalUrl.startsWith('http://') || originalUrl.startsWith('https://'))) {
-      window.ipcRenderer.invoke('downloads:direct-download-url', {
+      downloads && downloads.directDownloadUrl({
         url: originalUrl,
         filename: a.getAttribute('download') || originalUrl.split('/').pop() || 'download'
       });
@@ -63,7 +69,7 @@ export function getBlobInjectScript(): string {
           });
         })
         .then(function(result) {
-          return window.ipcRenderer.invoke('blob-download:write', {
+          return downloads && downloads.writeBlob({
             url: href,
             filename: suggestFilename(result.mimeType, a.getAttribute('download')),
             mimeType: result.mimeType,
@@ -81,7 +87,7 @@ export function getBlobInjectScript(): string {
       var mime = mimeMatch ? mimeMatch[1] : null;
       try {
         var arr = Array.from(atob(base64)).map(function(c) { return c.charCodeAt(0); });
-        window.ipcRenderer.invoke('blob-download:write', {
+        downloads && downloads.writeBlob({
           url: href,
           filename: suggestFilename(mime, a.getAttribute('download')),
           mimeType: mime,

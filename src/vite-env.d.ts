@@ -8,4 +8,12 @@ declare module '*.svg?raw' {
 
 interface Window {
   __APP_ROUTE__?: string
+  bridge: {
+    windowId: number | null
+    getModules(moduleNames?: string[]): Record<string, Record<string, Function>>
+    getModuleNames(): string[]
+    on(channel: string, fn: Function): void
+    off(channel: string, fn: Function): void
+    send(channel: string, ...args: unknown[]): void
+  }
 }

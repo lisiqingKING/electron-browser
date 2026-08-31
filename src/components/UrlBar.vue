@@ -23,6 +23,9 @@ const emit = defineEmits<{
 const { show, onAction } = usePopup()
 const urlInputRef = ref<HTMLInputElement | null>(null)
 
+const clipboard = window.bridge.getModules(['clipboard']).clipboard
+const tabs = window.bridge.getModules(['tabs']).tabs
+
 let removeActionListener: (() => void) | null = null
 
 onMounted(() => {
@@ -41,7 +44,7 @@ onMounted(() => {
         break
       }
       case 'paste': {
-        const text = await window.ipcRenderer.invoke('clipboard:readText')
+        const text = await clipboard.readText()
         if (!text) return
         const start = input.selectionStart ?? 0
         const end = input.selectionEnd ?? 0
@@ -58,14 +61,14 @@ onMounted(() => {
         break
       }
       case 'pasteAndSearch': {
-        const text = await window.ipcRenderer.invoke('clipboard:readText')
+        const text = await clipboard.readText()
         if (!text) return
         emit('update:modelValue', text)
         emit('submit')
         break
       }
       case 'clearAndPaste': {
-        const text = await window.ipcRenderer.invoke('clipboard:readText')
+        const text = await clipboard.readText()
         if (!text) return
         emit('update:modelValue', text)
         break
@@ -79,14 +82,14 @@ onUnmounted(() => {
 })
 
 const handleRefresh = () => {
-  window.ipcRenderer.send('tabs:refresh')
+  tabs.refresh()
 }
 
 const handleContextMenu = async (event: MouseEvent) => {
   event.preventDefault()
   const input = urlInputRef.value
   if (!input) return
-  const clipboardText = await window.ipcRenderer.invoke('clipboard:readText').catch(() => '')
+  const clipboardText = await clipboard.readText().catch(() => '')
   show({
     x: event.screenX,
     y: event.screenY,

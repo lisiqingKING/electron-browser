@@ -5,7 +5,7 @@ const DRAG_TRIGGER_DISTANCE = 36
 const THROTTLE_MS = 16
 
 const updatePosition = useThrottleFn((winId: number, pos: { x: number; y: number }) => {
-  window.ipcRenderer.invoke('window:update-position', winId, pos)
+  window.bridge.getModules(['window']).window.updatePosition(winId, pos)
 }, THROTTLE_MS)
 
 export function useTabDrag(onDragOut: (tabId: string, screenPos: { x: number; y: number }) => void) {

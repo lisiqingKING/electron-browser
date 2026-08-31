@@ -16,11 +16,11 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   tabs: () => createTabsProxy(ipcRenderer),
   history: () => createHistoryProxy(ipcRenderer),
   ai: () => aiProxy,
-  downloads: () => createDownloadsProxy(ipcRenderer),
+  downloads: () => createDownloadsProxy(),
   logs: () => createLogsProxy(ipcRenderer),
-  settings: () => createSettingsProxy(ipcRenderer),
+  settings: () => createSettingsProxy(),
   // updater: () => createUpdaterProxy(ipcRenderer),
-  favorites: () => createFavoritesProxy(ipcRenderer),
+  favorites: () => createFavoritesProxy(),
 }
 
 // 构建所有模块
@@ -123,33 +123,5 @@ contextBridge.exposeInMainWorld('bridge', {
     return {
       getInternalIconFromUrl,
     }
-  },
-
-  // 订阅主进程推送事件 (镜像 preload.ts 的 ipcRenderer.on/off)
-  on(channel: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
-    return ipcRenderer.on(channel, listener)
-  },
-
-  off(channel: string, listener: (...args: any[]) => void) {
-    return ipcRenderer.off(channel, listener)
-  }
-})
-
-// 注入脚本（webviewSource）和设置页需要调用的 channel
-contextBridge.exposeInMainWorld('ipcRenderer', {
-  invoke: (channel: string, ...args: any[]) => {
-    const allowed = [
-      'downloads:direct-download-url',
-      'blob-download:write',
-      'blob-download:error',
-      'window:getDownloadDir',
-      'window:selectDownloadDir',
-      'window:openPath',
-    ]
-    if (allowed.includes(channel)) {
-      return ipcRenderer.invoke(channel, ...args)
-    }
-    console.warn('[preload] ipcRenderer.invoke blocked for unauthorized channel:', channel)
-    return Promise.reject(new Error(' unauthorized channel'))
   },
 })

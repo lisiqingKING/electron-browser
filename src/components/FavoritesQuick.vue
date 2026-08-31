@@ -78,9 +78,11 @@ const visibleItemsWithIcons = computed(() =>
 
 const hasMore = computed(() => favorites.value.length > maxCount.value)
 
+const favoritesMod = window.bridge.getModules(['favorites']).favorites
+
 const loadFavorites = async () => {
   try {
-    favorites.value = await window.ipcRenderer.invoke('favorites:list')
+    favorites.value = await favoritesMod.list()
   } catch {
     favorites.value = []
   }
@@ -116,6 +118,12 @@ const updateWidth = () => {
 
 let resizeObserver: ResizeObserver | null = null
 
+const onFavoritesChanged = (data: any[]) => {
+  if (data && Array.isArray(data)) {
+    favorites.value = data
+  }
+}
+
 onMounted(() => {
   loadFavorites()
 
@@ -128,18 +136,14 @@ onMounted(() => {
     updateWidth()
   }
 
-  window.ipcRenderer.on('favorites:changed', (_event: any, data: any[]) => {
-    if (data && Array.isArray(data)) {
-      favorites.value = data
-    }
-  })
+  window.bridge.on('favorites:changed', onFavoritesChanged)
 })
 
 onUnmounted(() => {
   if (resizeObserver) {
     resizeObserver.disconnect()
   }
-  window.ipcRenderer.removeAllListeners('favorites:changed')
+  window.bridge.off('favorites:changed', onFavoritesChanged)
 })
 </script>
 

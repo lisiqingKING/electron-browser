@@ -7,6 +7,9 @@ const props = defineProps<{
   windowId?: number
 }>()
 
+const tabsMod = window.bridge.getModules(['tabs']).tabs
+const favoritesMod = window.bridge.getModules(['favorites']).favorites
+
 const activeSubmenu = ref<number | null>(null)
 let hideTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -16,7 +19,7 @@ const favoritesLoaded = ref(false)
 async function loadFavorites() {
   if (favoritesLoaded.value) return
   try {
-    const list = await window.ipcRenderer.invoke('favorites:list')
+    const list = await favoritesMod.list()
     favorites.value = list || []
   } catch {
     favorites.value = []
@@ -25,7 +28,7 @@ async function loadFavorites() {
 }
 
 function hide() {
-  window.ipcRenderer.send('popup:hide')
+  window.bridge.send('popup:hide')
 }
 
 function showSubmenu(index: number) {
@@ -78,28 +81,28 @@ const favoritesWithIcons = computed(() =>
 function handleClick(action: string) {
   switch (action) {
     case 'openHistory':
-      window.ipcRenderer.invoke('tabs:createHistory', undefined, props.windowId)
+      tabsMod.createHistory(undefined, props.windowId)
       break
     case 'openDownloads':
-      window.ipcRenderer.invoke('tabs:createDownloads', undefined, props.windowId)
+      tabsMod.createDownloads(undefined, props.windowId)
       break
     case 'openLogs':
-      window.ipcRenderer.invoke('tabs:createLogs', undefined, props.windowId)
+      tabsMod.createLogs(undefined, props.windowId)
       break
     case 'openSettings':
-      window.ipcRenderer.invoke('tabs:createSettings', undefined, props.windowId)
+      tabsMod.createSettings(undefined, props.windowId)
       break
   }
   hide()
 }
 
 function openFavorite(url: string) {
-  window.ipcRenderer.invoke('tabs:create', { title: '加载中...', url }, undefined, props.windowId)
+  tabsMod.create({ title: '加载中...', url }, undefined, props.windowId)
   hide()
 }
 
 function openFavorites() {
-  window.ipcRenderer.invoke('tabs:createFavorites', undefined, props.windowId)
+  tabsMod.createFavorites(undefined, props.windowId)
   hide()
 }
 </script>

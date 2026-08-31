@@ -3,29 +3,31 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const isMaximized = ref(false)
 
+const win = window.bridge.getModules(['window']).window
+
 const handleMinimize = () => {
-  window.ipcRenderer.invoke('window:minimize')
+  win.minimize()
 }
 
 const handleMaximize = () => {
-  window.ipcRenderer.invoke('window:maximize')
+  win.maximize()
 }
 
 const handleClose = () => {
-  window.ipcRenderer.invoke('window:close')
+  win.close()
 }
 
-const onMaximizeChanged = (_event: Electron.IpcRendererEvent, maximized: boolean) => {
+const onMaximizeChanged = (maximized: boolean) => {
   isMaximized.value = maximized
 }
 
 onMounted(async () => {
-  isMaximized.value = await window.ipcRenderer.invoke('window:isMaximized')
-  window.ipcRenderer.on('window:maximize-changed', onMaximizeChanged)
+  isMaximized.value = await win.isMaximized()
+  win.onMaximizeChanged(onMaximizeChanged)
 })
 
 onUnmounted(() => {
-  window.ipcRenderer.off('window:maximize-changed', onMaximizeChanged)
+  win.removeOnMaximizeChanged(onMaximizeChanged)
 })
 </script>
 

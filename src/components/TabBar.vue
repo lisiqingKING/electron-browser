@@ -40,7 +40,7 @@ const onTabLeave = () => {
 
 // 拖拽出窗口
 const { onMouseDown: onTabMouseDown } = useTabDrag((tabId, screenPos) => {
-  return window.ipcRenderer.invoke('window:adopt-tab', tabId, screenPos)
+  return window.bridge.getModules(['window']).window.adoptTab(tabId, screenPos)
 })
 
 const emit = defineEmits<{
