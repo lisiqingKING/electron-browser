@@ -13,17 +13,6 @@ export class DownloadTaskStore {
     const rows = downloadDb.getAllDownloads()
     for (const task of rows) {
       this.tasks.set(task.id, task)
-      // 老 bug 数据清洗: 之前 abort reason 不区分, 任何 abort 都写成 canceled.
-      // 凡是 downloaded > 0 的 canceled 行, 实际上是"暂停", 改回 paused, 这样 UI 显示对、用户也能点"继续" 走 Range 续传.
-      if (task.status === 'canceled' && task.receivedBytes > 0) {
-        task.setStatus('paused')
-      }
-      // 重启后, 所有非终态的"在飞"任务 (downloading/queued) 统一转 paused.
-      // 进程退出时 downloading 任务的 socket 必然已死, queued 任务虽从未真正开始 I/O,
-      // 两者都不自动启动 — 用户必须手动点"继续"才会被 pump() 拉起, 避免静默后台下载.
-      if (task.status === 'downloading' || task.status === 'queued') {
-        task.setStatus('paused')
-      }
     }
   }
 

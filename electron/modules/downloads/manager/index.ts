@@ -98,6 +98,7 @@ export class DownloadManager {
 
   resume(id: string): boolean {
     const task = this.store.get(id)
+    console.log('[manager] resume called, id:', id, 'task:', task?.id, 'status:', task?.status)
     if (!task || !task.canResume()) return false
     task.setStatus('queued')
     this.notifier.emitProgress(task)

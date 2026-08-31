@@ -18,6 +18,7 @@ export class DownloadScheduler {
 
   // 新任务入队 (status='queued') 后调用, 尝试启动
   pump(): void {
+    console.log('[scheduler] pump called, activeCount:', this.activeCount)
     while (this.activeCount < MAX_CONCURRENT) {
       const next = this.store.pickNextRunnable()
       if (!next) return
@@ -49,6 +50,7 @@ export class DownloadScheduler {
   }
 
   private async startHttpTask(task: DownloadTask): Promise<void> {
+    console.log('[scheduler] startHttpTask:', task.id, task.url)
     this.activeCount += 1
 
     task.setStatus('downloading')
