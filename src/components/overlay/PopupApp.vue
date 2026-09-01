@@ -6,6 +6,7 @@ import UrlBarMoreMenu from './components/UrlBarMoreMenu.vue'
 import FavoritesMoreMenu from './components/FavoritesMoreMenu.vue'
 import RestoreTabsPrompt from './components/RestoreTabsPrompt.vue'
 import UrlBarInputContextMenu from './components/UrlBarInputContextMenu.vue'
+import DownloadsPopup from './components/DownloadsPopup.vue'
 
 const component = ref('Menu')
 const props = ref<Record<string, any>>({})
@@ -17,6 +18,7 @@ const componentMap: Record<string, any> = {
   FavoritesMoreMenu,
   RestoreTabsPrompt,
   UrlBarInputContextMenu,
+  DownloadsPopup,
 }
 const currentComponent = computed(() => componentMap[component.value] || TabContextMenu)
 

@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron'
 import path from 'node:path'
 
-let popupWindow: BrowserWindow | null = null
+export let popupWindow: BrowserWindow | null = null
 
 function getPreloadPath(): string {
   return path.join(process.env.APP_ROOT!, 'dist-electron', 'preload.js')

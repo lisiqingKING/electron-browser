@@ -1,10 +1,12 @@
 import { type WebContents } from 'electron'
 import { getAllWindows } from '../windows/windowManager'
 import { getTabContext } from '../tabs/state'
+import { popupWindow } from '../modules/popup/manager/WindowManager'
 
 // 把事件广播给所有 webContents:
 //   - 每个 BrowserWindow (主窗口容器 UI 那个 + 未来多窗口)
 //   - 每个 WebContentsView (每个 tab 内子应用)
+//   - popup 窗口
 // webContents 已销毁 / 枚举中被关都静默忽略, 不抛错.
 // payload 缺省时调 send(channel), 否则 send(channel, payload).
 export function broadcast(channel: string, payload?: unknown): void {
@@ -16,6 +18,11 @@ export function broadcast(channel: string, payload?: unknown): void {
       if (!tab.view?.webContents) continue
       sendTo(tab.view.webContents, channel, payload)
     }
+  }
+
+  // 发送给 popup 窗口
+  if (popupWindow && !popupWindow.isDestroyed()) {
+    sendTo(popupWindow.webContents, channel, payload)
   }
 }
 

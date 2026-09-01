@@ -4,6 +4,7 @@ import { createWindowProxy } from './modules/window/ipcClient'
 import { createClipboardProxy } from './modules/clipboard/ipcClient'
 import { createFavoritesProxy } from './modules/favorites/ipcClient'
 import { createSettingsProxy } from './modules/settings/ipcClient'
+import { createDownloadsProxy } from './modules/downloads/ipcClient'
 
 // Parse windowId from URL
 const url = new URL(window.location.href)
@@ -16,6 +17,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   clipboard: () => createClipboardProxy(),
   favorites: () => createFavoritesProxy(),
   settings: () => createSettingsProxy(),
+  downloads: () => createDownloadsProxy(),
 }
 
 // 构建所有模块

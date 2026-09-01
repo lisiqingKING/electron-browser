@@ -44,6 +44,9 @@
   --tooltip-border: #52525b;
   --tooltip-text: #e4e4e7;
   --shadow-tab-active: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --color-status-warning: #f59e0b;
+  --color-status-success: #10b981;
+  --color-status-error: #ef4444;
 }
 
 .dark {
@@ -77,6 +80,9 @@
   --tooltip-border: #52525b;
   --tooltip-text: #e4e4e7;
   --shadow-tab-active: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --color-status-warning: #f59e0b;
+  --color-status-success: #10b981;
+  --color-status-error: #ef4444;
 }
 
 html,

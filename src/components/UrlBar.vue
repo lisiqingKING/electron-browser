@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { usePopup } from '../composables/usePopup'
 import { getTabIcon } from '../utils/tabIcons'
+import DownloadButton from './DownloadButton.vue'
 
 const props = defineProps<{
   modelValue: string
@@ -160,13 +161,14 @@ const handleMoreClick = (event: MouseEvent) => {
           @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
           @keyup.enter="emit('submit')"
         />
+        <button class="star-btn" :class="{ active: props.isFavorited }" title="收藏" @click="emit('toggleFavorite')">
+          <svg viewBox="0 0 24 24" width="20" height="20" :fill="props.isFavorited ? 'var(--color-accent)' : 'currentColor'">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+        </button>
       </div>
 
-      <button class="star-btn" :class="{ active: props.isFavorited }" title="收藏" @click="emit('toggleFavorite')">
-        <svg viewBox="0 0 24 24" width="18" height="18" :fill="props.isFavorited ? 'var(--color-accent)' : 'currentColor'">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-        </svg>
-      </button>
+      <DownloadButton />
       <button class="ai-btn" title="AI 助手" @click="emit('openAI')">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" :style="{ color: 'var(--color-accent)' }">
           <path :d="getTabIcon('ai') ?? undefined" />
@@ -270,6 +272,29 @@ const handleMoreClick = (event: MouseEvent) => {
   }
 }
 
+.star-btn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  color: var(--urlbar-icon);
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--urlbar-icon-hover);
+  }
+
+  &.active {
+    color: var(--color-accent);
+  }
+}
+
 /* ── 图标按钮通用样式 ── */
 %icon-btn {
   @include circle-button(32px);
@@ -293,14 +318,5 @@ const handleMoreClick = (event: MouseEvent) => {
 /* ── AI 助手按钮 ── */
 .ai-btn {
   @extend %icon-btn;
-}
-
-/* ── 收藏按钮 ── */
-.star-btn {
-  @extend %icon-btn;
-
-  &.active {
-    color: var(--color-accent);
-  }
 }
 </style>
