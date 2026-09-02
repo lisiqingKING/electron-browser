@@ -163,4 +163,8 @@ export function registerWindowIpc() {
     const saved = getSettingsValue('download_save_dir')
     return saved || app.getPath('downloads')
   })
+
+  ipcMain.handle('app:quit', () => {
+    app.quit()
+  })
 }

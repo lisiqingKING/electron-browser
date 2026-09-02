@@ -18,6 +18,8 @@ export function createWindowProxy() {
   proxy.isMaximized = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.isMaximized, ...args)
   proxy.adoptTab = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.adoptTab, ...args)
   proxy.updatePosition = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.updatePosition, ...args)
+  proxy.create = (...args: unknown[]) => ipcRenderer.invoke('window:create', ...args)
+  proxy.quit = (...args: unknown[]) => ipcRenderer.invoke('app:quit', ...args)
 
   // push 事件订阅（lazy registration）
   const maximizeChangedListeners = new Set<(maximized: boolean) => void>()

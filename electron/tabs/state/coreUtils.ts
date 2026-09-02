@@ -48,12 +48,13 @@ export function findExistingInternalTab(win: BrowserWindow, url: string) {
   return [...ctx.webContentViewMap.values()].find(t => {
     const tabUrl = t.info.url
     if (tabUrl === url) return true
-    const getRoute = (u: string) => {
-      const hashIndex = u.indexOf('#/')
-      return hashIndex !== -1 ? u.slice(hashIndex) : u
-    }
     return getRoute(tabUrl) === getRoute(url)
   })
+}
+
+export function getRoute(url: string): string {
+  const hashIndex = url.indexOf('#/')
+  return hashIndex !== -1 ? url.slice(hashIndex) : url
 }
 
 export function switchToExistingTab(win: BrowserWindow, existing: { info: TabInfo; view: WebContentsView | null }) {

@@ -58,9 +58,12 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createDefault', async (event, afterTabId?: string) => {
-    const win = getWindowFromEvent(event)
-    if (!win) return null
+  ipcMain.handle('tabs:createDefault', async (event, afterTabId?: string, windowId?: number) => {
+    let win = windowId ? BrowserWindow.fromId(windowId) : null
+    if (!win || win.isDestroyed()) {
+      win = getWindowFromEvent(event)
+    }
+    if (!win || win.isDestroyed()) return null
     const result = createDefaultTab(win, afterTabId)
     saveTabs(getTabContext(win).tabs)
     return result

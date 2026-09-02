@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { mainLogger as logger } from '../shared/logger'
 import { getCurTab, createTabCore, updateCurTabBounds, getTabListData, getTabContext, switchTab, TabInfo } from './state'
-import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString, findExistingInternalTab, switchToExistingTab } from './state/coreUtils'
+import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString, findExistingInternalTab, switchToExistingTab, getRoute } from './state/coreUtils'
 import { registerWebContentsEvents } from './handlers'
 import { isUrl } from '@renderer/utils'
 import { getSubappUrl } from '../subapp-server'
@@ -202,8 +202,10 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
     }
   }
 
-  // 对于内部页面 URL，检查是否已存在 tab，存在则切换
-  if (!tabInfo.isHome && (isInternalUrl(tabInfo.url) || isAppUrl(tabInfo.url))) {
+  // 对于内部页面 URL，检查是否已存在 tab，存在则切换（newtab 除外，支持多开）
+  const route = getRoute(tabInfo.url)
+  const isMultiInstanceRoute = route === '/newtab' || route === '#/newtab'
+  if (!tabInfo.isHome && (isInternalUrl(tabInfo.url) || isAppUrl(tabInfo.url)) && !isMultiInstanceRoute) {
     const existing = findExistingInternalTab(win, tabInfo.url)
     if (existing) {
       switchToExistingTab(win, existing)
