@@ -7,6 +7,7 @@ import FavoritesMoreMenu from './components/FavoritesMoreMenu.vue'
 import RestoreTabsPrompt from './components/RestoreTabsPrompt.vue'
 import UrlBarInputContextMenu from './components/UrlBarInputContextMenu.vue'
 import DownloadsPopup from './components/DownloadsPopup.vue'
+import UrlBarSuggestions from './components/UrlBarSuggestions.vue'
 
 const component = ref('Menu')
 const props = ref<Record<string, any>>({})
@@ -19,6 +20,7 @@ const componentMap: Record<string, any> = {
   RestoreTabsPrompt,
   UrlBarInputContextMenu,
   DownloadsPopup,
+  UrlBarSuggestions,
 }
 const currentComponent = computed(() => componentMap[component.value] || TabContextMenu)
 
@@ -45,10 +47,10 @@ const onPopupRender = (payload: any) => {
   popupStyle.value = {
     position: 'absolute',
     borderRadius: '8px',
-    padding: '2px',
+    padding: '0',
     left: payload.x + 'px',
     top: payload.y + 'px',
-    width: 'fit-content',
+    width: (payload.width && payload.width > 0) ? payload.width + 'px' : 'fit-content',
   }
 }
 

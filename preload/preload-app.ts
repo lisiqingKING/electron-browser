@@ -7,6 +7,7 @@ import { createLogsProxy } from '../electron/modules/logs/ipcClient'
 import { createSettingsProxy } from '../electron/modules/settings/ipcClient'
 // import { createUpdaterProxy } from '../electron/modules/updater/ipcClient'
 import { createFavoritesProxy } from '../electron/modules/favorites/ipcClient'
+import { createSuggestionsProxy } from '../electron/modules/suggestions/ipcClient'
 
 // AI 模块 proxy（流式订阅方法已封装，渲染进程无需接触 ai:stream channel）
 const aiProxy = createAIConversationProxy()
@@ -21,6 +22,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   settings: () => createSettingsProxy(),
   // updater: () => createUpdaterProxy(ipcRenderer),
   favorites: () => createFavoritesProxy(),
+  suggestions: () => createSuggestionsProxy(),
 }
 
 // 构建所有模块

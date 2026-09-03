@@ -33,6 +33,11 @@ export function registerWindowIpc() {
     return win?.isMaximized() ?? false
   })
 
+  ipcMain.handle('window:getContentBounds', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    return win?.getContentBounds() ?? null
+  })
+
   ipcMain.handle('window:create', () => {
     const win = activateReserveWindow()
     setupWindow(win)

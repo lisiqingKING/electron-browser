@@ -26,11 +26,14 @@ const urlInputRef = ref<HTMLInputElement | null>(null)
 
 const clipboard = window.bridge.getModules(['clipboard']).clipboard
 const tabs = window.bridge.getModules(['tabs']).tabs
+const suggestions = window.bridge.getModules(['suggestions']).suggestions
+const windowMod = window.bridge.getModules(['window']).window
 
 let removeActionListener: (() => void) | null = null
+let isPopupShowing = false
 
 onMounted(() => {
-  removeActionListener = onAction(async (action: string) => {
+  removeActionListener = onAction(async (action: string, context?: any) => {
     const input = urlInputRef.value
     if (!input) return
 
@@ -72,6 +75,21 @@ onMounted(() => {
         const text = await clipboard.readText()
         if (!text) return
         emit('update:modelValue', text)
+        break
+      }
+      case 'select': {
+        if (context?.url) {
+          tabs.create({ title: context.title || '加载中...', url: context.url })
+        }
+        isPopupShowing = false
+        break
+      }
+      case 'search': {
+        if (context?.query) {
+          const url = `https://www.baidu.com/s?wd=${encodeURIComponent(context.query)}`
+          tabs.create({ title: `搜索: ${context.query}`, url })
+        }
+        isPopupShowing = false
         break
       }
     }
@@ -119,6 +137,45 @@ const handleMoreClick = (event: MouseEvent) => {
     props: { currentUrl: props.modelValue },
   })
 }
+
+const handleFocus = async () => {
+  if (isPopupShowing) return
+
+  const input = urlInputRef.value
+  if (!input) return
+
+  const rect = input.getBoundingClientRect()
+  const parentRect = input.parentElement?.getBoundingClientRect()
+  const contentBounds = await windowMod.getContentBounds()
+
+  try {
+    const data = await suggestions.get()
+    isPopupShowing = true
+    input.blur()
+
+    show({
+      x: parentRect?.left + contentBounds.x,
+      y: rect.top + contentBounds.y,
+      component: 'UrlBarSuggestions',
+      props: {
+        favorites: data.favorites,
+        history: data.history,
+        inputValue: props.modelValue,
+      },
+      width: parentRect?.width ?? rect.width,
+    })
+  } catch (e) {
+    isPopupShowing = false
+    console.error('[UrlBar] suggestions.get failed:', e)
+  }
+}
+
+const handleBlur = () => {
+  // 输入框失焦时延迟重置，等弹窗关闭完成
+  setTimeout(() => {
+    isPopupShowing = false
+  }, 100)
+}
 </script>
 
 <template>
@@ -157,6 +214,8 @@ const handleMoreClick = (event: MouseEvent) => {
           type="text"
           placeholder="搜索或输入网址"
           class="url-input"
+          @focus="handleFocus"
+          @blur="handleBlur"
           @contextmenu="handleContextMenu"
           @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
           @keyup.enter="emit('submit')"

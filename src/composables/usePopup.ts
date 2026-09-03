@@ -33,5 +33,21 @@ export function usePopup() {
     }
   }
 
-  return { show, hide, onAction }
+  const onHide = (callback: () => void) => {
+    const handler = () => {
+      try {
+        callback()
+      } catch (err) {
+        console.error('[usePopup] hide handler error:', err)
+      }
+    }
+
+    window.bridge.on('popup:hide', handler)
+
+    return () => {
+      window.bridge.off('popup:hide', handler)
+    }
+  }
+
+  return { show, hide, onAction, onHide }
 }
