@@ -13,8 +13,7 @@ import { updateCurTabBounds } from './tabBounds'
 import type { TabInfo } from './types'
 
 function getPreloadPath(): string {
-  const preloadAppPath = path.join(process.env.APP_ROOT!, 'dist-electron', 'preload-app.mjs')
-  return preloadAppPath
+  return path.join(process.env.APP_ROOT!, 'dist-electron', 'preload.js')
 }
 
 export function createTabCore(

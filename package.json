@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
-    "dev": "npx esbuild preload/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && vite",
-    "build": "vue-tsc --noEmit && vite build && npx esbuild preload/preload-app.ts --bundle --platform=node --external:electron --outfile=dist-electron/preload-app.mjs && electron-builder",
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build && electron-builder",
     "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "postinstall": "electron-rebuild",
