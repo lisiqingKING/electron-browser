@@ -8,6 +8,7 @@ import { createSettingsProxy } from '../electron/modules/settings/ipcClient'
 // import { createUpdaterProxy } from '../electron/modules/updater/ipcClient'
 import { createFavoritesProxy } from '../electron/modules/favorites/ipcClient'
 import { createSuggestionsProxy } from '../electron/modules/suggestions/ipcClient'
+import { createPopupProxy } from '../electron/modules/popup/ipcClient'
 
 // AI 模块 proxy（流式订阅方法已封装，渲染进程无需接触 ai:stream channel）
 const aiProxy = createAIConversationProxy()
@@ -23,6 +24,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   // updater: () => createUpdaterProxy(ipcRenderer),
   favorites: () => createFavoritesProxy(),
   suggestions: () => createSuggestionsProxy(),
+  popup: () => createPopupProxy(),
 }
 
 // 构建所有模块
@@ -126,4 +128,9 @@ contextBridge.exposeInMainWorld('bridge', {
       getInternalIconFromUrl,
     }
   },
+})
+
+// popup 关闭由 preload 直接处理
+ipcRenderer.on('popup:hide', () => {
+  window.close()
 })
