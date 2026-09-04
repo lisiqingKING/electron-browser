@@ -5,9 +5,10 @@ const props = defineProps<{
 }>()
 
 const tabsMod = window.bridge.getModules(['tabs']).tabs
+const popupMod = window.bridge.getModules(['popup']).popup
 
 function hide() {
-  window.bridge.send('popup:hide')
+  popupMod.hide()
 }
 
 async function handleRestore() {
@@ -26,16 +27,18 @@ async function handleDecline() {
     <div class="title">检测到上次退出前的标签页</div>
     <div class="desc">是否恢复 {{ tabCount ?? 0 }} 个标签页？</div>
     <div class="actions">
-      <div class="btn btn-secondary" @click="handleDecline">否</div>
-      <div class="btn btn-primary" @click="handleRestore">是</div>
+      <div class="btn btn-secondary" @click="handleDecline">取消</div>
+      <div class="btn btn-primary" @click="handleRestore">恢复</div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .prompt {
-  width: 220px;
+  /* width: 220px; */
   padding: 14px 16px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .title {
   font-size: 13px;
@@ -50,15 +53,18 @@ async function handleDecline() {
 }
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
   justify-content: flex-end;
 }
 .btn {
-  padding: 5px 14px;
+  padding: 4px 6px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   transition: background 0.1s ease;
+  white-space: nowrap;
 }
 .btn-secondary {
   background: var(--color-bg-secondary);

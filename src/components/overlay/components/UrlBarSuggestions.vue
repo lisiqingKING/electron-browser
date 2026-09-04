@@ -22,6 +22,7 @@ const emit = defineEmits<{
 
 const selectedIndex = ref(-1)
 const localInputValue = ref(props.inputValue || '')
+const popupMod = window.bridge.getModules(['popup']).popup
 
 const filteredItems = computed(() => {
   const query = localInputValue.value.toLowerCase().trim()
@@ -42,7 +43,7 @@ const hasSearchOption = computed(() => {
 })
 
 function hide() {
-  window.bridge.send('popup:hide')
+  popupMod.hide()
 }
 
 function selectItem(item: SuggestionItem) {

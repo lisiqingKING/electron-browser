@@ -10,9 +10,10 @@ const emit = defineEmits<{
 }>()
 
 const clipboard = window.bridge.getModules(['clipboard']).clipboard
+const popupMod = window.bridge.getModules(['popup']).popup
 
 function hide() {
-  window.bridge.send('popup:hide')
+  popupMod.hide()
 }
 
 async function doAction(action: 'copy' | 'cut' | 'paste' | 'selectAll' | 'delete' | 'pasteAndSearch' | 'clearAndPaste') {

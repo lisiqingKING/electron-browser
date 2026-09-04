@@ -10,6 +10,7 @@ const props = defineProps<{
 const tabsMod = window.bridge.getModules(['tabs']).tabs
 const favoritesMod = window.bridge.getModules(['favorites']).favorites
 const windowMod = window.bridge.getModules(['window']).window
+const popupMod = window.bridge.getModules(['popup']).popup
 
 const activeSubmenu = ref<number | null>(null)
 let hideTimer: ReturnType<typeof setTimeout> | null = null
@@ -29,7 +30,7 @@ async function loadFavorites() {
 }
 
 function hide() {
-  window.bridge.send('popup:hide')
+  popupMod.hide()
 }
 
 function showSubmenu(index: number) {

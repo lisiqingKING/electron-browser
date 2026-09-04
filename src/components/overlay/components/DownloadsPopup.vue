@@ -8,6 +8,7 @@ const props = defineProps<{
 
 const downloadsMod = window.bridge.getModules(['downloads']).downloads
 const tabsMod = window.bridge.getModules(['tabs']).tabs
+const popupMod = window.bridge.getModules(['popup']).popup
 
 interface DownloadItem {
   id: string
@@ -65,7 +66,7 @@ function onRemoved(id: string) {
 }
 
 function hide() {
-  window.bridge.send('popup:hide')
+  popupMod.hide()
 }
 
 function openDownloadsPage() {
@@ -135,6 +136,7 @@ onUnmounted(() => {
   width: 360px;
   display: flex;
   flex-direction: column;
+  background: var(--color-bg-primary);
 }
 
 .header {
@@ -186,5 +188,6 @@ onUnmounted(() => {
 
 .list {
   padding: 6px 8px;
+  background: var(--color-bg-primary);
 }
 </style>

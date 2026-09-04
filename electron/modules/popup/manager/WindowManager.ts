@@ -60,20 +60,6 @@ export function showPopupInactive(popupWin: BrowserWindow): void {
   popupWin.showInactive()
 }
 
-export function hidePopupWindow(): void {
-  if (!popupWindow) return
-  try {
-    if (popupWindow.isDestroyed()) {
-      popupWindow = null
-      return
-    }
-    popupWindow.destroy()
-  } catch (e) {
-    console.warn('[PopupWindow] hide error:', e)
-    popupWindow = null
-  }
-}
-
 export function sendRenderData(
   popupWin: BrowserWindow,
   data: { component: string; props: unknown; context: unknown; theme: string; x: number; y: number; width: number; height: number; windowId: number }

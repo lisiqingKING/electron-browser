@@ -11,9 +11,10 @@ const props = defineProps<{
 
 const tabsMod = window.bridge.getModules(['tabs']).tabs
 const windowMod = window.bridge.getModules(['window']).window
+const popupMod = window.bridge.getModules(['popup']).popup
 
 function hide() {
-  window.bridge.send('popup:hide')
+  popupMod.hide()
 }
 
 const tab = () => props.tabs.find(t => t.id === props.tabId)

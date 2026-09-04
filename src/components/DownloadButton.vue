@@ -74,7 +74,8 @@ function onDownloadRemoved(id: string) {
 }
 
 function handleClick(event: MouseEvent) {
-  window.bridge.send('popup:show', {
+  const popupMod = window.bridge.getModules(['popup']).popup
+  popupMod.show({
     x: event.screenX - 360,
     y: event.screenY + 10,
     component: 'DownloadsPopup',

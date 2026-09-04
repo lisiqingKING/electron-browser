@@ -6,6 +6,7 @@ import { createFavoritesProxy } from './modules/favorites/ipcClient'
 import { createSettingsProxy } from './modules/settings/ipcClient'
 import { createDownloadsProxy } from './modules/downloads/ipcClient'
 import { createSuggestionsProxy } from './modules/suggestions/ipcClient'
+import { createPopupProxy } from './modules/popup/ipcClient'
 
 // Parse windowId from URL
 const url = new URL(window.location.href)
@@ -20,6 +21,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   settings: () => createSettingsProxy(),
   downloads: () => createDownloadsProxy(),
   suggestions: () => createSuggestionsProxy(),
+  popup: () => createPopupProxy(),
 }
 
 // 构建所有模块

@@ -8,7 +8,6 @@ import {
   destroyPopupWindow,
   showPopupInactive,
   sendRenderData,
-  hidePopupWindow,
 } from './WindowManager'
 
 function getPopupUrl(): string {
@@ -82,5 +81,5 @@ export function showPopup(options: PopupOptions, targetWin: BrowserWindow): void
 }
 
 export function hidePopup(): void {
-  hidePopupWindow()
+  destroyPopupWindow()
 }

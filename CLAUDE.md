@@ -24,6 +24,7 @@ pnpm build && electron-builder  # 打包
 - [ ] 新增了 IPC 模块? 三处同步: 模块实现 / preload 注册 / bootstrap 注册
 - [ ] 新增了子应用? 扩展 docs/ARCHITECTURE.md 的子应用地图 + subapp 配置
 - [ ] 不要直接编辑 `apps/<name>/dist/`，那是子项目构建产物
+- [ ] 修改渲染进程的模块调用? 先看既有组件是如何获取模块的，遵循相同模式（`window.bridge.getModules(['xxx']).xxx`），**不要**自己发明新的调用方式
 
 ## Vue 组件规范
 

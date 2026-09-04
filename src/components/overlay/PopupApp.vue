@@ -13,6 +13,8 @@ const component = ref('Menu')
 const props = ref<Record<string, any>>({})
 const context = ref<any>(null)
 
+const popupMod = window.bridge.getModules(['popup']).popup
+
 const componentMap: Record<string, any> = {
   TabContextMenu,
   UrlBarMoreMenu,
@@ -28,7 +30,7 @@ const popupStyle = ref<Record<string, string>>({})
 
 function handleAction(action: string, ctx?: any) {
   const safeContext = ctx ? JSON.parse(JSON.stringify(ctx)) : undefined
-  window.bridge.send('popup:action', { action, context: safeContext, windowId: props.value.windowId })
+  popupMod.action({ action, context: safeContext, windowId: props.value.windowId })
 }
 
 const onPopupRender = (payload: any) => {
@@ -56,31 +58,32 @@ const onPopupRender = (payload: any) => {
 
 const onPopupHide = () => {
   popupStyle.value = { display: 'none' }
+  // 清空组件内容，避免残影
+  component.value = ''
+  props.value = {}
+  context.value = null
 }
 
 // Register IPC listener before onMounted to catch early events
-window.bridge.on('popup:render', onPopupRender)
-window.bridge.on('popup:hide', onPopupHide)
+const unsubscribeRender = popupMod.onRender(onPopupRender)
+const unsubscribeHide = popupMod.onHide(onPopupHide)
 
 onUnmounted(() => {
-  window.bridge.off('popup:render', onPopupRender)
-  window.bridge.off('popup:hide', onPopupHide)
+  unsubscribeRender()
+  unsubscribeHide()
 })
 
-function onDocumentClick(e: MouseEvent) {
+useEventListener(document, 'mousedown', (e: MouseEvent) => {
   const popup = document.getElementById('popup')
   if (popup && !popup.contains(e.target as Node)) {
-    window.bridge.send('popup:hide')
+    popupMod.hide()
   }
-}
-
-useEventListener(document, 'mousedown', onDocumentClick)
-useEventListener(window, 'blur', () => window.bridge.send('popup:hide'))
+})
 </script>
 
 <template>
   <div id="popup" class="popup" :style="popupStyle">
-    <component :is="currentComponent" v-bind="props" :context="context" @action="handleAction" />
+    <component v-if="component" :is="currentComponent" v-bind="props" :context="context" @action="handleAction" />
   </div>
 </template>
 

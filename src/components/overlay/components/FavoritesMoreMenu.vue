@@ -8,9 +8,10 @@ const props = defineProps<{
 }>()
 
 const tabsMod = window.bridge.getModules(['tabs']).tabs
+const popupMod = window.bridge.getModules(['popup']).popup
 
 function hide() {
-  window.bridge.send('popup:hide')
+  popupMod.hide()
 }
 
 function openUrl(url: string) {
