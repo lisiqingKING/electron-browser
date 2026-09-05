@@ -102,15 +102,14 @@ onMounted(async () => {
   } catch {}
 
   // 订阅事件
-  downloadsMod.onAdded(onDownloadAdded)
-  downloadsMod.onProgress(onDownloadProgress)
-  downloadsMod.onRemoved(onDownloadRemoved)
-})
-
-onUnmounted(() => {
-  downloadsMod.removeOnAdded(onDownloadAdded)
-  downloadsMod.removeOnProgress(onDownloadProgress)
-  downloadsMod.removeOnRemoved(onDownloadRemoved)
+  const unsubAdded = downloadsMod.onAdded(onDownloadAdded)
+  const unsubProgress = downloadsMod.onProgress(onDownloadProgress)
+  const unsubRemoved = downloadsMod.onRemoved(onDownloadRemoved)
+  onUnmounted(() => {
+    unsubAdded()
+    unsubProgress()
+    unsubRemoved()
+  })
 })
 </script>
 

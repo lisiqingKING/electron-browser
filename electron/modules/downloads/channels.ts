@@ -11,7 +11,6 @@ export const downloadsChannels = {
   clear: 'downloads:clear',
   directDownloadUrl: 'downloads:direct-download-url',
   event: 'downloads:event',
-  listChanged: 'downloads:list-changed',
 } as const
 
 export const blobChannels = {

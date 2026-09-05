@@ -90,15 +90,14 @@ async function onOpenFile(id: string) {
 
 onMounted(() => {
   loadDownloads()
-  downloadsMod.onAdded(onTaskAdded)
-  downloadsMod.onProgress(onProgress)
-  downloadsMod.onRemoved(onRemoved)
-})
-
-onUnmounted(() => {
-  downloadsMod.removeOnAdded(onTaskAdded)
-  downloadsMod.removeOnProgress(onProgress)
-  downloadsMod.removeOnRemoved(onRemoved)
+  const unsubAdded = downloadsMod.onAdded(onTaskAdded)
+  const unsubProgress = downloadsMod.onProgress(onProgress)
+  const unsubRemoved = downloadsMod.onRemoved(onRemoved)
+  onUnmounted(() => {
+    unsubAdded()
+    unsubProgress()
+    unsubRemoved()
+  })
 })
 </script>
 

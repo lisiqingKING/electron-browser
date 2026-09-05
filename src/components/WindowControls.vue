@@ -23,11 +23,8 @@ const onMaximizeChanged = (maximized: boolean) => {
 
 onMounted(async () => {
   isMaximized.value = await win.isMaximized()
-  win.onMaximizeChanged(onMaximizeChanged)
-})
-
-onUnmounted(() => {
-  win.removeOnMaximizeChanged(onMaximizeChanged)
+  const unsub = win.onMaximizeChanged(onMaximizeChanged)
+  onUnmounted(unsub)
 })
 </script>
 
