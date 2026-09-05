@@ -240,7 +240,7 @@ const onThemeChanged = (theme: string) => {
 }
 
 const handleMainReadyForPopup = () => {
-  tabsMod.showRestorePrompt()
+  setTimeout(() => tabsMod.showRestorePrompt(), 1000)
 }
 
 const onFavoritesChanged = async () => {
