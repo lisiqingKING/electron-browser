@@ -9,6 +9,7 @@ import { createLogsProxy } from '../electron/modules/logs/ipcClient'
 import { createSettingsProxy, settingsChannels } from '../electron/modules/settings/ipcClient'
 import { createFavoritesProxy, favoritesChannels } from '../electron/modules/favorites/ipcClient'
 import { createSuggestionsProxy } from '../electron/modules/suggestions/ipcClient'
+import { createUtilsProxy } from '../electron/modules/utils/ipcClient'
 import { createPopupProxy, popupChannels } from '../electron/modules/popup/ipcClient'
 import { tabChannels, mainChannels } from '../electron/shared/channels'
 
@@ -31,6 +32,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   settings: () => createSettingsProxy(),
   favorites: () => createFavoritesProxy(),
   suggestions: () => createSuggestionsProxy(),
+  utils: () => createUtilsProxy(),
   popup: () => createPopupProxy(),
 }
 
@@ -96,6 +98,11 @@ contextBridge.exposeInMainWorld('bridge', {
 
   // 直接访问 AI 模块（推荐方式）
   ai: aiProxy,
+
+  // Utils 模块
+  getUtils() {
+    return createUtilsProxy()
+  },
 
   // 按需获取模块
   getModules(moduleNames?: string[]) {
