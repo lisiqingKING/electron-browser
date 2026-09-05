@@ -16,13 +16,14 @@ import { getTabListData, switchTab, getTabContext } from '../tabs/state'
 import { nativeTheme } from 'electron'
 import { getSetting } from '../modules/settings/manager'
 import type { Theme } from '../shared/types'
+import { tabChannels } from '../shared/channels'
 
 function restoreTabs(win: Electron.BrowserWindow) {
   const ctx = getTabContext(win)
   const homeTab = ctx.tabs.find(t => t.isHome)
   if (homeTab?.id) {
     switchTab(homeTab.id, win)
-    win.webContents.send('tab:list-changed', getTabListData(win))
+    win.webContents.send(tabChannels.listChanged, getTabListData(win))
   }
 }
 

@@ -10,7 +10,7 @@ const pushChannels = new Set<string>([
 ])
 
 export function createUpdaterProxy(ipcRenderer: Electron.IpcRenderer) {
-  const proxy: Record<string, Function> = {}
+  const proxy: Record<string, (...args: unknown[]) => unknown> = {}
 
   for (const [method, channel] of Object.entries(updaterChannels)) {
     if (pushChannels.has(channel as string)) continue

@@ -1,54 +1,38 @@
 import { ipcRenderer } from 'electron'
+import { createSubscription } from '../../shared/subscription'
 
 export const windowChannels = {
   minimize: 'window:minimize',
   maximize: 'window:maximize',
   close: 'window:close',
   isMaximized: 'window:isMaximized',
-  adoptTab: 'window:adopt-tab',
-  updatePosition: 'window:update-position',
+  adoptTab: 'window:adoptTab',
+  updatePosition: 'window:updatePosition',
   getContentBounds: 'window:getContentBounds',
+  maximizeChanged: 'window:maximize-changed',
+  create: 'window:create',
+  quit: 'app:quit',
+  list: 'window:list',
+  selectDownloadDir: 'window:selectDownloadDir',
+  openPath: 'window:openPath',
+  getDownloadDir: 'window:getDownloadDir',
 }
 
 export function createWindowProxy() {
-  const proxy: Record<string, Function> = {}
+  const { subscribe } = createSubscription(windowChannels.maximizeChanged)
 
-  proxy.minimize = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.minimize, ...args)
-  proxy.maximize = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.maximize, ...args)
-  proxy.close = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.close, ...args)
-  proxy.isMaximized = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.isMaximized, ...args)
-  proxy.adoptTab = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.adoptTab, ...args)
-  proxy.updatePosition = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.updatePosition, ...args)
-  proxy.create = (...args: unknown[]) => ipcRenderer.invoke('window:create', ...args)
-  proxy.quit = (...args: unknown[]) => ipcRenderer.invoke('app:quit', ...args)
-  proxy.getContentBounds = (...args: unknown[]) => ipcRenderer.invoke(windowChannels.getContentBounds, ...args)
-
-  // push 事件订阅（lazy registration）
-  const maximizeChangedListeners = new Set<(maximized: boolean) => void>()
-  let listenerRegistered = false
-
-  function handleMaximizeChanged(_event: Electron.IpcRendererEvent, maximized: boolean) {
-    maximizeChangedListeners.forEach(fn => fn(maximized))
+  return {
+    minimize: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.minimize, ...args),
+    maximize: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.maximize, ...args),
+    close: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.close, ...args),
+    isMaximized: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.isMaximized, ...args),
+    adoptTab: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.adoptTab, ...args),
+    updatePosition: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.updatePosition, ...args),
+    getContentBounds: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.getContentBounds, ...args),
+    create: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.create, ...args),
+    quit: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.quit, ...args),
+    onMaximizeChanged: subscribe,
   }
-
-  function ensureListener() {
-    if (!listenerRegistered) {
-      ipcRenderer.on('window:maximize-changed', handleMaximizeChanged)
-      listenerRegistered = true
-    }
-  }
-
-  function cleanupIfEmpty() {
-    if (maximizeChangedListeners.size === 0) {
-      ipcRenderer.removeListener('window:maximize-changed', handleMaximizeChanged)
-      listenerRegistered = false
-    }
-  }
-
-  proxy.onMaximizeChanged = (fn: (maximized: boolean) => void) => { ensureListener(); maximizeChangedListeners.add(fn) }
-  proxy.removeOnMaximizeChanged = (fn: (maximized: boolean) => void) => { maximizeChangedListeners.delete(fn); cleanupIfEmpty() }
-
-  return proxy
 }
 
 export type WindowModule = ReturnType<typeof createWindowProxy>

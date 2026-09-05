@@ -7,6 +7,8 @@ import { setupWindow } from '../mainEntry/windowEvents'
 import { mainLogger as logger } from '../shared/logger'
 import { saveTabs } from '../tabs/tabsDb'
 import { destroyTray } from './tray/trayManager'
+import { tabChannels, mainChannels } from '../shared/channels'
+import { windowChannels } from '../modules/window/ipcClient'
 
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
@@ -50,7 +52,7 @@ function createWindowCore(isMain = false): BrowserWindow {
   if (isMain) {
     win.webContents.once('did-finish-load', () => {
       win.show()
-      win.webContents.send('main:ready-for-popup')
+      win.webContents.send(mainChannels.readyForPopup)
     })
   }
   ;(win as any).isMainWindow = isMain
@@ -76,14 +78,14 @@ function createWindowCore(isMain = false): BrowserWindow {
 
   // 主进程推送初始 tab 列表（渲染进程 mount 后注册好 listener）
   win.webContents.once('did-finish-load', () => {
-    win.webContents.send('tab:list-changed', getTabListData(win))
+    win.webContents.send(tabChannels.listChanged, getTabListData(win))
   })
 
   win.on('maximize', () => {
-    win.webContents.send('window:maximize-changed', true)
+    win.webContents.send(windowChannels.maximizeChanged, true)
   })
   win.on('unmaximize', () => {
-    win.webContents.send('window:maximize-changed', false)
+    win.webContents.send(windowChannels.maximizeChanged, false)
   })
 
   return win

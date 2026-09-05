@@ -1,13 +1,14 @@
 import { ipcMain } from 'electron'
 import { ipcLogger } from '../../shared/logger'
 import { getHistory, clearAllHistory, deleteRecord } from './manager'
+import { historyChannels } from './ipcClient'
 
 export function registerHistoryHandlers() {
-  ipcMain.handle('history:get', async () => {
+  ipcMain.handle(historyChannels.get, async () => {
     return getHistory()
   })
 
-  ipcMain.handle('history:clear', async () => {
+  ipcMain.handle(historyChannels.clear, async () => {
     try {
       clearAllHistory()
       return true
@@ -17,7 +18,7 @@ export function registerHistoryHandlers() {
     }
   })
 
-  ipcMain.handle('history:delete', async (_event, id: number) => {
+  ipcMain.handle(historyChannels.delete, async (_event, id: number) => {
     try {
       deleteRecord(id)
       return true

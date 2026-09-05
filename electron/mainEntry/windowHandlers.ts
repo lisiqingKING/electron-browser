@@ -10,13 +10,15 @@ import { setupWindow } from './windowEvents'
 import { createTabView } from '../tabs/state/tabCore'
 import { registerWebContentsEvents } from '../tabs/handlers'
 import { isUrl } from '@renderer/utils'
+import { windowChannels } from '../modules/window/ipcClient'
+import { tabChannels } from '../shared/channels'
 
 export function registerWindowIpc() {
-  ipcMain.handle('window:minimize', (event) => {
+  ipcMain.handle(windowChannels.minimize, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     win?.minimize()
   })
-  ipcMain.handle('window:maximize', (event) => {
+  ipcMain.handle(windowChannels.maximize, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (win?.isMaximized()) {
       win.unmaximize()
@@ -24,21 +26,21 @@ export function registerWindowIpc() {
       win?.maximize()
     }
   })
-  ipcMain.handle('window:close', (event) => {
+  ipcMain.handle(windowChannels.close, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (win) closeWindow(win)
   })
-  ipcMain.handle('window:isMaximized', (event) => {
+  ipcMain.handle(windowChannels.isMaximized, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     return win?.isMaximized() ?? false
   })
 
-  ipcMain.handle('window:getContentBounds', (event) => {
+  ipcMain.handle(windowChannels.getContentBounds, (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     return win?.getContentBounds() ?? null
   })
 
-  ipcMain.handle('window:create', () => {
+  ipcMain.handle(windowChannels.create, () => {
     const win = activateReserveWindow()
     setupWindow(win)
     const appUrl = env.getAppUrl()
@@ -46,7 +48,7 @@ export function registerWindowIpc() {
     return true
   })
 
-  ipcMain.handle('window:list', () => {
+  ipcMain.handle(windowChannels.list, () => {
     return getAllWindows().map(win => ({
       id: win.id,
       tabs: getTabContext(win).tabs.length,
@@ -56,7 +58,7 @@ export function registerWindowIpc() {
 
   let lastAdoptTime = 0
 
-  ipcMain.handle('window:adopt-tab', (_event, tabId: string, screenPos?: { x: number; y: number }) => {
+  ipcMain.handle(windowChannels.adoptTab, (_event, tabId: string, screenPos?: { x: number; y: number }) => {
     const now = Date.now()
     if (now - lastAdoptTime < 500) return false
     lastAdoptTime = now
@@ -128,10 +130,10 @@ export function registerWindowIpc() {
       if (nextTab.id) switchTab(nextTab.id, oldWin)
     }
     if (!oldWin.isDestroyed()) {
-      oldWin.webContents.send('tab:list-changed', getTabListData(oldWin))
+      oldWin.webContents.send(tabChannels.listChanged, getTabListData(oldWin))
     }
     if (!newWin.isDestroyed()) {
-      newWin.webContents.send('tab:list-changed', getTabListData(newWin))
+      newWin.webContents.send(tabChannels.listChanged, getTabListData(newWin))
     }
 
     return newWin.id
@@ -140,7 +142,7 @@ export function registerWindowIpc() {
   const WINDOW_W = 800
   const WINDOW_H = 600
 
-  ipcMain.handle('window:update-position', (_event, windowId: number, pos: { x: number; y: number }) => {
+  ipcMain.handle(windowChannels.updatePosition, (_event, windowId: number, pos: { x: number; y: number }) => {
     const win = BrowserWindow.fromId(windowId)
     if (win && !win.isDestroyed()) {
       win.setPosition(Math.floor(pos.x), Math.floor(pos.y))
@@ -148,7 +150,7 @@ export function registerWindowIpc() {
     }
   })
 
-  ipcMain.handle('window:selectDownloadDir', async (_event, currentPath: string) => {
+  ipcMain.handle(windowChannels.selectDownloadDir, async (_event, currentPath: string) => {
     const result = await dialog.showOpenDialog({
       title: '选择下载文件夹',
       defaultPath: currentPath,
@@ -160,16 +162,16 @@ export function registerWindowIpc() {
     return result.filePaths[0]
   })
 
-  ipcMain.handle('window:openPath', async (_event, fullPath: string) => {
+  ipcMain.handle(windowChannels.openPath, async (_event, fullPath: string) => {
     return shell.openPath(fullPath)
   })
 
-  ipcMain.handle('window:getDownloadDir', () => {
+  ipcMain.handle(windowChannels.getDownloadDir, () => {
     const saved = getSettingsValue('download_save_dir')
     return saved || app.getPath('downloads')
   })
 
-  ipcMain.handle('app:quit', () => {
+  ipcMain.handle(windowChannels.quit, () => {
     app.quit()
   })
 }

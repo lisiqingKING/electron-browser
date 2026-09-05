@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import path from 'node:path'
+import { popupChannels } from '../../popup/ipcClient'
 
 export let popupWindow: BrowserWindow | null = null
 
@@ -64,5 +65,5 @@ export function sendRenderData(
   popupWin: BrowserWindow,
   data: { component: string; props: unknown; context: unknown; theme: string; x: number; y: number; width: number; height: number; windowId: number }
 ): void {
-  popupWin.webContents.send('popup:render', data)
+  popupWin.webContents.send(popupChannels.render, data)
 }

@@ -1,6 +1,8 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { ipcLogger } from '../shared/logger'
 import { getWindowById } from '../shared/windowUtils'
+import { tabChannels } from '../shared/channels'
+import { tabsChannels } from './ipcClient'
 import {
   listTabs,
   createTab,
@@ -31,13 +33,13 @@ function getWindowFromEvent(event: { sender: Electron.WebContents }): BrowserWin
 }
 
 export function registerTabHandlers() {
-  ipcMain.handle('tabs:list', async (event) => {
+  ipcMain.handle(tabsChannels.list, async (event) => {
     const win = getWindowFromEvent(event)
     if (!win) return { tabs: [], currentTabId: null }
     return listTabs(win)
   })
 
-  ipcMain.handle('tabs:create', async (event, tabInfo: { title: string; url: string; isHome?: boolean }, afterTabId?: string, windowId?: number, silent?: boolean) => {
+  ipcMain.handle(tabsChannels.create, async (event, tabInfo: { title: string; url: string; isHome?: boolean }, afterTabId?: string, windowId?: number, silent?: boolean) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -50,7 +52,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createHome', async (event) => {
+  ipcMain.handle(tabsChannels.createHome, async (event) => {
     const win = getWindowFromEvent(event)
     if (!win) return null
     const result = createHomeTab(win)
@@ -58,7 +60,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createDefault', async (event, afterTabId?: string, windowId?: number) => {
+  ipcMain.handle(tabsChannels.createDefault, async (event, afterTabId?: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -69,7 +71,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createHistory', async (event, afterTabId?: string, windowId?: number) => {
+  ipcMain.handle(tabsChannels.createHistory, async (event, afterTabId?: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -80,7 +82,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createDownloads', async (event, afterTabId?: string, windowId?: number) => {
+  ipcMain.handle(tabsChannels.createDownloads, async (event, afterTabId?: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -91,7 +93,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createSettings', async (event, afterTabId?: string, windowId?: number) => {
+  ipcMain.handle(tabsChannels.createSettings, async (event, afterTabId?: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -102,7 +104,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createLogs', async (event, afterTabId?: string, windowId?: number) => {
+  ipcMain.handle(tabsChannels.createLogs, async (event, afterTabId?: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -113,7 +115,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createAI', async (event, afterTabId?: string) => {
+  ipcMain.handle(tabsChannels.createAI, async (event, afterTabId?: string) => {
     const win = getWindowFromEvent(event)
     if (!win) return null
     const result = createInternalTab(win, 'ai', afterTabId)
@@ -121,7 +123,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createAiSaves', async (event, afterTabId?: string) => {
+  ipcMain.handle(tabsChannels.createAiSaves, async (event, afterTabId?: string) => {
     const win = getWindowFromEvent(event)
     if (!win) return null
     const result = createInternalTab(win, 'aiSaves', afterTabId)
@@ -129,7 +131,7 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.handle('tabs:createFavorites', async (event, afterTabId?: string, windowId?: number) => {
+  ipcMain.handle(tabsChannels.createFavorites, async (event, afterTabId?: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -140,23 +142,23 @@ export function registerTabHandlers() {
     return result
   })
 
-  ipcMain.on('tabs:refresh', (event) => {
+  ipcMain.on(tabsChannels.refresh, (event) => {
     const win = getWindowFromEvent(event)
     if (!win) return
     refreshTab(win)
   })
 
-  ipcMain.on('tabs:updateUrl', (event, url: string) => {
+  ipcMain.on(tabsChannels.updateUrl, (event, url: string) => {
     const win = getWindowFromEvent(event)
     if (!win) return
     updateUrl(win, url)
   })
 
-  ipcMain.on('tabs:updateInfo', (_event, _tabId: string, _data: { title?: string; url?: string; favicon?: string }) => {
+  ipcMain.on(tabsChannels.updateInfo, (_event, _tabId: string, _data: { title?: string; url?: string; favicon?: string }) => {
     updateTabInfo()
   })
 
-  ipcMain.handle('tabs:switch', async (event, tabId: string) => {
+  ipcMain.handle(tabsChannels.switch, async (event, tabId: string) => {
     const win = getWindowFromEvent(event)
     if (!win) return false
 
@@ -166,12 +168,12 @@ export function registerTabHandlers() {
       return false
     }
 
-    win.webContents.send('tab:can-navigate', { id: tabId, canGoBack: result.canGoBack, canGoForward: result.canGoForward })
-    win.webContents.send('tab:current-changed', { currentTabId: tabId })
+    win.webContents.send(tabChannels.canNavigate, { id: tabId, canGoBack: result.canGoBack, canGoForward: result.canGoForward })
+    win.webContents.send(tabChannels.currentChanged, { currentTabId: tabId })
     return true
   })
 
-  ipcMain.handle('tabs:close', async (event, tabId: string, windowId?: number) => {
+  ipcMain.handle(tabsChannels.close, async (event, tabId: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -181,12 +183,12 @@ export function registerTabHandlers() {
     const newCurTabId = closeTab(win, tabId)
     saveTabs(getTabContext(win).tabs)
     if (!win.webContents.isDestroyed()) {
-      win.webContents.send('tab:list-changed', listTabs(win))
+      win.webContents.send(tabChannels.listChanged, listTabs(win))
     }
     return newCurTabId
   })
 
-  ipcMain.on('tabs:reload', (event, tabId: string, windowId?: number) => {
+  ipcMain.on(tabsChannels.reload, (event, tabId: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win) {
       win = getWindowFromEvent(event)
@@ -195,7 +197,7 @@ export function registerTabHandlers() {
     reloadTab(win, tabId)
   })
 
-  ipcMain.on('tabs:closeOthers', (event, tabId: string, windowId?: number) => {
+  ipcMain.on(tabsChannels.closeOthers, (event, tabId: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -204,11 +206,11 @@ export function registerTabHandlers() {
     closeOtherTabs(win, tabId)
     saveTabs(getTabContext(win).tabs)
     if (!win.webContents.isDestroyed()) {
-      win.webContents.send('tab:list-changed', listTabs(win))
+      win.webContents.send(tabChannels.listChanged, listTabs(win))
     }
   })
 
-  ipcMain.on('tabs:closeLeft', (event, tabId: string, windowId?: number) => {
+  ipcMain.on(tabsChannels.closeLeft, (event, tabId: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -217,11 +219,11 @@ export function registerTabHandlers() {
     closeTabsToLeft(win, tabId)
     saveTabs(getTabContext(win).tabs)
     if (!win.webContents.isDestroyed()) {
-      win.webContents.send('tab:list-changed', listTabs(win))
+      win.webContents.send(tabChannels.listChanged, listTabs(win))
     }
   })
 
-  ipcMain.on('tabs:closeRight', (event, tabId: string, windowId?: number) => {
+  ipcMain.on(tabsChannels.closeRight, (event, tabId: string, windowId?: number) => {
     let win = windowId ? BrowserWindow.fromId(windowId) : null
     if (!win || win.isDestroyed()) {
       win = getWindowFromEvent(event)
@@ -230,30 +232,30 @@ export function registerTabHandlers() {
     closeTabsToRight(win, tabId)
     saveTabs(getTabContext(win).tabs)
     if (!win.webContents.isDestroyed()) {
-      win.webContents.send('tab:list-changed', listTabs(win))
+      win.webContents.send(tabChannels.listChanged, listTabs(win))
     }
   })
 
-  ipcMain.on('tabs:goBack', (event) => {
+  ipcMain.on(tabsChannels.goBack, (event) => {
     const win = getWindowFromEvent(event)
     if (!win) return
     goBack(win)
   })
 
-  ipcMain.on('tabs:goForward', (event) => {
+  ipcMain.on(tabsChannels.goForward, (event) => {
     const win = getWindowFromEvent(event)
     if (!win) return
     goForward(win)
   })
 
   // 暂时禁用
-  // ipcMain.on('tabs:openDevTools', (event) => {
+  // ipcMain.on(tabsChannels.openDevTools, (event) => {
   //   const win = getWindowFromEvent(event)
   //   if (!win) return
   //   openDevTools(win)
   // })
 
-  ipcMain.handle('tabs:restore', async (_event, windowId?: number) => {
+  ipcMain.handle(tabsChannels.restore, async (_event, windowId?: number) => {
     const win = getWindowById(windowId)
     if (!win) return
 
@@ -270,11 +272,11 @@ export function registerTabHandlers() {
       switchToTab(win, firstTab.id)
     }
     saveTabs(ctx.tabs)
-    win.webContents.send('tab:list-changed', getTabListData(win))
+    win.webContents.send(tabChannels.listChanged, getTabListData(win))
   })
 
   // 用 on 而不是 once，因为会被触发两次：onMounted 和 main:ready-for-popup
-  ipcMain.on('tabs:showRestorePrompt', (event) => {
+  ipcMain.on(tabsChannels.showRestorePrompt, (event) => {
     const win = getWindowFromEvent(event)
     if (!win) return
     // 窗口不可见时不处理，等 main:ready-for-popup
@@ -290,7 +292,7 @@ export function registerTabHandlers() {
     }, win)
   })
 
-  ipcMain.handle('tabs:clearSaved', () => {
+  ipcMain.handle(tabsChannels.clearSaved, () => {
     clearTabs()
   })
 }

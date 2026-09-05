@@ -1,5 +1,6 @@
 // favorites 模块 - 定义 IPC channel 和方法映射
 import { ipcRenderer } from 'electron'
+import { createSubscription } from '../../shared/subscription'
 
 export const favoritesChannels = {
   list: 'favorites:list',
@@ -7,26 +8,20 @@ export const favoritesChannels = {
   remove: 'favorites:remove',
   check: 'favorites:check',
   toggle: 'favorites:toggle',
+  changed: 'favorites:changed',
 }
 
 export function createFavoritesProxy() {
-  const proxy: Record<string, Function> = {}
+  const { subscribe } = createSubscription(favoritesChannels.changed)
 
-  for (const [method, channel] of Object.entries(favoritesChannels)) {
-    proxy[method] = (...args: unknown[]) => ipcRenderer.invoke(channel, ...args)
+  return {
+    list: (...args: unknown[]) => ipcRenderer.invoke(favoritesChannels.list, ...args),
+    add: (...args: unknown[]) => ipcRenderer.invoke(favoritesChannels.add, ...args),
+    remove: (...args: unknown[]) => ipcRenderer.invoke(favoritesChannels.remove, ...args),
+    check: (...args: unknown[]) => ipcRenderer.invoke(favoritesChannels.check, ...args),
+    toggle: (...args: unknown[]) => ipcRenderer.invoke(favoritesChannels.toggle, ...args),
+    onChanged: subscribe,
   }
-
-  // push 事件订阅
-  const changedListeners = new Set<(favorites: any[]) => void>()
-
-  ipcRenderer.on('favorites:changed', (_event, favorites: any[]) => {
-    changedListeners.forEach(fn => fn(favorites))
-  })
-
-  proxy.onChanged = (fn: (favorites: any[]) => void) => { changedListeners.add(fn) }
-  proxy.removeOnChanged = (fn: (favorites: any[]) => void) => { changedListeners.delete(fn) }
-
-  return proxy
 }
 
 export type FavoritesModule = ReturnType<typeof createFavoritesProxy>

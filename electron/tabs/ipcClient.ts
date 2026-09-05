@@ -26,13 +26,13 @@ export const tabsChannels = {
   restore: 'tabs:restore',
   clearSaved: 'tabs:clearSaved',
   showRestorePrompt: 'tabs:showRestorePrompt',
-}
+} as const
 
 // 返回值的方法（invoke）
 const invokeMethods = ['create', 'createDefault', 'createHome', 'createHistory', 'createDownloads', 'createSettings', 'createAI', 'createLogs', 'createAiSaves', 'createFavorites', 'list', 'switch', 'close', 'restore', 'clearSaved']
 
 export function createTabsProxy(ipcRenderer: Electron.IpcRenderer) {
-  const proxy: Record<string, Function> = {}
+  const proxy: Record<string, (...args: unknown[]) => unknown> = {}
 
   for (const [method, channel] of Object.entries(tabsChannels)) {
     if (invokeMethods.includes(method)) {

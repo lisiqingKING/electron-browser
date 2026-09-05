@@ -250,14 +250,14 @@ const onFavoritesChanged = async () => {
 }
 
 // 事件监听 — 必须在 setup 顶层注册，确保在 did-finish-load 之前完成
-window.bridge.on('tab:info-changed', onTabInfoChanged)
-window.bridge.on('tab:list-changed', onTabListChanged)
-window.bridge.on('tab:current-changed', onTabCurrentChanged)
-window.bridge.on('tab:can-navigate', onTabCanNavigate)
-window.bridge.on('tab:loading', onTabLoading)
-window.bridge.on('settings:theme-changed', onThemeChanged)
-window.bridge.on('main:ready-for-popup', handleMainReadyForPopup)
-window.bridge.on('favorites:changed', onFavoritesChanged)
+window.bridge.on(window.bridge.channels.tab.infoChanged, onTabInfoChanged)
+window.bridge.on(window.bridge.channels.tab.listChanged, onTabListChanged)
+window.bridge.on(window.bridge.channels.tab.currentChanged, onTabCurrentChanged)
+window.bridge.on(window.bridge.channels.tab.canNavigate, onTabCanNavigate)
+window.bridge.on(window.bridge.channels.tab.loading, onTabLoading)
+window.bridge.on(window.bridge.channels.settings.themeChanged, onThemeChanged)
+window.bridge.on(window.bridge.channels.main.readyForPopup, handleMainReadyForPopup)
+window.bridge.on(window.bridge.channels.favorites.changed, onFavoritesChanged)
 
 // 初始化主题
 settingsMod.get('theme').then((theme: string) => {
@@ -272,14 +272,14 @@ if (urlParams.get('isMain') === 'true') {
 
 // 清理
 onUnmounted(() => {
-  window.bridge.off('tab:info-changed', onTabInfoChanged)
-  window.bridge.off('tab:list-changed', onTabListChanged)
-  window.bridge.off('tab:current-changed', onTabCurrentChanged)
-  window.bridge.off('tab:can-navigate', onTabCanNavigate)
-  window.bridge.off('tab:loading', onTabLoading)
-  window.bridge.off('settings:theme-changed', onThemeChanged)
-  window.bridge.off('main:ready-for-popup', handleMainReadyForPopup)
-  window.bridge.off('favorites:changed', onFavoritesChanged)
+  window.bridge.off(window.bridge.channels.tab.infoChanged, onTabInfoChanged)
+  window.bridge.off(window.bridge.channels.tab.listChanged, onTabListChanged)
+  window.bridge.off(window.bridge.channels.tab.currentChanged, onTabCurrentChanged)
+  window.bridge.off(window.bridge.channels.tab.canNavigate, onTabCanNavigate)
+  window.bridge.off(window.bridge.channels.tab.loading, onTabLoading)
+  window.bridge.off(window.bridge.channels.settings.themeChanged, onThemeChanged)
+  window.bridge.off(window.bridge.channels.main.readyForPopup, handleMainReadyForPopup)
+  window.bridge.off(window.bridge.channels.favorites.changed, onFavoritesChanged)
 })
 </script>
 

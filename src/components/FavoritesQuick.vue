@@ -136,14 +136,14 @@ onMounted(() => {
     updateWidth()
   }
 
-  window.bridge.on('favorites:changed', onFavoritesChanged)
+  window.bridge.on(window.bridge.channels.favorites.changed, onFavoritesChanged)
 })
 
 onUnmounted(() => {
   if (resizeObserver) {
     resizeObserver.disconnect()
   }
-  window.bridge.off('favorites:changed', onFavoritesChanged)
+  window.bridge.off(window.bridge.channels.favorites.changed, onFavoritesChanged)
 })
 </script>
 

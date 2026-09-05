@@ -7,6 +7,7 @@ import { createTabView } from './tabCore'
 import { registerWebContentsEvents } from '../handlers'
 import { resolveAppsUrl } from '../tabNavigation'
 import { isUrl } from '@renderer/utils'
+import { tabChannels } from '../../shared/channels'
 
 export const DEFAULT_TAB = {
   title: '首页',
@@ -85,8 +86,8 @@ export function switchToExistingTab(win: BrowserWindow, existing: { info: TabInf
   const canGoForward = existing.view.webContents.canGoForward()
   existing.info.canGoBack = canGoBack
   existing.info.canGoForward = canGoForward
-  win.webContents.send('tab:can-navigate', { id: existing.info.id!, canGoBack, canGoForward })
-  win.webContents.send('tab:current-changed', { currentTabId: existing.info.id })
+  win.webContents.send(tabChannels.canNavigate, { id: existing.info.id!, canGoBack, canGoForward })
+  win.webContents.send(tabChannels.currentChanged, { currentTabId: existing.info.id })
 
   return existing.info.id!
 }

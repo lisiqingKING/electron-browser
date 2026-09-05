@@ -1,65 +1,72 @@
+// popup 模块 - 定义 IPC channel 和方法映射
 import { ipcRenderer } from 'electron'
-import { popupChannels } from './channels'
+
+export const popupChannels = {
+  show: 'popup:show',
+  hide: 'popup:hide',
+  action: 'popup:action',
+  render: 'popup:render',
+} as const
 
 export function createPopupProxy() {
-  const onRenderFn = new Set<Function>()
-  const onHideFn = new Set<Function>()
-  const onActionFn = new Set<Function>()
-  let renderListenerRegistered = false
-  let hideListenerRegistered = false
-  let actionListenerRegistered = false
+  const onRenderFn = new Set<(windowId: number) => void>()
+  const onHideFn = new Set<(windowId: number) => void>()
+  const onActionFn = new Set<(data: unknown) => void>()
+  let renderRegistered = false
+  let hideRegistered = false
+  let actionRegistered = false
 
-  function handleRender(_event: Electron.IpcRendererEvent, ...args: unknown[]) {
-    onRenderFn.forEach(fn => fn(...args))
+  function handleRender(_event: Electron.IpcRendererEvent, windowId: number) {
+    onRenderFn.forEach(fn => fn(windowId))
   }
 
-  function handleHide(_event: Electron.IpcRendererEvent, ...args: unknown[]) {
-    onHideFn.forEach(fn => fn(...args))
+  function handleHide(_event: Electron.IpcRendererEvent, windowId: number) {
+    onHideFn.forEach(fn => fn(windowId))
   }
 
-  function handleAction(_event: Electron.IpcRendererEvent, ...args: unknown[]) {
-    onActionFn.forEach(fn => fn(...args))
+  function handleAction(_event: Electron.IpcRendererEvent, data: unknown) {
+    onActionFn.forEach(fn => fn(data))
   }
 
   function ensureRenderListener() {
-    if (!renderListenerRegistered) {
+    if (!renderRegistered) {
       ipcRenderer.on(popupChannels.render, handleRender)
-      renderListenerRegistered = true
+      renderRegistered = true
     }
   }
 
   function ensureHideListener() {
-    if (!hideListenerRegistered) {
+    if (!hideRegistered) {
       ipcRenderer.on(popupChannels.hide, handleHide)
-      hideListenerRegistered = true
+      hideRegistered = true
     }
   }
 
   function ensureActionListener() {
-    if (!actionListenerRegistered) {
+    if (!actionRegistered) {
       ipcRenderer.on(popupChannels.action, handleAction)
-      actionListenerRegistered = true
+      actionRegistered = true
     }
   }
 
   function cleanupRenderIfEmpty() {
     if (onRenderFn.size === 0) {
       ipcRenderer.removeListener(popupChannels.render, handleRender)
-      renderListenerRegistered = false
+      renderRegistered = false
     }
   }
 
   function cleanupHideIfEmpty() {
     if (onHideFn.size === 0) {
       ipcRenderer.removeListener(popupChannels.hide, handleHide)
-      hideListenerRegistered = false
+      hideRegistered = false
     }
   }
 
   function cleanupActionIfEmpty() {
     if (onActionFn.size === 0) {
       ipcRenderer.removeListener(popupChannels.action, handleAction)
-      actionListenerRegistered = false
+      actionRegistered = false
     }
   }
 
@@ -67,20 +74,17 @@ export function createPopupProxy() {
     show: (options: unknown) => ipcRenderer.send(popupChannels.show, options),
     hide: () => ipcRenderer.send(popupChannels.hide),
     action: (data: unknown) => ipcRenderer.send(popupChannels.action, data),
-
-    onRender: (fn: Function) => {
+    onRender(fn: (windowId: number) => void) {
       ensureRenderListener()
       onRenderFn.add(fn)
       return () => { onRenderFn.delete(fn); cleanupRenderIfEmpty() }
     },
-
-    onHide: (fn: Function) => {
+    onHide(fn: (windowId: number) => void) {
       ensureHideListener()
       onHideFn.add(fn)
       return () => { onHideFn.delete(fn); cleanupHideIfEmpty() }
     },
-
-    onAction: (fn: Function) => {
+    onAction(fn: (data: unknown) => void) {
       ensureActionListener()
       onActionFn.add(fn)
       return () => { onActionFn.delete(fn); cleanupActionIfEmpty() }

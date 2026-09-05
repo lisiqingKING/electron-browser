@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { mainLogger as logger } from '../shared/logger'
+import { tabChannels } from '../shared/channels'
 import { getCurTab, createTabCore, updateCurTabBounds, getTabListData, getTabContext, switchTab, TabInfo } from './state'
 import { isAppUrl, isInternalUrl, getDomainFromUrl, getTitleForInternalUrl, escapeForJsString, findExistingInternalTab, switchToExistingTab, getRoute } from './state/coreUtils'
 import { registerWebContentsEvents } from './handlers'
@@ -28,7 +29,7 @@ export function updateNavigationState(tabId: string, win: BrowserWindow) {
     const canGoForward = tab.view.webContents.canGoForward()
     tab.info.canGoBack = canGoBack
     tab.info.canGoForward = canGoForward
-    win.webContents.send('tab:can-navigate', { id: tabId, canGoBack, canGoForward })
+    win.webContents.send(tabChannels.canNavigate, { id: tabId, canGoBack, canGoForward })
   }
 }
 
@@ -72,7 +73,7 @@ export function goBack(win: BrowserWindow) {
     const newUrl = tab.view.webContents.getURL()
 
     if (tryRestoreLoadError(tab, newUrl)) {
-      win.webContents.send('tab:info-changed', tab.info)
+      win.webContents.send(tabChannels.infoChanged, tab.info)
       updateNavigationState(tab.info.id!, win)
       return
     }
@@ -80,7 +81,7 @@ export function goBack(win: BrowserWindow) {
     tab.info.loadError = undefined
     tab.info.url = newUrl
     tab.info.actualUrl = newUrl
-    win.webContents.send('tab:info-changed', tab.info)
+    win.webContents.send(tabChannels.infoChanged, tab.info)
     updateNavigationState(tab.info.id!, win)
   }
 
@@ -109,7 +110,7 @@ export function goForward(win: BrowserWindow) {
     const newUrl = tab.view.webContents.getURL()
 
     if (tryRestoreLoadError(tab, newUrl)) {
-      win.webContents.send('tab:info-changed', tab.info)
+      win.webContents.send(tabChannels.infoChanged, tab.info)
       updateNavigationState(tab.info.id!, win)
       return
     }
@@ -117,7 +118,7 @@ export function goForward(win: BrowserWindow) {
     tab.info.loadError = undefined
     tab.info.url = newUrl
     tab.info.actualUrl = newUrl
-    win.webContents.send('tab:info-changed', tab.info)
+    win.webContents.send(tabChannels.infoChanged, tab.info)
     updateNavigationState(tab.info.id!, win)
   }
 
@@ -153,7 +154,7 @@ export function refreshCurTab(win: BrowserWindow) {
           tab.info.url = newUrl
           tab.info.title = getTitleForUrl(tab)
         }
-        win.webContents.send('tab:info-changed', tab.info)
+        win.webContents.send(tabChannels.infoChanged, tab.info)
       }
     })
 
@@ -180,7 +181,7 @@ export function updateCurTabUrl(url: string, win: BrowserWindow) {
     if (newTitle) {
       tab.info.title = newTitle
     }
-    win.webContents.send('tab:info-changed', tab.info)
+    win.webContents.send(tabChannels.infoChanged, tab.info)
 
     if (isUrl(url)) {
       tab.view.webContents.loadURL(url)
@@ -252,8 +253,8 @@ export function createTabAndShow(tabInfo: { title: string; url: string; isHome?:
   win.contentView.addChildView(view, insertIndex)
   updateCurTabBounds(ctx.webContentViewMap.get(enrichedTabInfo.id!)!, win)
   if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
-    win.webContents.send('tab:list-changed', getTabListData(win))
-    win.webContents.send('tab:loading', { id: enrichedTabInfo.id, isLoading: true })
+    win.webContents.send(tabChannels.listChanged, getTabListData(win))
+    win.webContents.send(tabChannels.loading, { id: enrichedTabInfo.id, isLoading: true })
   }
 
   return enrichedTabInfo.id ?? null

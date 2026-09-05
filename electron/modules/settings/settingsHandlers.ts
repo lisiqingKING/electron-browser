@@ -5,13 +5,14 @@ import { getSetting, setSetting, getAllSettings } from './manager'
 import { isInternalTab } from '../../tabs/tabCore'
 import { getAllWindows } from '../../windows/windowManager'
 import { getTabContext } from '../../tabs/state'
+import { settingsChannels } from './ipcClient'
 
 export function registerSettingsHandlers() {
-  ipcMain.handle('settings:get', async (_event, key: string) => {
+  ipcMain.handle(settingsChannels.get, async (_event, key: string) => {
     return getSetting(key)
   })
 
-  ipcMain.handle('settings:set', async (_event, key: string, value: string) => {
+  ipcMain.handle(settingsChannels.set, async (_event, key: string, value: string) => {
     try {
       setSetting(key, value)
     } catch (err) {
@@ -22,12 +23,12 @@ export function registerSettingsHandlers() {
       nativeTheme.themeSource = value as Theme
       ipcLogger.info('[settingsHandlers] broadcasting theme:', value)
       for (const w of getAllWindows()) {
-        w.webContents.send('settings:theme-changed', value)
+        w.webContents.send(settingsChannels.themeChanged, value)
         const ctx = getTabContext(w)
         for (const [, tab] of ctx.webContentViewMap) {
           if (isInternalTab(tab) && tab.view) {
             ipcLogger.debug('[settingsHandlers] sending to tab:', tab.info.id, 'url:', tab.info.url)
-            tab.view.webContents.send('settings:theme-changed', value)
+            tab.view.webContents.send(settingsChannels.themeChanged, value)
           }
         }
       }
@@ -35,7 +36,7 @@ export function registerSettingsHandlers() {
     return true
   })
 
-  ipcMain.handle('settings:getAll', async () => {
+  ipcMain.handle(settingsChannels.getAll, async () => {
     return getAllSettings()
   })
 }

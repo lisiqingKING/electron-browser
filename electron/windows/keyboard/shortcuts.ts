@@ -2,6 +2,7 @@ import { BrowserWindow, globalShortcut } from 'electron'
 import { getCurTab, closeTab, getTabListData, getTabContext } from '../../tabs/state'
 import { deleteTab } from '../../tabs/tabsDb'
 import { mainLogger as logger } from '../../shared/logger'
+import { tabChannels } from '../../shared/channels'
 
 const ACCELERATOR = 'CmdOrCtrl+W'
 
@@ -15,13 +16,13 @@ function handleCloseTab(win: BrowserWindow) {
     if (lastNonHomeTab?.id) {
       closeTab(lastNonHomeTab.id, win)
       deleteTab()
-      win.webContents.send('tab:list-changed', getTabListData(win))
+      win.webContents.send(tabChannels.listChanged, getTabListData(win))
     }
   } else {
     const tabId = curTab.info.id!
     closeTab(tabId, win)
     deleteTab()
-    win.webContents.send('tab:list-changed', getTabListData(win))
+    win.webContents.send(tabChannels.listChanged, getTabListData(win))
   }
 }
 

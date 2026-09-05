@@ -1,8 +1,9 @@
 import { ipcMain, clipboard } from 'electron'
 import { ipcLogger } from '../../shared/logger'
+import { clipboardChannels } from './ipcClient'
 
 export function registerClipboardHandlers() {
-  ipcMain.handle('clipboard:writeText', (_event, text: string) => {
+  ipcMain.handle(clipboardChannels.writeText, (_event, text: string) => {
     try {
       clipboard.writeText(text)
     } catch (err) {
@@ -10,7 +11,7 @@ export function registerClipboardHandlers() {
     }
   })
 
-  ipcMain.handle('clipboard:readText', () => {
+  ipcMain.handle(clipboardChannels.readText, () => {
     try {
       return clipboard.readText()
     } catch (err) {

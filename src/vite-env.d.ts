@@ -15,5 +15,19 @@ interface Window {
     on(channel: string, fn: Function): void
     off(channel: string, fn: Function): void
     send(channel: string, ...args: unknown[]): void
+    // channel 常量，从 preload 注入
+    channels: {
+      tabs: Record<string, string>
+      window: Record<string, string>
+      clipboard: Record<string, string>
+      history: Record<string, string>
+      ai: Record<string, string>
+      downloads: Record<string, string>
+      settings: Record<string, string>
+      favorites: Record<string, string>
+      popup: Record<string, string>
+      tab: Record<string, string>
+      main: Record<string, string>
+    }
   }
 }

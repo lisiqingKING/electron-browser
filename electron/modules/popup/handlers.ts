@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { ipcLogger } from '../../shared/logger'
 import { showPopup, hidePopup } from './manager'
-import { popupChannels } from './channels'
+import { popupChannels } from './ipcClient'
 import { getWindowById } from '../../shared/windowUtils'
 
 export function registerPopupHandlers(): void {
@@ -21,6 +21,6 @@ export function registerPopupHandlers(): void {
       ipcLogger.error(`popup:action failed - source window not found: ${data.windowId}`)
       return
     }
-    win.webContents.send('popup:action', data)
+    win.webContents.send(popupChannels.action, data)
   })
 }

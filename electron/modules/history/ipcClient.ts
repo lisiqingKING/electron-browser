@@ -6,13 +6,11 @@ export const historyChannels = {
 }
 
 export function createHistoryProxy(ipcRenderer: Electron.IpcRenderer) {
-  const proxy: Record<string, Function> = {}
-
-  for (const [method, channel] of Object.entries(historyChannels)) {
-    proxy[method] = (...args: unknown[]) => ipcRenderer.invoke(channel, ...args)
+  return {
+    get: (...args: unknown[]) => ipcRenderer.invoke(historyChannels.get, ...args),
+    clear: (...args: unknown[]) => ipcRenderer.invoke(historyChannels.clear, ...args),
+    delete: (...args: unknown[]) => ipcRenderer.invoke(historyChannels.delete, ...args),
   }
-
-  return proxy
 }
 
 export type HistoryModule = ReturnType<typeof createHistoryProxy>

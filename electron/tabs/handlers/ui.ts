@@ -4,6 +4,8 @@ import { getTabContext, getCurTab } from '../state'
 import { createTabAndShow } from '../tabNavigation'
 import { getOrFetchIcon } from '../../modules/icons/manager'
 import { checkFavorite, toggleFavorite, getAllFavorites } from '../../modules/favorites/manager'
+import { tabChannels } from '../../shared/channels'
+import { favoritesChannels } from '../../modules/favorites/ipcClient'
 
 export function registerUIHandlers(
   view: WebContentsView,
@@ -20,7 +22,7 @@ export function registerUIHandlers(
     // data: URL 直接使用
     if (iconUrl.startsWith('data:')) {
       tab.info.favicon = iconUrl
-      safeSend('tab:info-changed', tab.info)
+      safeSend(tabChannels.infoChanged, tab.info)
       return
     }
     // 相对路径转为完整 URL
@@ -37,7 +39,7 @@ export function registerUIHandlers(
     const base64Icon = await getOrFetchIcon(tab.info.url, iconUrl)
     if (base64Icon) {
       tab.info.favicon = base64Icon
-      safeSend('tab:info-changed', tab.info)
+      safeSend(tabChannels.infoChanged, tab.info)
     }
   })
 
@@ -100,7 +102,7 @@ function broadcastFavoritesChanged() {
   const favorites = getAllFavorites()
   for (const w of BrowserWindow.getAllWindows()) {
     if (!w.isDestroyed()) {
-      w.webContents.send('favorites:changed', favorites)
+      w.webContents.send(favoritesChannels.changed, favorites)
     }
   }
 }

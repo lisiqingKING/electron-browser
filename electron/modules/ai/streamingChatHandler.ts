@@ -3,6 +3,7 @@ import { createProvider } from './providers'
 import type { AIRequest } from './providers/AIProvider'
 import { broadcast } from '../../shared/broadcast'
 import { updateMessageStatus, createMessage, touchConversation } from './aiDb'
+import { aiChannels } from './ipcClient'
 
 // ============ 流式聊天核心 ============
 // 主进程 fetch LLM → SSE 解析 → IPC 推送 → DB 持久化
@@ -61,9 +62,9 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
     // payload 不含 messageId，发送时拼接
     if (targetWindowId) {
       const wc = webContents.fromId(targetWindowId)
-      wc?.send('ai:stream', { messageId, ...payload })
+      wc?.send(aiChannels.stream, { messageId, ...payload })
     } else {
-      broadcast('ai:stream', { messageId, ...payload })
+      broadcast(aiChannels.stream, { messageId, ...payload })
     }
   }
 

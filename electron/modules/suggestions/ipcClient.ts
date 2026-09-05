@@ -6,7 +6,7 @@ export const suggestionChannels = {
 
 export function createSuggestionsProxy() {
   return {
-    get: () => ipcRenderer.invoke(suggestionChannels.get),
+    get: (...args: unknown[]) => ipcRenderer.invoke(suggestionChannels.get, ...args),
   }
 }
 
