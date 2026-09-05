@@ -53,16 +53,19 @@ export async function appReadyInit() {
   await startSubappServer()
 
   initDatabase()
-  syncFavoritesFromDb()
-  initWebviewSource()
   registerPopupHandlers()
   registerAllHandlers()
 
+  // 创建窗口，让用户尽快看到界面
+  createMainWindow()
+
+  // 后台初始化，不阻塞窗口显示
+  syncFavoritesFromDb()
   getDownloadManager().init()
+  initWebviewSource()
 
   const savedTheme = getSetting('theme') || 'dark'
   nativeTheme.themeSource = savedTheme as Theme
 
-  createMainWindow()
   ensureReserveWindow()
 }
