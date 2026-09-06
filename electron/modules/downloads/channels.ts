@@ -10,6 +10,8 @@ export const downloadsChannels = {
   openFile: 'downloads:open-file',
   clear: 'downloads:clear',
   directDownloadUrl: 'downloads:direct-download-url',
+  getSaveDir: 'downloads:get-save-dir',
+  selectSaveDir: 'downloads:select-save-dir',
   event: 'downloads:event',
 } as const
 

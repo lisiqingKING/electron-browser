@@ -73,6 +73,18 @@ export function registerDownloadHandlers(): void {
 
   // blob/data URL 下载：渲染进程 fetch 后通过此 IPC 写入文件并加入下载记录
   // 路径 A：直接用真实 URL 创建 HTTP 下载任务（可复用完整下载能力）
+  ipcMain.handle(downloadsChannels.getSaveDir, () => getDownloadSaveDir())
+
+  ipcMain.handle(downloadsChannels.selectSaveDir, async (_event, currentPath?: string) => {
+    const result = await dialog.showOpenDialog({
+      title: '选择下载保存目录',
+      defaultPath: currentPath || getDownloadSaveDir(),
+      properties: ['openDirectory'],
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
   ipcMain.handle(downloadsChannels.directDownloadUrl, async (_event, input: { url: string; filename?: string }) => {
     const { url, filename } = input
     if (!url || typeof url !== 'string') {

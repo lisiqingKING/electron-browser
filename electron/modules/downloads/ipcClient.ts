@@ -45,6 +45,8 @@ export function createDownloadsProxy() {
     openFile: (...args: unknown[]) => ipcRenderer.invoke(downloadsChannels.openFile, ...args),
     clear: (...args: unknown[]) => ipcRenderer.invoke(downloadsChannels.clear, ...args),
     directDownloadUrl: (...args: unknown[]) => ipcRenderer.invoke(downloadsChannels.directDownloadUrl, ...args),
+    getSaveDir: (...args: unknown[]) => ipcRenderer.invoke(downloadsChannels.getSaveDir, ...args),
+    selectSaveDir: (...args: unknown[]) => ipcRenderer.invoke(downloadsChannels.selectSaveDir, ...args),
     writeBlob: (...args: unknown[]) => ipcRenderer.invoke(blobChannels.write, ...args),
 
     onAdded(fn: (task: unknown) => void) {

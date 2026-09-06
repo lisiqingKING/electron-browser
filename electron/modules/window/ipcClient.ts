@@ -31,6 +31,7 @@ export function createWindowProxy() {
     getContentBounds: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.getContentBounds, ...args),
     create: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.create, ...args),
     quit: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.quit, ...args),
+    openPath: (...args: unknown[]) => ipcRenderer.invoke(windowChannels.openPath, ...args),
     onMaximizeChanged: subscribe,
   }
 }
