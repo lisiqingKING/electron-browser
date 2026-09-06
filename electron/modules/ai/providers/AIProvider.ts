@@ -18,6 +18,8 @@ export const SSE_EVENTS = {
 
 // AI Provider 接口定义
 export interface AIRequest {
+  apiUrl?: string
+  apiKey?: string
   model: string
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
   temperature?: number

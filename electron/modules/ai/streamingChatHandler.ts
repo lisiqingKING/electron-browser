@@ -18,6 +18,7 @@ export interface ChatStreamOptions {
   conversationId: string
   messageId: string
   apiUrl: string
+  apiKey?: string
   providerType: string
   model: string
   messages: AIRequest['messages']
@@ -71,11 +72,12 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
   try {
     // 2. 构造请求（URL、headers、body 全由 provider 处理）
     const { url, headers, body } = provider.transformRequest({
+      apiUrl: options.apiUrl,
+      apiKey: options.apiKey,
       model,
       messages,
       stream: true,
     })
-
     // 3. 发起 fetch（30s 超时）
     const fetchWithTimeout = (fetchUrl: string, init: RequestInit, timeoutMs = 30000) => {
       return Promise.race([
@@ -101,8 +103,10 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
       throw err
     }
 
+    console.log('[startStreaming] response status:', response.status)
     if (!response.ok) {
       const text = await response.text()
+      console.error('[startStreaming] HTTP error body:', text.slice(0, 200))
       throw new Error(`HTTP ${response.status}: ${text}`)
     }
 

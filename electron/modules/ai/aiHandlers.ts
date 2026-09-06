@@ -166,6 +166,7 @@ export function registerAIHandlers() {
     conversationId: string
     messageId: string
     apiUrl: string
+    apiKey?: string
     providerType: string
     model: string
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
@@ -201,6 +202,7 @@ export function registerAIHandlers() {
       conversationId: options.conversationId,
       messageId: assistantMsgId,
       apiUrl: options.apiUrl,
+      apiKey: options.apiKey,
       providerType: options.providerType,
       model: options.model,
       messages: cloneDeep(options.messages),

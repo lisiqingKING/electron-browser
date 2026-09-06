@@ -6,8 +6,8 @@ export class AnthropicProvider implements AIProvider {
   readonly type = PROVIDER_TYPES.ANTHROPIC
 
   transformRequest(body: AIRequest) {
-    const baseUrl = (getSetting('ai_api_url') || '').replace(/\/$/, '')
-    const apiKey = getSetting('ai_api_key') || ''
+    const baseUrl = (body.apiUrl || getSetting('ai_api_url') || '').replace(/\/$/, '')
+    const apiKey = body.apiKey || getSetting('ai_api_key') || ''
 
     const systemMessages = body.messages.filter(m => m.role === 'system')
     const nonSystemMessages = body.messages.filter(m => m.role !== 'system')

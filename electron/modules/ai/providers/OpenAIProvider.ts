@@ -6,8 +6,10 @@ export class OpenAIProvider implements AIProvider {
   readonly type = PROVIDER_TYPES.OPENAI
 
   transformRequest(body: AIRequest) {
-    const baseUrl = (getSetting('ai_api_url') || '').replace(/\/$/, '')
-    const apiKey = getSetting('ai_api_key') || ''
+    const baseUrl = (body.apiUrl || getSetting('ai_api_url') || '').replace(/\/$/, '')
+    const apiKey = body.apiKey || getSetting('ai_api_key') || ''
+    // 剥离 apiUrl/apiKey，避免泄露到请求体
+    const { apiUrl: _unused1, apiKey: _unused2, ...cleanBody } = body
 
     return {
       url: `${baseUrl}/v1/chat/completions`,
@@ -15,7 +17,7 @@ export class OpenAIProvider implements AIProvider {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body
+      body: cleanBody
     }
   }
 
