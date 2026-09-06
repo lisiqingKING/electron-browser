@@ -6,6 +6,7 @@
 
 | 文档 | 内容 |
 |------|------|
+| [AI_COLLABORATION.md](AI_COLLABORATION.md) | 项目总览、子项目结构、跨项目契约、子应用源码位置 |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构、IPC 通信、启动时序、标签页生命周期、URL 解析、下载管理 |
 | [docs/COLLABORATION.md](docs/COLLABORATION.md) | 协作规范（TDD、YAGNI、数据流、方案对比等） |
 | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | 测试策略、数据库 mock、TDD 流程 |
@@ -22,9 +23,10 @@ pnpm build && electron-builder  # 打包
 
 - [ ] 修改了协议? 检查 `electron/mainEntry/protocol.ts` + `electron/shared/env.ts` + 子项目路由
 - [ ] 新增了 IPC 模块? 三处同步: 模块实现 / preload 注册 / bootstrap 注册
-- [ ] 新增了子应用? 扩展 docs/ARCHITECTURE.md 的子应用地图 + subapp 配置
+- [ ] 新增了子应用? 扩展 AI_COLLABORATION.md 的子应用地图 + subapp 配置
 - [ ] 不要直接编辑 `apps/<name>/dist/`，那是子项目构建产物
 - [ ] 修改渲染进程的模块调用? 先看既有组件是如何获取模块的，遵循相同模式（`window.bridge.getModules(['xxx']).xxx`），**不要**自己发明新的调用方式
+- [ ] 子应用页面在 `C:\Users\lsq\my-projects\app`（internal-app 源码）
 
 ## Vue 组件规范
 
