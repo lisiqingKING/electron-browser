@@ -99,8 +99,10 @@ const INTERNAL_PAGE_TITLES: Record<string, string> = {
   'ai': 'AI 助手',
   'ai-saves': 'AI 保存记录',
   'history': '历史记录',
+  'favorites': '收藏夹',
   'downloads': '下载管理',
   'logs': '日志查看',
+  'settings': '设置',
 }
 
 export function getTitleForInternalUrl(url: string): string | null {
