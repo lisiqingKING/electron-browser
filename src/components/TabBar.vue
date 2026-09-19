@@ -173,7 +173,7 @@ onUnmounted(() => {
   align-items: flex-end;
   box-sizing: border-box;
   flex-shrink: 0;
-  background: var(--tabbar-bg);
+  background: transparent;
   -webkit-app-region: drag;
 }
 

@@ -190,7 +190,7 @@ onUnmounted(() => {
   height: 36px;
   width: 100%;
   box-sizing: border-box;
-  background: var(--urlbar-bg);
+  background: transparent;
   overflow: hidden;
 }
 

@@ -252,7 +252,7 @@ const handleBlur = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--urlbar-bg);
+  background: transparent;
 }
 
 .url-bar-inner {
