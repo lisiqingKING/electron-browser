@@ -10,13 +10,13 @@ export const settingsChannels = {
 }
 
 export function createSettingsProxy() {
-  const { subscribe } = createSubscription(settingsChannels.themeChanged)
+  const { subscribe: subscribeTheme } = createSubscription(settingsChannels.themeChanged)
 
   return {
     get: (...args: unknown[]) => ipcRenderer.invoke(settingsChannels.get, ...args),
     set: (...args: unknown[]) => ipcRenderer.invoke(settingsChannels.set, ...args),
     getAll: (...args: unknown[]) => ipcRenderer.invoke(settingsChannels.getAll, ...args),
-    onThemeChanged: subscribe,
+    onThemeChanged: subscribeTheme,
   }
 }
 

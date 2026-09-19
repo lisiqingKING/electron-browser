@@ -3,6 +3,7 @@ import { registerDownloadHandlers } from './modules/downloads/downloadHandlers'
 import { registerHistoryHandlers } from './modules/history/historyHandlers'
 import { registerFavoritesHandlers } from './modules/favorites/favoritesHandlers'
 import { registerSettingsHandlers } from './modules/settings/settingsHandlers'
+import { registerWallpaperHandlers } from './modules/wallpaper/handlers'
 import { registerAIHandlers } from './modules/ai/aiHandlers'
 import { registerLogsHandlers } from './modules/logs/logsHandlers'
 import { registerClipboardHandlers } from './modules/clipboard/clipboardHandlers'
@@ -15,6 +16,7 @@ export function registerAllHandlers() {
   registerHistoryHandlers()
   registerFavoritesHandlers()
   registerSettingsHandlers()
+  registerWallpaperHandlers()
   registerAIHandlers()
   registerLogsHandlers()
   registerClipboardHandlers()

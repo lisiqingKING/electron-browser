@@ -11,6 +11,7 @@ import { createFavoritesProxy, favoritesChannels } from '../electron/modules/fav
 import { createSuggestionsProxy } from '../electron/modules/suggestions/ipcClient'
 import { createUtilsProxy } from '../electron/modules/utils/ipcClient'
 import { createPopupProxy, popupChannels } from '../electron/modules/popup/ipcClient'
+import { createWallpaperProxy, wallpaperChannels } from '../electron/modules/wallpaper/ipcClient'
 import { tabChannels, mainChannels } from '../electron/shared/channels'
 
 // Parse windowId from URL
@@ -34,6 +35,7 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   suggestions: () => createSuggestionsProxy(),
   utils: () => createUtilsProxy(),
   popup: () => createPopupProxy(),
+  wallpaper: () => createWallpaperProxy(),
 }
 
 // 构建所有模块
@@ -92,6 +94,7 @@ contextBridge.exposeInMainWorld('bridge', {
     settings: settingsChannels,
     favorites: favoritesChannels,
     popup: popupChannels,
+    wallpaper: wallpaperChannels,
     tab: tabChannels,
     main: mainChannels,
   },

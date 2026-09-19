@@ -1,4 +1,5 @@
 <template>
+  <div class="app-skin" :style="skinStyle" />
   <div class="app-container">
     <TabBar
       :tabs="tabs"
@@ -60,6 +61,9 @@ let currentTabVersion = 0
 const tabsMod = window.bridge.getModules(['tabs']).tabs
 const favoritesMod = window.bridge.getModules(['favorites']).favorites
 const settingsMod = window.bridge.getModules(['settings']).settings
+const wallpaperMod = window.bridge.getModules(['wallpaper']).wallpaper
+
+const skinStyle = ref<Record<string, string>>({})
 
 const updateCurrentUrl = () => {
   if(typeof currentTabId.value === 'string') {
@@ -239,6 +243,42 @@ const onThemeChanged = (theme: string) => {
   }
 }
 
+const onWallpaperChanged = async (skin: { type: string; path?: string; name?: string }) => {
+  if (skin.type === 'custom' && skin.path) {
+    const base64 = await wallpaperMod.getWallpaperImage(skin.path)
+    if (base64) {
+      skinStyle.value = { backgroundImage: `url("${base64}")` }
+    }
+  } else if (skin.type === 'builtin' && skin.name) {
+    const base64 = await wallpaperMod.getBuiltinSkinImage(skin.name)
+    if (base64) {
+      skinStyle.value = { backgroundImage: `url("${base64}")` }
+    }
+  }
+}
+
+const loadSkin = async () => {
+  try {
+    const wallpaper = await settingsMod.get('wallpaper')
+    if (wallpaper) {
+      const skin = JSON.parse(wallpaper)
+      if (skin.type === 'custom' && skin.path) {
+        const base64 = await wallpaperMod.getWallpaperImage(skin.path)
+        if (base64) {
+          skinStyle.value = { backgroundImage: `url("${base64}")` }
+        }
+      } else if (skin.type === 'builtin' && skin.name) {
+        const base64 = await wallpaperMod.getBuiltinSkinImage(skin.name)
+        if (base64) {
+          skinStyle.value = { backgroundImage: `url("${base64}")` }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[loadSkin]', e)
+  }
+}
+
 const handleMainReadyForPopup = () => {
   setTimeout(() => tabsMod.showRestorePrompt(), 1000)
 }
@@ -256,6 +296,7 @@ window.bridge.on(window.bridge.channels.tab.currentChanged, onTabCurrentChanged)
 window.bridge.on(window.bridge.channels.tab.canNavigate, onTabCanNavigate)
 window.bridge.on(window.bridge.channels.tab.loading, onTabLoading)
 window.bridge.on(window.bridge.channels.settings.themeChanged, onThemeChanged)
+window.bridge.on(window.bridge.channels.wallpaper.wallpaperChanged, onWallpaperChanged)
 window.bridge.on(window.bridge.channels.main.readyForPopup, handleMainReadyForPopup)
 window.bridge.on(window.bridge.channels.favorites.changed, onFavoritesChanged)
 
@@ -263,6 +304,9 @@ window.bridge.on(window.bridge.channels.favorites.changed, onFavoritesChanged)
 settingsMod.get('theme').then((theme: string) => {
   onThemeChanged(theme || 'dark')
 }).catch(() => onThemeChanged('dark'))
+
+// 初始化皮肤
+loadSkin()
 
 // 恢复标签弹窗（主窗口且有 isMain 参数）
 const urlParams = new URLSearchParams(window.location.search)
@@ -278,6 +322,7 @@ onUnmounted(() => {
   window.bridge.off(window.bridge.channels.tab.canNavigate, onTabCanNavigate)
   window.bridge.off(window.bridge.channels.tab.loading, onTabLoading)
   window.bridge.off(window.bridge.channels.settings.themeChanged, onThemeChanged)
+  window.bridge.off(window.bridge.channels.wallpaper.wallpaperChanged, onWallpaperChanged)
   window.bridge.off(window.bridge.channels.main.readyForPopup, handleMainReadyForPopup)
   window.bridge.off(window.bridge.channels.favorites.changed, onFavoritesChanged)
 })

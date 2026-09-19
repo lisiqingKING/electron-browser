@@ -6,6 +6,7 @@ import { isInternalTab } from '../../tabs/tabCore'
 import { getAllWindows } from '../../windows/windowManager'
 import { getTabContext } from '../../tabs/state'
 import { settingsChannels } from './ipcClient'
+import { wallpaperChannels } from '../wallpaper/ipcClient'
 
 export function registerSettingsHandlers() {
   ipcMain.handle(settingsChannels.get, async (_event, key: string) => {
@@ -29,6 +30,18 @@ export function registerSettingsHandlers() {
           if (isInternalTab(tab) && tab.view) {
             ipcLogger.debug('[settingsHandlers] sending to tab:', tab.info.id, 'url:', tab.info.url)
             tab.view.webContents.send(settingsChannels.themeChanged, value)
+          }
+        }
+      }
+    }
+    if (key === 'wallpaper') {
+      // 转发到 wallpaper 模块处理
+      for (const w of getAllWindows()) {
+        w.webContents.send(wallpaperChannels.wallpaperChanged, JSON.parse(value))
+        const ctx = getTabContext(w)
+        for (const [, tab] of ctx.webContentViewMap) {
+          if (isInternalTab(tab) && tab.view) {
+            tab.view.webContents.send(wallpaperChannels.wallpaperChanged, JSON.parse(value))
           }
         }
       }

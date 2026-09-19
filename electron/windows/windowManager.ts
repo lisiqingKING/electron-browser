@@ -41,6 +41,8 @@ function createWindowCore(isMain = false): BrowserWindow {
     minWidth: 800,
     minHeight: 500,
     show: false,
+    transparent: true,
+    backgroundColor: '#00000000',
     webPreferences: {
       preload: path.join(MAIN_DIST(), 'preload.js'),
       nodeIntegration: false,

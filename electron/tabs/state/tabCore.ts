@@ -49,8 +49,9 @@ export function createTabCore(
       webPreferences: {
         preload: getPreloadPath(),
         contextIsolation: true,
-      },
+      } as any,
     })
+    view.setBackgroundColor('#00000000')
     _tabInfo.wcId = view.webContents.id
   }
 
@@ -66,8 +67,9 @@ export function createTabView(tabInfo: TabInfo, win: BrowserWindow): WebContents
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,
-    },
+    } as any,
   })
+  view.setBackgroundColor('#00000000')
 
   const ctx = getTabContext(win)
   tabInfo.wcId = view.webContents.id
