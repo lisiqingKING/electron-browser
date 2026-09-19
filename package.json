@@ -17,6 +17,7 @@
     "electron-context-menu": "^4.1.2",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
+    "node-vibrant": "^4.0.4",
     "vue": "^3.4.21"
   },
   "devDependencies": {
