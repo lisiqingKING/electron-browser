@@ -7,6 +7,7 @@ export const settingsChannels = {
   set: 'settings:set',
   getAll: 'settings:getAll',
   themeChanged: 'settings:theme-changed',
+  wallpaperBlurChanged: 'settings:wallpaperBlur-changed',
 }
 
 export function createSettingsProxy() {

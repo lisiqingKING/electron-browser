@@ -156,6 +156,23 @@ html {
   opacity: 1;
 }
 
+// 毛玻璃效果
+.wallpaper-blur .app-skin {
+  filter: blur(8px);
+  transform: scale(1.05);
+}
+
+// 壁纸遮罩层 - 提升内容可读性
+.wallpaper-blur .app-skin::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.1);
+}
+
 .app-container {
   position: relative;
   z-index: 1;

@@ -26,6 +26,7 @@ interface Window {
       settings: Record<string, string>
       favorites: Record<string, string>
       popup: Record<string, string>
+      wallpaper: Record<string, string>
       tab: Record<string, string>
       main: Record<string, string>
     }

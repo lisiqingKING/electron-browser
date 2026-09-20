@@ -46,6 +46,12 @@ export function registerSettingsHandlers() {
         }
       }
     }
+    if (key === 'wallpaperBlur') {
+      // 通知所有窗口更新毛玻璃效果
+      for (const w of getAllWindows()) {
+        w.webContents.send(settingsChannels.wallpaperBlurChanged, value)
+      }
+    }
     return true
   })
 

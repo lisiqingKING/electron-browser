@@ -257,6 +257,14 @@ const onWallpaperChanged = async (skin: { type: string; path?: string; name?: st
   }
 }
 
+const handleWallpaperBlurChange = (val: string) => {
+  if (val === 'true') {
+    document.documentElement.classList.add('wallpaper-blur')
+  } else {
+    document.documentElement.classList.remove('wallpaper-blur')
+  }
+}
+
 const loadSkin = async () => {
   try {
     const wallpaper = await settingsMod.get('wallpaper')
@@ -297,6 +305,7 @@ window.bridge.on(window.bridge.channels.tab.canNavigate, onTabCanNavigate)
 window.bridge.on(window.bridge.channels.tab.loading, onTabLoading)
 window.bridge.on(window.bridge.channels.settings.themeChanged, onThemeChanged)
 window.bridge.on(window.bridge.channels.wallpaper.wallpaperChanged, onWallpaperChanged)
+window.bridge.on(window.bridge.channels.settings.wallpaperBlurChanged, handleWallpaperBlurChange)
 window.bridge.on(window.bridge.channels.main.readyForPopup, handleMainReadyForPopup)
 window.bridge.on(window.bridge.channels.favorites.changed, onFavoritesChanged)
 
@@ -307,6 +316,11 @@ settingsMod.get('theme').then((theme: string) => {
 
 // 初始化皮肤
 loadSkin()
+
+// 初始化毛玻璃效果
+settingsMod.get('wallpaperBlur').then((val: string) => {
+  handleWallpaperBlurChange(val)
+}).catch(() => {})
 
 // 恢复标签弹窗（主窗口且有 isMain 参数）
 const urlParams = new URLSearchParams(window.location.search)
@@ -323,6 +337,7 @@ onUnmounted(() => {
   window.bridge.off(window.bridge.channels.tab.loading, onTabLoading)
   window.bridge.off(window.bridge.channels.settings.themeChanged, onThemeChanged)
   window.bridge.off(window.bridge.channels.wallpaper.wallpaperChanged, onWallpaperChanged)
+  window.bridge.off(window.bridge.channels.settings.wallpaperBlurChanged, handleWallpaperBlurChange)
   window.bridge.off(window.bridge.channels.main.readyForPopup, handleMainReadyForPopup)
   window.bridge.off(window.bridge.channels.favorites.changed, onFavoritesChanged)
 })
