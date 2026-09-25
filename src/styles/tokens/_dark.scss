@@ -4,30 +4,30 @@
   // Semantic
   --color-bg-primary: var(--color-neutral-950);
   --color-bg-secondary: var(--color-neutral-900);
-  --color-bg-tertiary: var(--color-neutral-850);
-  --color-text-primary: var(--color-neutral-100);
-  --color-text-secondary: var(--color-neutral-400);
-  --color-text-tertiary: var(--color-neutral-500);
+  --color-bg-tertiary: rgba(28, 28, 30, 0.85);
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-tertiary: #6e6e73;
   --color-accent: var(--color-emerald-400);
   --color-accent-hover: var(--color-emerald-300);
   --color-border: var(--color-neutral-700);
   --color-divider: rgba(255, 255, 255, 0.06);
 
   // Component — TabBar
-  --tabbar-bg: var(--color-neutral-900);
-  --tabbar-active-bg: var(--color-neutral-800);
+  --tabbar-bg: rgba(24, 24, 27, 0.85);
+  --tabbar-active-bg: rgba(39, 39, 42, 0.85);
   --tabbar-hover-bg: rgba(255, 255, 255, 0.05);
-  --tabbar-text: var(--color-neutral-400);
-  --tabbar-text-active: var(--color-neutral-100);
+  --tabbar-text: #a1a1a6;
+  --tabbar-text-active: #f5f5f7;
   --tabbar-divider: rgba(255, 255, 255, 0.04);
 
   // Component — UrlBar
-  --urlbar-bg: var(--color-neutral-800);
-  --urlbar-input-bg: var(--color-neutral-900);
+  --urlbar-bg: rgba(39, 39, 42, 0.85);
+  --urlbar-input-bg: rgba(24, 24, 27, 0.85);
   --urlbar-input-border: var(--color-neutral-700);
   --urlbar-input-border-focus: var(--color-emerald-500);
-  --urlbar-icon: var(--color-neutral-400);
-  --urlbar-icon-hover: var(--color-neutral-100);
+  --urlbar-icon: #a1a1aa;
+  --urlbar-icon-hover: #f5f5f7;
   --urlbar-icon-disabled: var(--color-neutral-600);
 
   // Component — WindowControls

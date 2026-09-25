@@ -249,10 +249,15 @@ const onWallpaperChanged = async (skin: { type: string; path?: string; name?: st
     if (base64) {
       skinStyle.value = { backgroundImage: `url("${base64}")` }
     }
-  } else if (skin.type === 'builtin' && skin.name) {
-    const base64 = await wallpaperMod.getBuiltinSkinImage(skin.name)
-    if (base64) {
-      skinStyle.value = { backgroundImage: `url("${base64}")` }
+  } else if (skin.type === 'builtin') {
+    if (!skin.name) {
+      // 空名称表示清除壁纸
+      skinStyle.value = { backgroundImage: '' }
+    } else {
+      const base64 = await wallpaperMod.getBuiltinSkinImage(skin.name)
+      if (base64) {
+        skinStyle.value = { backgroundImage: `url("${base64}")` }
+      }
     }
   }
 }
@@ -275,10 +280,14 @@ const loadSkin = async () => {
         if (base64) {
           skinStyle.value = { backgroundImage: `url("${base64}")` }
         }
-      } else if (skin.type === 'builtin' && skin.name) {
-        const base64 = await wallpaperMod.getBuiltinSkinImage(skin.name)
-        if (base64) {
-          skinStyle.value = { backgroundImage: `url("${base64}")` }
+      } else if (skin.type === 'builtin') {
+        if (!skin.name) {
+          skinStyle.value = { backgroundImage: '' }
+        } else {
+          const base64 = await wallpaperMod.getBuiltinSkinImage(skin.name)
+          if (base64) {
+            skinStyle.value = { backgroundImage: `url("${base64}")` }
+          }
         }
       }
     }
