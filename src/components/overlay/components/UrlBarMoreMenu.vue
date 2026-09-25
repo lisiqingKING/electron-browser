@@ -183,7 +183,7 @@ function openFavorites() {
 .menu {
   display: flex;
   flex-direction: column;
-  width: 180px;
+  width: 150px;
   padding: 4px;
   position: relative;
 }
@@ -200,6 +200,7 @@ function openFavorites() {
   border-radius: 6px;
   transition: background 0.1s ease;
   position: relative;
+  gap: 8px;
 }
 .item:hover {
   background: var(--tabbar-hover-bg);
@@ -210,7 +211,6 @@ function openFavorites() {
 .icon {
   width: 22px;
   height: 22px;
-  margin-right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,7 +222,6 @@ function openFavorites() {
   color: var(--color-text-secondary);
 }
 .label {
-  flex: 1;
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;

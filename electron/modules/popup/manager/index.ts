@@ -35,6 +35,8 @@ export interface PopupOptions {
   width?: number
   height?: number
   context?: unknown
+  // 锚定元素（语义标记，调用方已在 x/y 中计算好元素左上角的屏幕坐标）
+  anchor?: unknown
 }
 
 export function showPopup(options: PopupOptions, targetWin: BrowserWindow): void {

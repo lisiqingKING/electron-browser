@@ -92,19 +92,17 @@ const handleSelect = (url: string) => {
   emit('select', url)
 }
 
-const handleMoreClick = (event: MouseEvent) => {
+const handleMoreClick = async (event: MouseEvent) => {
   const remaining = cloneDeep(favorites.value.slice(maxCount.value))
   if (remaining.length === 0) return
 
-  const POPUP_WIDTH = 200
-  const ICON_HEIGHT = 20
-  // 右对齐，图标下方显示
-  const x = event.screenX - POPUP_WIDTH
-  const y = event.screenY  + ICON_HEIGHT
+  const windowMod = window.bridge.getModules(['window']).window
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const contentBounds = await windowMod.getContentBounds()
 
   show({
-    x,
-    y,
+    x: rect.left + contentBounds.x,
+    y: rect.top + contentBounds.y,
     component: 'FavoritesMoreMenu',
     props: { favorites: remaining },
   })

@@ -130,11 +130,14 @@ const handleGoForward = () => {
 }
 
 const handleMoreClick = (event: MouseEvent) => {
-  show({
-    x: event.screenX,
-    y: event.screenY,
-    component: 'UrlBarMoreMenu',
-    props: { currentUrl: props.modelValue },
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  windowMod.getContentBounds().then((contentBounds: any) => {
+    show({
+      x: rect.right + contentBounds.x - 215,
+      y: rect.bottom + contentBounds.y,
+      component: 'UrlBarMoreMenu',
+      props: { currentUrl: props.modelValue },
+    })
   })
 }
 
