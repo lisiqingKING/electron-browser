@@ -16,7 +16,8 @@ db.exec(`
     title       TEXT    NOT NULL DEFAULT '新会话',
     createdAt   INTEGER NOT NULL,
     updatedAt   INTEGER NOT NULL,
-    pinned      INTEGER NOT NULL DEFAULT 0
+    pinned      INTEGER NOT NULL DEFAULT 0,
+    categoryId  TEXT
   )
 `)
 db.exec(`
@@ -32,6 +33,15 @@ db.exec(`
 `)
 db.exec('CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(convId)')
 db.exec('CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at)')
+
+// AI 目录表
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ai_categories (
+    id    TEXT    PRIMARY KEY,
+    name  TEXT    NOT NULL,
+    ord   INTEGER NOT NULL DEFAULT 0
+  )
+`)
 
 // ============ AI 会话（touch） ============
 

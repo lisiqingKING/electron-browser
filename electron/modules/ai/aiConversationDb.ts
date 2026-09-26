@@ -9,20 +9,27 @@ export interface Message {
   created_at: number
 }
 
+export interface Category {
+  id: string
+  name: string
+  ord: number
+}
+
 export interface ChatSession {
   convId: string
   title: string
   createdAt: number
   updatedAt: number
   pinned: number
+  categoryId: string | null
 }
 
-export type CreateChatSessionInput = Pick<ChatSession, 'title' | 'createdAt' | 'updatedAt'>
+export type CreateChatSessionInput = Pick<ChatSession, 'title' | 'createdAt' | 'updatedAt' | 'categoryId'>
 
 // 获取所有 AI 会话（置顶优先，再按更新时间倒序）
 export function getAllChatSessions(): ChatSession[] {
   const stmt = getDatabase().prepare(
-    'SELECT convId, title, createdAt, updatedAt, pinned FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC'
+    'SELECT convId, title, createdAt, updatedAt, pinned, categoryId FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC'
   )
   return stmt.all() as ChatSession[]
 }
@@ -30,7 +37,7 @@ export function getAllChatSessions(): ChatSession[] {
 // 分页查询 AI 会话（置顶优先）
 export function getChatSessionsPage(limit: number, offset: number): ChatSession[] {
   const stmt = getDatabase().prepare(
-    'SELECT convId, title, createdAt, updatedAt, pinned FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC LIMIT ? OFFSET ?'
+    'SELECT convId, title, createdAt, updatedAt, pinned, categoryId FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC LIMIT ? OFFSET ?'
   )
   return stmt.all(limit, offset) as ChatSession[]
 }
@@ -38,7 +45,7 @@ export function getChatSessionsPage(limit: number, offset: number): ChatSession[
 // 根据 convId 获取 AI 会话
 export function getChatSessionByConvId(convId: string): ChatSession | undefined {
   const stmt = getDatabase().prepare(
-    'SELECT convId, title, createdAt, updatedAt, pinned FROM ai_conversation WHERE convId = ?'
+    'SELECT convId, title, createdAt, updatedAt, pinned, categoryId FROM ai_conversation WHERE convId = ?'
   )
   return stmt.get(convId) as ChatSession | undefined
 }
@@ -46,9 +53,9 @@ export function getChatSessionByConvId(convId: string): ChatSession | undefined 
 // 创建 AI 会话
 export function createChatSession(convId: string, input: CreateChatSessionInput): void {
   const stmt = getDatabase().prepare(
-    'INSERT INTO ai_conversation (convId, title, createdAt, updatedAt, pinned) VALUES (?, ?, ?, ?, 0)'
+    'INSERT INTO ai_conversation (convId, title, createdAt, updatedAt, pinned, categoryId) VALUES (?, ?, ?, ?, 0, ?)'
   )
-  stmt.run(convId, input.title, input.createdAt, input.updatedAt)
+  stmt.run(convId, input.title, input.createdAt, input.updatedAt, input.categoryId ?? null)
 }
 
 // 更新置顶状态
@@ -88,4 +95,48 @@ export function appendMessage(convId: string, msgId: string, role: 'user' | 'ass
 // 删除 AI 会话（messages 表通过外键级联删除）
 export function deleteChatSessionByConvId(convId: string): void {
   getDatabase().prepare('DELETE FROM ai_conversation WHERE convId = ?').run(convId)
+}
+
+// ============ Category（目录）CRUD ============
+
+// 获取所有目录
+export function getAllCategories(): Category[] {
+  return getDatabase().prepare(
+    'SELECT id, name, ord FROM ai_categories ORDER BY ord ASC'
+  ).all() as Category[]
+}
+
+// 创建目录
+export function createCategory(id: string, name: string, ord: number): void {
+  getDatabase().prepare(
+    'INSERT INTO ai_categories (id, name, ord) VALUES (?, ?, ?)'
+  ).run(id, name, ord)
+}
+
+// 重命名目录
+export function renameCategory(id: string, name: string): void {
+  getDatabase().prepare(
+    'UPDATE ai_categories SET name = ? WHERE id = ?'
+  ).run(name, id)
+}
+
+// 删除目录（仅删除目录，会话迁移到默认分组）
+export function deleteCategory(id: string): void {
+  getDatabase().prepare(
+    'UPDATE ai_conversation SET categoryId = NULL WHERE categoryId = ?'
+  ).run(id)
+  getDatabase().prepare('DELETE FROM ai_categories WHERE id = ?').run(id)
+}
+
+// 删除目录及目录下所有会话（依赖外键级联删除 messages）
+export function deleteCategoryAndSessions(id: string): void {
+  getDatabase().prepare('DELETE FROM ai_conversation WHERE categoryId = ?').run(id)
+  getDatabase().prepare('DELETE FROM ai_categories WHERE id = ?').run(id)
+}
+
+// 将会话移动到目录
+export function updateSessionCategory(convId: string, categoryId: string | null): void {
+  getDatabase().prepare(
+    'UPDATE ai_conversation SET categoryId = ?, updatedAt = ? WHERE convId = ?'
+  ).run(categoryId, Date.now(), convId)
 }

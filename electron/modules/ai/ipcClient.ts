@@ -25,6 +25,13 @@ export const aiChannels = {
   deleteSaveFile: 'ai:deleteSaveFile',
   chat: 'ai:chat',
   abort: 'ai:abort',
+  // Category（目录）
+  listCategories: 'ai:listCategories',
+  createCategory: 'ai:createCategory',
+  renameCategory: 'ai:renameCategory',
+  deleteCategory: 'ai:deleteCategory',
+  deleteCategoryWithSessions: 'ai:deleteCategoryWithSessions',
+  moveSession: 'ai:moveSession',
 } as const
 
 // 独立的事件 channel（流式订阅）

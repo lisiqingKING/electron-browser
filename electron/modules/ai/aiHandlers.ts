@@ -11,6 +11,12 @@ import {
   updateTitle,
   deleteChatSession,
   updatePinned,
+  getAllCategories,
+  createCategory,
+  renameCategory,
+  deleteCategory,
+  deleteCategoryAndSessions,
+  moveSession,
 } from './manager'
 import { getSetting, setSetting } from '../settings/manager'
 import { startStreaming, abortStream } from './streamingChatHandler'
@@ -25,8 +31,8 @@ export function registerAIHandlers() {
     return getAllChatSessions()
   })
 
-  ipcMain.handle(aiChannels.create, async (_event, title?: string) => {
-    return createChatSession(title)
+  ipcMain.handle(aiChannels.create, async (_event, title?: string, categoryId?: string | null) => {
+    return createChatSession(title, categoryId ?? null)
   })
 
   ipcMain.handle(aiChannels.updateTitle, async (_event, convId: string, title: string) => {
@@ -271,5 +277,35 @@ export function registerAIHandlers() {
       ipcLogger.error(`ai:deleteSaveFile failed: ${err}`)
       return false
     }
+  })
+
+  // ============ Category（目录）CRUD ============
+
+  ipcMain.handle(aiChannels.listCategories, async () => {
+    return getAllCategories()
+  })
+
+  ipcMain.handle(aiChannels.createCategory, async (_event, name: string) => {
+    return createCategory(name)
+  })
+
+  ipcMain.handle(aiChannels.renameCategory, async (_event, id: string, name: string) => {
+    renameCategory(id, name)
+    return true
+  })
+
+  ipcMain.handle(aiChannels.deleteCategory, async (_event, id: string) => {
+    deleteCategory(id)
+    return true
+  })
+
+  ipcMain.handle(aiChannels.deleteCategoryWithSessions, async (_event, id: string) => {
+    deleteCategoryAndSessions(id)
+    return true
+  })
+
+  ipcMain.handle(aiChannels.moveSession, async (_event, convId: string, categoryId: string | null) => {
+    moveSession(convId, categoryId)
+    return true
   })
 }
