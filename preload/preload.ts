@@ -1,8 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import { createTabsProxy, tabsChannels } from '../electron/tabs/ipcClient'
 import { createWindowProxy, windowChannels } from '../electron/modules/window/ipcClient'
-import { createClipboardProxy, clipboardChannels } from '../electron/modules/clipboard/ipcClient'
-import { createHistoryProxy, historyChannels } from '../electron/modules/history/ipcClient'
 import { createAIConversationProxy, aiChannels } from '../electron/modules/ai/ipcClient'
 import { createDownloadsProxy, downloadsChannels } from '../electron/modules/downloads/ipcClient'
 import { createLogsProxy } from '../electron/modules/logs/ipcClient'
@@ -13,6 +11,20 @@ import { createUtilsProxy } from '../electron/modules/utils/ipcClient'
 import { createPopupProxy, popupChannels } from '../electron/modules/popup/ipcClient'
 import { createWallpaperProxy, wallpaperChannels } from '../electron/modules/wallpaper/ipcClient'
 import { tabChannels, mainChannels } from '../electron/shared/channels'
+import { createProxy } from '../electron/shared/autoIpc'
+
+// 简单模块的 proxy 定义（只用于 createProxy，不包含实际实现）
+// 实际实现在主进程的 clipboardModule/historyModule
+const clipboardProxyDef = {
+  readText: () => {},
+  writeText: (_text: string) => {},
+}
+
+const historyProxyDef = {
+  get: () => [],
+  clear: () => true,
+  delete: (_id: number) => {},
+}
 
 // Parse windowId from URL
 const url = new URL(window.location.href)
@@ -25,8 +37,8 @@ const aiProxy = createAIConversationProxy()
 const moduleRegistry: Record<string, () => Record<string, Function>> = {
   tabs: () => createTabsProxy(ipcRenderer),
   window: () => createWindowProxy(),
-  clipboard: () => createClipboardProxy(),
-  history: () => createHistoryProxy(ipcRenderer),
+  clipboard: () => createProxy('clipboard', clipboardProxyDef, ipcRenderer),
+  history: () => createProxy('history', historyProxyDef, ipcRenderer),
   ai: () => aiProxy,
   downloads: () => createDownloadsProxy(),
   logs: () => createLogsProxy(ipcRenderer),
@@ -87,8 +99,6 @@ contextBridge.exposeInMainWorld('bridge', {
   channels: {
     tabs: tabsChannels,
     window: windowChannels,
-    clipboard: clipboardChannels,
-    history: historyChannels,
     ai: aiChannels,
     downloads: downloadsChannels,
     settings: settingsChannels,
@@ -130,6 +140,7 @@ contextBridge.exposeInMainWorld('bridge', {
   on(channel: string, fn: Function) {
     ensureIpcListener(channel)
     eventListeners.get(channel)!.add(fn)
+    return () => this.off(channel, fn)
   },
 
   off(channel: string, fn: Function) {

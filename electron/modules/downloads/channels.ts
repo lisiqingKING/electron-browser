@@ -12,7 +12,9 @@ export const downloadsChannels = {
   directDownloadUrl: 'downloads:direct-download-url',
   getSaveDir: 'downloads:get-save-dir',
   selectSaveDir: 'downloads:select-save-dir',
-  event: 'downloads:event',
+  added: 'downloads:added',
+  progress: 'downloads:progress',
+  removed: 'downloads:removed',
 } as const
 
 export const blobChannels = {

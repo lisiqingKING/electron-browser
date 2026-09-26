@@ -25,7 +25,15 @@ export const aiChannels = {
   deleteSaveFile: 'ai:deleteSaveFile',
   chat: 'ai:chat',
   abort: 'ai:abort',
-  stream: 'ai:stream',
+} as const
+
+// 独立的事件 channel（流式订阅）
+const aiEventChannels = {
+  start: 'ai:start',
+  chunk: 'ai:chunk',
+  complete: 'ai:complete',
+  halted: 'ai:halted',
+  error: 'ai:error',
 } as const
 
 export function createAIConversationProxy() {
@@ -34,36 +42,33 @@ export function createAIConversationProxy() {
   const onCompleteFns = new Set<(messageId: string) => void>()
   const onHaltedFns = new Set<(messageId: string, reason: string) => void>()
   const onErrorFns = new Set<(messageId: string, reason: string) => void>()
-  let listenerRegistered = false
 
-  function handleStreamEvent(_event: Electron.IpcRendererEvent, payload: unknown) {
-    const { messageId, type, content, reason, reasoning } = payload as {
-      messageId: string
-      type: string
-      content?: string
-      reason?: string
-      reasoning?: string
-    }
-    if (type === 'start') onStartFns.forEach(fn => fn(messageId))
-    else if (type === 'chunk') onChunkFns.forEach(fn => fn(messageId, content || '', reasoning || ''))
-    else if (type === 'complete') onCompleteFns.forEach(fn => fn(messageId))
-    else if (type === 'halted') onHaltedFns.forEach(fn => fn(messageId, reason || ''))
-    else if (type === 'error') onErrorFns.forEach(fn => fn(messageId, reason || ''))
+  function handleStart(_event: Electron.IpcRendererEvent, payload: { messageId: string }) {
+    onStartFns.forEach(fn => fn(payload.messageId))
   }
 
-  function ensureListener() {
-    if (!listenerRegistered) {
-      ipcRenderer.on(aiChannels.stream, handleStreamEvent)
-      listenerRegistered = true
-    }
+  function handleChunk(_event: Electron.IpcRendererEvent, payload: { messageId: string; content?: string; reasoning?: string }) {
+    onChunkFns.forEach(fn => fn(payload.messageId, payload.content || '', payload.reasoning))
   }
 
-  function cleanupIfEmpty() {
-    if (!onStartFns.size && !onChunkFns.size && !onCompleteFns.size && !onHaltedFns.size && !onErrorFns.size) {
-      ipcRenderer.removeListener(aiChannels.stream, handleStreamEvent)
-      listenerRegistered = false
-    }
+  function handleComplete(_event: Electron.IpcRendererEvent, payload: { messageId: string }) {
+    onCompleteFns.forEach(fn => fn(payload.messageId))
   }
+
+  function handleHalted(_event: Electron.IpcRendererEvent, payload: { messageId: string; reason?: string }) {
+    onHaltedFns.forEach(fn => fn(payload.messageId, payload.reason || ''))
+  }
+
+  function handleError(_event: Electron.IpcRendererEvent, payload: { messageId: string; reason?: string }) {
+    onErrorFns.forEach(fn => fn(payload.messageId, payload.reason || ''))
+  }
+
+  // 只注册一次 handler，之后通过 Set 调用所有 fn
+  ipcRenderer.on(aiEventChannels.start, handleStart)
+  ipcRenderer.on(aiEventChannels.chunk, handleChunk)
+  ipcRenderer.on(aiEventChannels.complete, handleComplete)
+  ipcRenderer.on(aiEventChannels.halted, handleHalted)
+  ipcRenderer.on(aiEventChannels.error, handleError)
 
   const invokeProxy: Record<string, (...args: unknown[]) => unknown> = {}
   for (const [method, channel] of Object.entries(aiChannels)) {
@@ -73,29 +78,24 @@ export function createAIConversationProxy() {
   return {
     ...invokeProxy,
     onStart(fn: (messageId: string) => void) {
-      ensureListener()
       onStartFns.add(fn)
-      return () => { onStartFns.delete(fn); cleanupIfEmpty() }
+      return () => { onStartFns.delete(fn) }
     },
     onChunk(fn: (messageId: string, content: string, reasoning?: string) => void) {
-      ensureListener()
       onChunkFns.add(fn)
-      return () => { onChunkFns.delete(fn); cleanupIfEmpty() }
+      return () => { onChunkFns.delete(fn) }
     },
     onComplete(fn: (messageId: string) => void) {
-      ensureListener()
       onCompleteFns.add(fn)
-      return () => { onCompleteFns.delete(fn); cleanupIfEmpty() }
+      return () => { onCompleteFns.delete(fn) }
     },
     onHalted(fn: (messageId: string, reason: string) => void) {
-      ensureListener()
       onHaltedFns.add(fn)
-      return () => { onHaltedFns.delete(fn); cleanupIfEmpty() }
+      return () => { onHaltedFns.delete(fn) }
     },
     onError(fn: (messageId: string, reason: string) => void) {
-      ensureListener()
       onErrorFns.add(fn)
-      return () => { onErrorFns.delete(fn); cleanupIfEmpty() }
+      return () => { onErrorFns.delete(fn) }
     },
   }
 }

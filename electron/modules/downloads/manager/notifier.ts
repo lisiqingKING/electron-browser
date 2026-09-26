@@ -1,5 +1,4 @@
 import { Notification } from 'electron'
-import type { DownloadEvent, DownloadProgress } from '../downloadTypes'
 import { DownloadTask } from './task'
 import { DownloadTaskStore } from './taskStore'
 import { broadcast } from '../../../shared/broadcast'
@@ -81,7 +80,7 @@ export class DownloadNotifier {
   // 立即推一次 (状态变更、终态用). 不走节流.
   emitProgress(task: DownloadTask): void {
     if (!this.store.has(task.id)) return
-    const payload: DownloadProgress = {
+    const payload: Record<string, unknown> = {
       id: task.id,
       status: task.status,
       receivedBytes: task.receivedBytes,
@@ -89,15 +88,15 @@ export class DownloadNotifier {
       speed: this.computeSpeed(task.id, task.receivedBytes),
     }
     if (task.error) payload.error = task.error
-    this.emitEvent({ type: 'progress', progress: payload } satisfies DownloadEvent)
+    broadcast('downloads:progress', payload)
   }
 
   emitAdded(task: DownloadTask): void {
-    this.emitEvent({ type: 'added', task: task.toJSON() as unknown as DownloadTask } satisfies DownloadEvent)
+    broadcast('downloads:added', task.toJSON())
   }
 
   emitRemoved(id: string): void {
-    this.emitEvent({ type: 'removed', id } satisfies DownloadEvent)
+    broadcast('downloads:removed', { id })
   }
 
   shutdown(): void {
@@ -151,11 +150,4 @@ export class DownloadNotifier {
     return Math.round((last.bytes - first.bytes) / dt)
   }
 
-  private emitEvent(event: DownloadEvent): void {
-    this.emitRaw('downloads:event', event)
-  }
-
-  private emitRaw(channel: string, payload: unknown): void {
-    broadcast(channel, payload)
-  }
 }

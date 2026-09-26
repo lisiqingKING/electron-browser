@@ -3,16 +3,9 @@ import { createProvider } from './providers'
 import type { AIRequest } from './providers/AIProvider'
 import { broadcast } from '../../shared/broadcast'
 import { updateMessageStatus, createMessage, touchConversation } from './aiDb'
-import { aiChannels } from './ipcClient'
 
 // ============ 流式聊天核心 ============
 // 主进程 fetch LLM → SSE 解析 → IPC 推送 → DB 持久化
-
-export interface StreamPayload {
-  type: 'start' | 'chunk' | 'complete' | 'halted' | 'error'
-  content?: string
-  reason?: 'user' | 'error' | 'network'
-}
 
 export interface ChatStreamOptions {
   conversationId: string
@@ -59,13 +52,12 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
     updated_at: now,
   })
 
-  const push = (payload: StreamPayload) => {
-    // payload 不含 messageId，发送时拼接
+  const push = (channel: string, data: Record<string, unknown>) => {
     if (targetWindowId) {
       const wc = webContents.fromId(targetWindowId)
-      wc?.send(aiChannels.stream, { messageId, ...payload })
+      wc?.send(channel, { messageId, ...data })
     } else {
-      broadcast(aiChannels.stream, { messageId, ...payload })
+      broadcast(channel, { messageId, ...data })
     }
   }
 
@@ -112,7 +104,7 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
 
     // 4. 更新状态 → streaming
     updateMessageStatus(messageId, 'streaming', null, Date.now())
-    push({ type: 'start' })
+    push('ai:start', {})
 
     // 5. 读流循环
     const reader = response.body!.getReader()
@@ -144,7 +136,7 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
           const content = transformed.choices?.[0]?.delta?.content
           if (content) {
             // 流中不写 DB，只推渲染端
-            push({ type: 'chunk', content })
+            push('ai:chunk', { content })
           }
 
           // 检查结束
@@ -161,7 +153,7 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
 
     // 6. 流正常结束 → 写 DB → 推 complete
     updateMessageStatus(messageId, 'complete', null, Date.now())
-    push({ type: 'complete' })
+    push('ai:complete', {})
 
   } catch (err: any) {
     // 推断停止原因
@@ -175,7 +167,7 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
     const reason = isAbort ? 'user' : (isNetwork ? 'network' : 'error')
 
     updateMessageStatus(messageId, 'halted', reason, Date.now())
-    push({ type: 'halted', reason })
+    push('ai:halted', { reason })
 
   } finally {
     abortControllers.delete(messageId)

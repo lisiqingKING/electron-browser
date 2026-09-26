@@ -90,9 +90,9 @@ async function onOpenFile(id: string) {
 
 onMounted(() => {
   loadDownloads()
-  const unsubAdded = downloadsMod.onAdded(onTaskAdded)
-  const unsubProgress = downloadsMod.onProgress(onProgress)
-  const unsubRemoved = downloadsMod.onRemoved(onRemoved)
+  const unsubAdded = window.bridge.on('downloads:added', onTaskAdded)
+  const unsubProgress = window.bridge.on('downloads:progress', onProgress)
+  const unsubRemoved = window.bridge.on('downloads:removed', onRemoved)
   onUnmounted(() => {
     unsubAdded()
     unsubProgress()

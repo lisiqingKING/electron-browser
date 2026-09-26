@@ -102,9 +102,9 @@ onMounted(async () => {
   } catch {}
 
   // 订阅事件
-  const unsubAdded = downloadsMod.onAdded(onDownloadAdded)
-  const unsubProgress = downloadsMod.onProgress(onDownloadProgress)
-  const unsubRemoved = downloadsMod.onRemoved(onDownloadRemoved)
+  const unsubAdded = window.bridge.on('downloads:added', onDownloadAdded)
+  const unsubProgress = window.bridge.on('downloads:progress', onDownloadProgress)
+  const unsubRemoved = window.bridge.on('downloads:removed', onDownloadRemoved)
   onUnmounted(() => {
     unsubAdded()
     unsubProgress()

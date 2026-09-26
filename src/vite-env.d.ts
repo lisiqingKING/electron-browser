@@ -12,7 +12,7 @@ interface Window {
     windowId: number | null
     getModules(moduleNames?: string[]): Record<string, Record<string, Function>>
     getModuleNames(): string[]
-    on(channel: string, fn: Function): void
+    on(channel: string, fn: Function): () => void
     off(channel: string, fn: Function): void
     send(channel: string, ...args: unknown[]): void
     // channel 常量，从 preload 注入
