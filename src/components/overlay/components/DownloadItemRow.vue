@@ -17,6 +17,7 @@ const emit = defineEmits<{
   (e: 'pause', id: string): void
   (e: 'resume', id: string): void
   (e: 'openFile', id: string): void
+  (e: 'revealFile', id: string): void
 }>()
 
 function formatBytes(n: number | null): string {
@@ -135,7 +136,10 @@ function fileIconPath(filename: string): string {
       </template>
       <template v-else-if="item.status === 'completed'">
         <button class="action-btn" title="打开文件" @click.stop="emit('openFile', item.id)">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        </button>
+        <button class="action-btn" title="打开所在文件夹" @click.stop="emit('revealFile', item.id)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
         </button>
       </template>
     </div>

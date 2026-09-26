@@ -88,6 +88,10 @@ async function onOpenFile(id: string) {
   await downloadsMod.openFile(id)
 }
 
+async function onRevealFile(id: string) {
+  await downloadsMod.reveal(id)
+}
+
 onMounted(() => {
   loadDownloads()
   const unsubAdded = window.bridge.on('downloads:added', onTaskAdded)
@@ -125,6 +129,7 @@ onMounted(() => {
         @pause="onPause"
         @resume="onResume"
         @openFile="onOpenFile"
+        @revealFile="onRevealFile"
       />
     </div>
   </div>
@@ -136,6 +141,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background: var(--color-bg-primary);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .header {

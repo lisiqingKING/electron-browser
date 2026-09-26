@@ -235,7 +235,8 @@ function openFavorites() {
   position: absolute;
   right: 100%;
   top: -4px;
-  min-width: 200px;
+  width: 180px;
+  max-width: 180px;
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -248,5 +249,9 @@ function openFavorites() {
 }
 .submenu .item {
   width: 100%;
+}
+
+.submenu .label {
+  min-width: 0;
 }
 </style>

@@ -86,6 +86,7 @@ const favoritesWithIcons = computed(() =>
 }
 .label {
   flex: 1;
+  min-width: 0;
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;

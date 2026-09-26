@@ -133,10 +133,11 @@ const handleMoreClick = (event: MouseEvent) => {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   windowMod.getContentBounds().then((contentBounds: any) => {
     show({
-      x: rect.right + contentBounds.x - 215,
+      x: rect.right + contentBounds.x - 160,
       y: rect.bottom + contentBounds.y,
       component: 'UrlBarMoreMenu',
       props: { currentUrl: props.modelValue },
+      width: 150,
     })
   })
 }
