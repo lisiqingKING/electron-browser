@@ -229,6 +229,7 @@ onUnmounted(() => {
 
   &:hover {
     background: var(--tabbar-hover-bg);
+    border-radius: 12px;
   }
 
   &:hover::after,
@@ -250,6 +251,7 @@ onUnmounted(() => {
     background: var(--tabbar-active-bg);
     z-index: 1;
     box-shadow: var(--shadow-tab-active);
+    border-radius: 12px;
   }
 }
 

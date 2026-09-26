@@ -356,5 +356,6 @@ onUnmounted(() => {
 .app-container {
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 </style>
