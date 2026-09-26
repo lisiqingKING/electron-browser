@@ -2,7 +2,8 @@ import { webContents } from 'electron'
 import { createProvider } from './providers'
 import type { AIRequest } from './providers/AIProvider'
 import { broadcast } from '../../shared/broadcast'
-import { updateMessageStatus, createMessage, touchConversation } from './aiDb'
+import { touchConversation } from './aiDb'
+import { appendMessage } from './aiConversationDb'
 
 // ============ 流式聊天核心 ============
 // 主进程 fetch LLM → SSE 解析 → IPC 推送 → DB 持久化
@@ -35,22 +36,8 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
   const { conversationId, messageId, providerType, model, messages, targetWindowId } = options
   const controller = new AbortController()
   abortControllers.set(messageId, controller)
-  const now = Date.now()
 
   const provider = createProvider(providerType)
-
-  // 1. 创建 assistant 消息记录（status=sending）
-  createMessage({
-    id: messageId,
-    conversation_id: conversationId,
-    role: 'assistant',
-    content: '',
-    status: 'sending',
-    halt_reason: null,
-    model,
-    created_at: now,
-    updated_at: now,
-  })
 
   const push = (channel: string, data: Record<string, unknown>) => {
     if (targetWindowId) {
@@ -62,7 +49,7 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
   }
 
   try {
-    // 2. 构造请求（URL、headers、body 全由 provider 处理）
+    // 1. 构造请求（URL、headers、body 全由 provider 处理）
     const { url, headers, body } = provider.transformRequest({
       apiUrl: options.apiUrl,
       apiKey: options.apiKey,
@@ -70,7 +57,8 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
       messages,
       stream: true,
     })
-    // 3. 发起 fetch（30s 超时）
+
+    // 2. 发起 fetch（30s 超时）
     const fetchWithTimeout = (fetchUrl: string, init: RequestInit, timeoutMs = 30000) => {
       return Promise.race([
         fetch(fetchUrl, init),
@@ -102,14 +90,14 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
       throw new Error(`HTTP ${response.status}: ${text}`)
     }
 
-    // 4. 更新状态 → streaming
-    updateMessageStatus(messageId, 'streaming', null, Date.now())
+    // 3. 通知开始
     push('ai:start', {})
 
-    // 5. 读流循环
+    // 4. 读流循环
     const reader = response.body!.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
+    let fullContent = ''
 
     while (true) {
       const { done, value } = await reader.read()
@@ -119,7 +107,7 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
 
       // 按 \n 分割，处理完整行
       const lines = buffer.split('\n')
-      buffer = lines.pop()! // 最后一节留在 buffer
+      buffer = lines.pop()!
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue
@@ -128,21 +116,17 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
 
         try {
           const data = JSON.parse(dataStr)
-          // dev-only: console.log('[chunk] type:', data.type, 'delta:', data.delta?.text)
           const transformed = provider.transformSSEEvent(data)
           if (!transformed) continue
 
-          // 提取 content delta
           const content = transformed.choices?.[0]?.delta?.content
           if (content) {
-            // 流中不写 DB，只推渲染端
+            fullContent += content
             push('ai:chunk', { content })
           }
 
-          // 检查结束
           const finishReason = transformed.choices?.[0]?.finish_reason
           if (finishReason && finishReason !== 'streaming') {
-            // dev-only: console.log('[break] 流结束, finish_reason:', finishReason)
             break
           }
         } catch {
@@ -151,22 +135,20 @@ export async function startStreaming(options: ChatStreamOptions): Promise<void> 
       }
     }
 
-    // 6. 流正常结束 → 写 DB → 推 complete
-    updateMessageStatus(messageId, 'complete', null, Date.now())
+    // 5. 流正常结束 → 写 DB → 推 complete
+    appendMessage(conversationId, messageId, 'assistant', fullContent, Date.now())
     push('ai:complete', {})
 
   } catch (err: any) {
-    // 推断停止原因
     const isAbort = controller.signal.aborted
     const isNetwork = err.name === 'TimeoutError'
-      || err.name === 'TypeError'                    // 网络错误（DNS/连接失败）
-      || err.message?.includes('fetch')              // fetch 相关错误
-      || err.message?.includes('network')            // 明确的网络错误字样
+      || err.name === 'TypeError'
+      || err.message?.includes('fetch')
+      || err.message?.includes('network')
       || err.message?.includes('ENOTFOUND')
       || err.message?.includes('ECONNREFUSED')
     const reason = isAbort ? 'user' : (isNetwork ? 'network' : 'error')
 
-    updateMessageStatus(messageId, 'halted', reason, Date.now())
     push('ai:halted', { reason })
 
   } finally {

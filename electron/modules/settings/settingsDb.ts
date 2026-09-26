@@ -1,5 +1,7 @@
 import { getDatabase } from '../../shared/database'
 
+getDatabase().exec("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')")
+
 export interface SettingItem {
   key: string
   value: string

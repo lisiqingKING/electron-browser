@@ -1,5 +1,14 @@
 import { getDatabase } from '../../shared/database'
 
+getDatabase().exec(`
+  CREATE TABLE IF NOT EXISTS page_icons (
+    url         TEXT    PRIMARY KEY,
+    icon        TEXT    NOT NULL,
+    iconUrl     TEXT,
+    updatedAt   INTEGER NOT NULL
+  )
+`)
+
 export interface PageIcon {
   url: string
   icon: string

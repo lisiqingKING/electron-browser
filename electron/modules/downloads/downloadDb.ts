@@ -2,6 +2,29 @@ import { getDatabase } from '../../shared/database'
 import type { DownloadStatus } from './downloadTypes'
 import { DownloadTask } from './manager/task'
 
+const db = getDatabase()
+db.exec(`
+  CREATE TABLE IF NOT EXISTS downloads (
+    id              TEXT    PRIMARY KEY,
+    url             TEXT    NOT NULL,
+    method          TEXT    NOT NULL DEFAULT 'GET',
+    post_body       TEXT,
+    headers         TEXT    NOT NULL DEFAULT '{}',
+    filename        TEXT    NOT NULL,
+    save_dir        TEXT    NOT NULL,
+    total_bytes     INTEGER,
+    received_bytes  INTEGER NOT NULL DEFAULT 0,
+    status          TEXT    NOT NULL,
+    error           TEXT,
+    referrer        TEXT,
+    mime_type       TEXT,
+    created_at      INTEGER NOT NULL,
+    updated_at      INTEGER NOT NULL
+  )
+`)
+db.exec('CREATE INDEX IF NOT EXISTS idx_downloads_status ON downloads(status)')
+db.exec('CREATE INDEX IF NOT EXISTS idx_downloads_created ON downloads(created_at DESC)')
+
 interface DownloadRow {
   id: string
   url: string

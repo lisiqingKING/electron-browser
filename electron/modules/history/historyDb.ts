@@ -1,5 +1,15 @@
 import { getDatabase } from '../../shared/database'
 
+getDatabase().exec(`
+  CREATE TABLE IF NOT EXISTS history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT    NOT NULL,
+    url         TEXT    NOT NULL,
+    visitedAt   INTEGER NOT NULL,
+    favicon     TEXT
+  )
+`)
+
 // ============ 历史记录 DAO 层 ============
 // 数据访问层，负责数据库 CRUD 操作，不涉及业务逻辑和缓存
 

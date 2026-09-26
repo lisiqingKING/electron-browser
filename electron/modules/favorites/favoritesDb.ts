@@ -1,5 +1,15 @@
 import { getDatabase } from '../../shared/database'
 
+getDatabase().exec(`
+  CREATE TABLE IF NOT EXISTS favorites (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    url         TEXT    NOT NULL UNIQUE,
+    title       TEXT    NOT NULL DEFAULT '',
+    favicon     TEXT,
+    createdAt   INTEGER NOT NULL
+  )
+`)
+
 // ============ 收藏 DAO 层 ============
 // 数据访问层，负责数据库 CRUD 操作，不涉及业务逻辑和缓存
 

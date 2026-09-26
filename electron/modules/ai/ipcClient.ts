@@ -5,7 +5,7 @@ export const aiChannels = {
   list: 'ai:list',
   create: 'ai:create',
   updateTitle: 'ai:updateTitle',
-  updateMessages: 'ai:updateMessages',
+  getMessages: 'ai:getMessages',
   delete: 'ai:delete',
   updatePinned: 'ai:updatePinned',
   getModel: 'ai:getModel',

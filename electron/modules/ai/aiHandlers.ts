@@ -9,14 +9,13 @@ import {
   getChatSessionsPage,
   createChatSession,
   updateTitle,
-  updateMessages,
   deleteChatSession,
   updatePinned,
-  generateMessageId,
 } from './manager'
 import { getSetting, setSetting } from '../settings/manager'
 import { startStreaming, abortStream } from './streamingChatHandler'
-import { createMessage, touchConversation, getAllSystemPrompts, createSystemPrompt, updateSystemPrompt, deleteSystemPrompt } from './aiDb'
+import { touchConversation, getAllSystemPrompts, createSystemPrompt, updateSystemPrompt, deleteSystemPrompt } from './aiDb'
+import { getMessagesByConvId, appendMessage } from './aiConversationDb'
 
 export function registerAIHandlers() {
   ipcMain.handle(aiChannels.list, async (_event, options?: { limit?: number; offset?: number }) => {
@@ -35,9 +34,8 @@ export function registerAIHandlers() {
     return true
   })
 
-  ipcMain.handle(aiChannels.updateMessages, async (_event, convId: string, messages: any[]) => {
-    updateMessages(convId, messages)
-    return true
+  ipcMain.handle(aiChannels.getMessages, async (_event, convId: string) => {
+    return getMessagesByConvId(convId)
   })
 
   ipcMain.handle(aiChannels.delete, async (_event, convId: string) => {
@@ -140,7 +138,7 @@ export function registerAIHandlers() {
     if (prompt.id) {
       updateSystemPrompt(prompt.id, prompt.name, prompt.content)
     } else {
-      const id = `sp-${now}-${Math.random().toString(36).slice(2, 8)}`
+      const id = `sp-${now}-${crypto.randomUUID().slice(0, 8)}`
       createSystemPrompt(id, prompt.name, prompt.content, now)
     }
     return true
@@ -173,34 +171,21 @@ export function registerAIHandlers() {
   }) => {
     const windowId = event.sender.id
     const now = Date.now()
-    const assistantMsgId = options.messageId
 
-    // 先确保 conversation 存在（外键依赖）
+    // 先确保 conversation 存在
     touchConversation(options.conversationId, now)
 
-    // 主进程生成消息 ID，确保唯一性
-    const userMsgId = generateMessageId()
-
-    // 提取用户消息（数组最后一条 role='user' 的消息）
+    // 提取并持久化用户消息
     const lastUserMsg = [...options.messages].reverse().find(m => m.role === 'user')
     if (lastUserMsg) {
-      createMessage({
-        id: userMsgId,
-        conversation_id: options.conversationId,
-        role: 'user',
-        content: lastUserMsg.content,
-        status: 'complete',
-        halt_reason: null,
-        model: null,
-        created_at: now,
-        updated_at: now,
-      })
+      const userMsgId = `msg-${now}-${crypto.randomUUID().slice(0, 8)}`
+      appendMessage(options.conversationId, userMsgId, 'user', lastUserMsg.content, now)
     }
 
     // 启动流式响应（深拷贝防止下游污染原始引用）
     startStreaming({
       conversationId: options.conversationId,
-      messageId: assistantMsgId,
+      messageId: options.messageId,
       apiUrl: options.apiUrl,
       apiKey: options.apiKey,
       providerType: options.providerType,
@@ -210,7 +195,7 @@ export function registerAIHandlers() {
     })
 
     // 返回使用的 assistant 消息 ID
-    return { messageId: assistantMsgId }
+    return { messageId: options.messageId }
   })
 
   ipcMain.handle(aiChannels.abort, async (_, messageId: string) => {

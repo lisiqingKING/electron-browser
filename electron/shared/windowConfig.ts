@@ -1,5 +1,12 @@
 import { getDatabase } from './database'
 
+getDatabase().exec(`
+  CREATE TABLE IF NOT EXISTS window_config (
+    windowId    TEXT    PRIMARY KEY,
+    currentTabId TEXT
+  )
+`)
+
 const MAIN_WINDOW_KEY = 'main'
 
 export function getCurrentTabId(_windowId?: number): string | null {
