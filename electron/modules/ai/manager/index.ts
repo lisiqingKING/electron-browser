@@ -9,11 +9,11 @@ export function getChatSessionsPage(limit: number, offset: number): ChatSession[
   return aiConversationDb.getChatSessionsPage(limit, offset)
 }
 
-export function createChatSession(title: string = '新会话', categoryId: string | null = null): ChatSession {
+export function createChatSession(title: string = '新会话', categoryId: string | null = null, isAssistant: number = 0): ChatSession {
   const now = Date.now()
   const convId = `${now}-${crypto.randomUUID().slice(0, 8)}`
   const input = { title, createdAt: now, updatedAt: now, categoryId }
-  aiConversationDb.createChatSession(convId, input)
+  aiConversationDb.createChatSession(convId, input, isAssistant)
   return { convId, ...input, pinned: 0 }
 }
 

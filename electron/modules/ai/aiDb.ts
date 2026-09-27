@@ -1,4 +1,5 @@
 import { getDatabase } from '../../shared/database'
+import { ipcLogger } from '../../shared/logger'
 
 // ============ 表初始化 ============
 const db = getDatabase()
@@ -17,9 +18,23 @@ db.exec(`
     createdAt   INTEGER NOT NULL,
     updatedAt   INTEGER NOT NULL,
     pinned      INTEGER NOT NULL DEFAULT 0,
-    categoryId  TEXT
+    categoryId  TEXT,
+    isAssistant INTEGER NOT NULL DEFAULT 0
   )
 `)
+
+// 迁移：旧表加 isAssistant 列
+try {
+  db.exec('ALTER TABLE ai_conversation ADD COLUMN isAssistant INTEGER NOT NULL DEFAULT 0')
+} catch (e) {
+  const msg = String(e)
+  if (msg.includes('duplicate column') || msg.includes('no such column')) {
+    // 列已存在或已迁移，忽略
+  } else {
+    ipcLogger.error('[aiDb] migration failed:', e)
+    throw e
+  }
+}
 db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
     id              TEXT    PRIMARY KEY,

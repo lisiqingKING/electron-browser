@@ -3,6 +3,7 @@ import { initDatabase } from '../shared/database/index'
 import { syncFromDb as syncFavoritesFromDb } from '../modules/favorites/manager'
 import { initWebviewSource } from '../modules/downloads/manager/sources/webviewSource'
 import { registerPopupHandlers } from '../modules/popup'
+import { registerAssistantHandlers } from '../modules/assistant'
 import { registerAllHandlers } from '../bootstrap'
 import { ensureReserveWindow, createWindow } from '../windows/windowManager'
 import { getDownloadManager } from '../modules/downloads/manager'
@@ -54,6 +55,7 @@ export async function appReadyInit() {
 
   initDatabase()
   registerPopupHandlers()
+  registerAssistantHandlers()
   registerAllHandlers()
 
   // 创建窗口，让用户尽快看到界面

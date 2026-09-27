@@ -91,6 +91,18 @@ export function registerUIHandlers(
       }
 
       items.push({ type: 'separator' })
+      items.push({
+        label: 'AI 辅助',
+        click: () => {
+          const p = parameters as unknown as { screenX: number; screenY: number; pageURL?: string }
+          window.bridge.getModules(['assistant']).assistant.openWithSource({
+            x: p.screenX,
+            y: p.screenY,
+            sourceType: 'url',
+            sourceId: p.pageURL || '',
+          })
+        }
+      })
       items.push({ label: '检查元素', click: () => view.webContents.inspectElement(parameters.x, parameters.y) })
 
       return items

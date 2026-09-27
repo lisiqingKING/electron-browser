@@ -26,18 +26,18 @@ export interface ChatSession {
 
 export type CreateChatSessionInput = Pick<ChatSession, 'title' | 'createdAt' | 'updatedAt' | 'categoryId'>
 
-// 获取所有 AI 会话（置顶优先，再按更新时间倒序）
+// 获取所有 AI 会话（置顶优先，再按更新时间倒序，排除辅助会话）
 export function getAllChatSessions(): ChatSession[] {
   const stmt = getDatabase().prepare(
-    'SELECT convId, title, createdAt, updatedAt, pinned, categoryId FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC'
+    'SELECT convId, title, createdAt, updatedAt, pinned, categoryId FROM ai_conversation WHERE isAssistant = 0 ORDER BY pinned DESC, updatedAt DESC'
   )
   return stmt.all() as ChatSession[]
 }
 
-// 分页查询 AI 会话（置顶优先）
+// 分页查询 AI 会话（置顶优先，排除辅助会话）
 export function getChatSessionsPage(limit: number, offset: number): ChatSession[] {
   const stmt = getDatabase().prepare(
-    'SELECT convId, title, createdAt, updatedAt, pinned, categoryId FROM ai_conversation ORDER BY pinned DESC, updatedAt DESC LIMIT ? OFFSET ?'
+    'SELECT convId, title, createdAt, updatedAt, pinned, categoryId FROM ai_conversation WHERE isAssistant = 0 ORDER BY pinned DESC, updatedAt DESC LIMIT ? OFFSET ?'
   )
   return stmt.all(limit, offset) as ChatSession[]
 }
@@ -51,11 +51,11 @@ export function getChatSessionByConvId(convId: string): ChatSession | undefined 
 }
 
 // 创建 AI 会话
-export function createChatSession(convId: string, input: CreateChatSessionInput): void {
+export function createChatSession(convId: string, input: CreateChatSessionInput, isAssistant: number = 0): void {
   const stmt = getDatabase().prepare(
-    'INSERT INTO ai_conversation (convId, title, createdAt, updatedAt, pinned, categoryId) VALUES (?, ?, ?, ?, 0, ?)'
+    'INSERT INTO ai_conversation (convId, title, createdAt, updatedAt, pinned, categoryId, isAssistant) VALUES (?, ?, ?, ?, 0, ?, ?)'
   )
-  stmt.run(convId, input.title, input.createdAt, input.updatedAt, input.categoryId ?? null)
+  stmt.run(convId, input.title, input.createdAt, input.updatedAt, input.categoryId ?? null, isAssistant)
 }
 
 // 更新置顶状态
