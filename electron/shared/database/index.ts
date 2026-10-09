@@ -3,7 +3,9 @@ import path from 'node:path'
 import { app } from 'electron'
 import { sqlLogger as logger } from '../logger'
 
-const DB_PATH = path.join(app.getPath('userData'), 'app.db')
+function getDbPath(): string {
+  return path.join(app.getPath('userData'), 'app.db')
+}
 
 let db: Database.Database | null = null
 
@@ -12,6 +14,7 @@ export function initDatabase(): Database.Database {
     return db
   }
 
+  const DB_PATH = getDbPath()
   db = new Database(DB_PATH)
   logger.info('[Database] Initialized at:', DB_PATH)
 
