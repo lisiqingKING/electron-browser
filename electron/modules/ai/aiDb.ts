@@ -58,6 +58,17 @@ db.exec(`
   )
 `)
 
+// 迁移：name 唯一约束
+try {
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_name ON ai_categories(name)')
+} catch (e) {
+  const msg = String(e)
+  if (!msg.includes('already exists') && !msg.includes('duplicate')) {
+    ipcLogger.error('[aiDb] category unique index migration failed:', e)
+    throw e
+  }
+}
+
 // ============ AI 会话（touch） ============
 
 export function touchConversation(convId: string, now: number): void {

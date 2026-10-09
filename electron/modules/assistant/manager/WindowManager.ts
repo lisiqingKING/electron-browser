@@ -19,7 +19,9 @@ function buildAssistantUrl(windowId: number, convId?: string): string {
   return `${base}?${params.toString()}`
 }
 
-export function createAssistantWindow(x: number, y: number, convId?: string): BrowserWindow {
+export function createAssistantWindow(x: number, y: number, convId?: string, parentWebContents?: Electron.WebContents): BrowserWindow {
+  closeAllAssistantWindows()
+
   const primaryDisplay = screen.getPrimaryDisplay()
   const screenBounds = primaryDisplay.bounds
 
@@ -57,9 +59,27 @@ export function createAssistantWindow(x: number, y: number, convId?: string): Br
     }
   })
 
+  if (parentWebContents) {
+    parentWebContents.on('focus', () => {
+      if (!win.isDestroyed()) win.show()
+    })
+    parentWebContents.on('blur', () => {
+      if (!win.isDestroyed()) win.hide()
+    })
+  }
+
   win.loadURL(buildAssistantUrl(win.id, convId))
 
   return win
+}
+
+export function closeAllAssistantWindows(): void {
+  for (const win of assistantWindows.values()) {
+    if (!win.isDestroyed()) {
+      win.destroy()
+    }
+  }
+  assistantWindows.clear()
 }
 
 export function closeAssistantWindow(windowId: number): void {

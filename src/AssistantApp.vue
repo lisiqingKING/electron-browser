@@ -70,6 +70,11 @@
         </div>
       </div>
     </div>
+
+    <!-- 尺寸指示器 -->
+    <div v-if="showSizeIndicator" class="size-indicator">
+      {{ winWidth }} × {{ winHeight }}
+    </div>
   </div>
 </template>
 
@@ -104,6 +109,10 @@ const inputHeight = ref(80)
 const isResizing = ref(false)
 let resizeStartY = 0
 let resizeStartHeight = 0
+const showSizeIndicator = ref(false)
+const winWidth = ref(0)
+const winHeight = ref(0)
+let sizeIndicatorTimer: ReturnType<typeof setTimeout> | null = null
 const themeClass = ref('dark')
 const showSettings = ref(false)
 const editTitle = ref('')
@@ -303,10 +312,24 @@ function startResize(e: MouseEvent) {
 }
 
 useEventListener(window, 'mousemove', (e: MouseEvent) => {
-  if (!isResizing.value) return
-  const maxHeight = window.innerHeight / 2
-  const delta = resizeStartY - e.clientY
-  inputHeight.value = Math.min(Math.max(44, resizeStartHeight + delta), maxHeight)
+  if (isResizing.value) {
+    const maxHeight = window.innerHeight / 2
+    const delta = resizeStartY - e.clientY
+    inputHeight.value = Math.min(Math.max(44, resizeStartHeight + delta), maxHeight)
+  }
+  // 窗口边缘拖拽检测
+  if (e.buttons === 1) {
+    const edge = 8
+    const onEdge = e.clientX < edge || e.clientX > window.innerWidth - edge
+      || e.clientY < edge || e.clientY > window.innerHeight - edge
+    if (onEdge) {
+      winWidth.value = window.innerWidth
+      winHeight.value = window.innerHeight
+      showSizeIndicator.value = true
+      if (sizeIndicatorTimer) clearTimeout(sizeIndicatorTimer)
+      sizeIndicatorTimer = setTimeout(() => { showSizeIndicator.value = false }, 3000)
+    }
+  }
 })
 
 useEventListener(window, 'mouseup', () => {
@@ -723,5 +746,34 @@ useEventListener(window, 'mouseup', () => {
 
 .light .send-btn:not(:disabled):hover {
   background: #059669;
+}
+
+/* 尺寸指示器 */
+.size-indicator {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #f5f5f7;
+  font-size: 12px;
+  font-family: monospace;
+  pointer-events: none;
+  z-index: 9999;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.light .size-indicator {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #e4e4e7;
+  color: #1d1d1f;
 }
 </style>

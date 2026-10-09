@@ -36,6 +36,8 @@ export function getAllCategories(): Category[] {
 }
 
 export function createCategory(name: string): Category {
+  const existing = aiConversationDb.getAllCategories().find(c => c.name === name)
+  if (existing) return existing
   const now = Date.now()
   const id = `cat-${now}-${crypto.randomUUID().slice(0, 8)}`
   const ord = now

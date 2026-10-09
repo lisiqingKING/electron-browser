@@ -17,8 +17,8 @@ export function registerAssistantHandlers(): void {
     return { convId }
   })
 
-  ipcMain.handle('assistant:create', (_event, opts: { x: number; y: number; convId?: string }) => {
-    const win = createAssistantWindow(opts.x, opts.y, opts.convId)
+  ipcMain.handle('assistant:create', (event, opts: { x: number; y: number; convId?: string }) => {
+    const win = createAssistantWindow(opts.x, opts.y, opts.convId, event.sender)
     return { windowId: win.id }
   })
 
@@ -55,7 +55,7 @@ export function registerAssistantHandlers(): void {
     return true
   })
 
-  ipcMain.handle('assistant:openWithSource', (_event, opts: { x: number; y: number; sourceType: string; sourceId: string }) => {
+  ipcMain.handle('assistant:openWithSource', (event, opts: { x: number; y: number; sourceType: string; sourceId: string }) => {
     const now = Date.now()
     let convId = convDb.getConvIdForSource(opts.sourceType, opts.sourceId)
     if (!convId) {
@@ -63,7 +63,7 @@ export function registerAssistantHandlers(): void {
       convDb.createAssistantConv(convId, 'AI 辅助', opts.sourceType, opts.sourceId, now)
       convDb.createLink(opts.sourceType, opts.sourceId, convId, now)
     }
-    const win = createAssistantWindow(opts.x, opts.y, convId)
+    const win = createAssistantWindow(opts.x, opts.y, convId, event.sender)
     return { windowId: win.id, convId }
   })
 }
