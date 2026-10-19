@@ -1,4 +1,5 @@
 import * as aiConversationDb from '../aiConversationDb'
+import { getDatabase } from '@main/shared/database'
 import type { ChatSession, Category } from '../aiConversationDb'
 
 export function getAllChatSessions(): ChatSession[] {
@@ -55,6 +56,15 @@ export function deleteCategory(id: string): void {
 
 export function deleteCategoryAndSessions(id: string): void {
   aiConversationDb.deleteCategoryAndSessions(id)
+}
+
+export function reorderCategories(orderedIds: string[]): void {
+  if (!orderedIds || orderedIds.length === 0) return
+  const db = getDatabase()
+  const update = db.transaction((id: string, index: number) => {
+    aiConversationDb.updateCategoryOrder(id, index)
+  })
+  orderedIds.forEach((id, index) => update(id, index))
 }
 
 export function moveSession(convId: string, categoryId: string | null): void {

@@ -134,6 +134,11 @@ export function deleteCategoryAndSessions(id: string): void {
   getDatabase().prepare('DELETE FROM ai_categories WHERE id = ?').run(id)
 }
 
+// 更新目录顺序
+export function updateCategoryOrder(id: string, ord: number): void {
+  getDatabase().prepare('UPDATE ai_categories SET ord = ? WHERE id = ?').run(ord, id)
+}
+
 // 将会话移动到目录
 export function updateSessionCategory(convId: string, categoryId: string | null): void {
   getDatabase().prepare(

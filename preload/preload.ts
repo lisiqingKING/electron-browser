@@ -9,7 +9,6 @@ import { createFavoritesProxy, favoritesChannels } from '../electron/modules/fav
 import { createSuggestionsProxy } from '../electron/modules/suggestions/ipcClient'
 import { createUtilsProxy } from '../electron/modules/utils/ipcClient'
 import { createPopupProxy, popupChannels } from '../electron/modules/popup/ipcClient'
-import { createAssistantProxy, assistantChannels } from '../electron/modules/assistant/ipcClient'
 import { createWallpaperProxy, wallpaperChannels } from '../electron/modules/wallpaper/ipcClient'
 import { tabChannels, mainChannels } from '../electron/shared/channels'
 import { createProxy } from '../electron/shared/autoIpc'
@@ -48,7 +47,6 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   suggestions: () => createSuggestionsProxy(),
   utils: () => createUtilsProxy(),
   popup: () => createPopupProxy(),
-  assistant: () => createAssistantProxy(),
   wallpaper: () => createWallpaperProxy(),
 }
 
@@ -106,7 +104,6 @@ contextBridge.exposeInMainWorld('bridge', {
     settings: settingsChannels,
     favorites: favoritesChannels,
     popup: popupChannels,
-    assistant: assistantChannels,
     wallpaper: wallpaperChannels,
     tab: tabChannels,
     main: mainChannels,

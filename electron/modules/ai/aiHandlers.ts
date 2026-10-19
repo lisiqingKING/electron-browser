@@ -16,6 +16,7 @@ import {
   renameCategory,
   deleteCategory,
   deleteCategoryAndSessions,
+  reorderCategories,
   moveSession,
 } from './manager'
 import { getSetting, setSetting } from '../settings/manager'
@@ -306,6 +307,12 @@ export function registerAIHandlers() {
 
   ipcMain.handle(aiChannels.moveSession, async (_event, convId: string, categoryId: string | null) => {
     moveSession(convId, categoryId)
+    return true
+  })
+
+  ipcMain.handle(aiChannels.reorderCategories, async (_event, orderedIds: string[]) => {
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) return false
+    reorderCategories(orderedIds)
     return true
   })
 }

@@ -31,6 +31,7 @@ export const aiChannels = {
   renameCategory: 'ai:renameCategory',
   deleteCategory: 'ai:deleteCategory',
   deleteCategoryWithSessions: 'ai:deleteCategoryWithSessions',
+  reorderCategories: 'ai:reorderCategories',
   moveSession: 'ai:moveSession',
 } as const
 
