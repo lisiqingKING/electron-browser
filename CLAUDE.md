@@ -11,6 +11,7 @@
 | [docs/COLLABORATION.md](docs/COLLABORATION.md) | 协作规范（TDD、YAGNI、数据流、方案对比等） |
 | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | 测试策略、数据库 mock、TDD 流程 |
 | [docs/ASSISTANT_PANEL.md](docs/ASSISTANT_PANEL.md) | AI 辅助面板需求（辅助会话 / 笔记 / 跨工作区搜索 / 级联删除） |
+| [docs/AI_MODULE.md](docs/AI_MODULE.md) | AI 模块设计（会话体系 / 工作区模型 / 级联删除 / 面试叙事） |
 
 ## 开发命令
 
