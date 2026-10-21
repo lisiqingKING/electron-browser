@@ -21,8 +21,9 @@ import {
 } from './manager'
 import { getSetting, setSetting } from '../settings/manager'
 import { startStreaming, abortStream } from './streamingChatHandler'
-import { touchConversation, getAllSystemPrompts, createSystemPrompt, updateSystemPrompt, deleteSystemPrompt } from './aiDb'
+import { touchConversation, ensureConversation, getAllSystemPrompts, createSystemPrompt, updateSystemPrompt, deleteSystemPrompt } from './aiDb'
 import { getMessagesByConvId, appendMessage } from './aiConversationDb'
+import { isValidId } from '../../shared/ids'
 
 export function registerAIHandlers() {
   ipcMain.handle(aiChannels.list, async (_event, options?: { limit?: number; offset?: number }) => {
@@ -57,6 +58,13 @@ export function registerAIHandlers() {
 
   ipcMain.handle(aiChannels.getModel, async () => {
     return getSetting('ai_model') || 'mimo-v2.5-pro'
+  })
+
+  // 会话落库：渲染进程新建的对话在发出首条消息前只存在于内存，
+  // 辅助面板要以主会话为工作区，需要先把会话行写进库
+  ipcMain.handle(aiChannels.ensureConversation, async (_event, convId: string) => {
+    if (!isValidId(convId)) return false
+    return ensureConversation(convId, Date.now())
   })
 
   // ============ AI Profile 多配置管理 ============

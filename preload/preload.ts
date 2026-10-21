@@ -2,6 +2,10 @@ import { ipcRenderer, contextBridge } from 'electron'
 import { createTabsProxy, tabsChannels } from '../electron/tabs/ipcClient'
 import { createWindowProxy, windowChannels } from '../electron/modules/window/ipcClient'
 import { createAIConversationProxy, aiChannels } from '../electron/modules/ai/ipcClient'
+import { createAssistantProxy, assistantChannels } from '../electron/modules/assistant/ipcClient'
+import { createNotesProxy, notesChannels } from '../electron/modules/notes/ipcClient'
+import { createWorkspaceProxy, workspaceChannels } from '../electron/modules/workspace/ipcClient'
+import { createSearchProxy, searchChannels } from '../electron/modules/search/ipcClient'
 import { createDownloadsProxy, downloadsChannels } from '../electron/modules/downloads/ipcClient'
 import { createLogsProxy } from '../electron/modules/logs/ipcClient'
 import { createSettingsProxy, settingsChannels } from '../electron/modules/settings/ipcClient'
@@ -40,6 +44,10 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   clipboard: () => createProxy('clipboard', clipboardProxyDef, ipcRenderer),
   history: () => createProxy('history', historyProxyDef, ipcRenderer),
   ai: () => aiProxy,
+  assistant: () => createAssistantProxy(),
+  notes: () => createNotesProxy(),
+  workspace: () => createWorkspaceProxy(),
+  search: () => createSearchProxy(),
   downloads: () => createDownloadsProxy(),
   logs: () => createLogsProxy(ipcRenderer),
   settings: () => createSettingsProxy(),
@@ -100,6 +108,10 @@ contextBridge.exposeInMainWorld('bridge', {
     tabs: tabsChannels,
     window: windowChannels,
     ai: aiChannels,
+    assistant: assistantChannels,
+    notes: notesChannels,
+    workspace: workspaceChannels,
+    search: searchChannels,
     downloads: downloadsChannels,
     settings: settingsChannels,
     favorites: favoritesChannels,

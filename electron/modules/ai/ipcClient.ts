@@ -25,6 +25,7 @@ export const aiChannels = {
   deleteSaveFile: 'ai:deleteSaveFile',
   chat: 'ai:chat',
   abort: 'ai:abort',
+  ensureConversation: 'ai:ensureConversation',
   // Category（目录）
   listCategories: 'ai:listCategories',
   createCategory: 'ai:createCategory',

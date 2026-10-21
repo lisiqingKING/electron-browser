@@ -10,6 +10,7 @@
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构、IPC 通信、启动时序、标签页生命周期、URL 解析、下载管理 |
 | [docs/COLLABORATION.md](docs/COLLABORATION.md) | 协作规范（TDD、YAGNI、数据流、方案对比等） |
 | [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | 测试策略、数据库 mock、TDD 流程 |
+| [docs/ASSISTANT_PANEL.md](docs/ASSISTANT_PANEL.md) | AI 辅助面板需求（辅助会话 / 笔记 / 跨工作区搜索 / 级联删除） |
 
 ## 开发命令
 

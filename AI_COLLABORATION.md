@@ -119,6 +119,10 @@
 | `modules/history.ts` | 历史记录代理 |
 | `modules/aiConversation.ts` | AI 会话代理 |
 | `modules/logs.ts` | 日志读取代理 |
+| **assistant/** | AI 辅助面板：辅助会话（按工作区归属） |
+| **notes/** | AI 辅助面板：富文本笔记 + FTS 索引 |
+| **workspace/** | AI 辅助面板：工作区激活状态（当前会话 / 当前笔记） |
+| **search/** | AI 辅助面板：跨工作区全文搜索（trigram FTS） |
 | **history/** | 历史记录业务 |
 | `history/historyManager.ts` | 业务逻辑 |
 | `history/historyDb.ts` | SQLite 操作 |

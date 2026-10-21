@@ -4,6 +4,10 @@ import { registerFavoritesHandlers } from './modules/favorites/favoritesHandlers
 import { registerSettingsHandlers } from './modules/settings/settingsHandlers'
 import { registerWallpaperHandlers } from './modules/wallpaper/handlers'
 import { registerAIHandlers } from './modules/ai/aiHandlers'
+import { registerAssistantHandlers } from './modules/assistant/handlers'
+import { registerNotesHandlers } from './modules/notes/handlers'
+import { registerWorkspaceHandlers } from './modules/workspace/handlers'
+import { registerSearchHandlers } from './modules/search/handlers'
 import { registerLogsHandlers } from './modules/logs/logsHandlers'
 import { registerSuggestionHandlers } from './modules/suggestions/suggestionHandlers'
 import { registerModuleHandlers, type Module } from './shared/autoIpc'
@@ -18,6 +22,10 @@ export function registerAllHandlers() {
   registerSettingsHandlers()
   registerWallpaperHandlers()
   registerAIHandlers()
+  registerAssistantHandlers()
+  registerNotesHandlers()
+  registerWorkspaceHandlers()
+  registerSearchHandlers()
   registerLogsHandlers()
   registerSuggestionHandlers()
   // registerUpdaterHandlers()
