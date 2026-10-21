@@ -11,10 +11,6 @@ export function getAssistantChatSessions(scopeId: string): ChatSession[] {
   return aiConversationDb.getAssistantChatSessions(scopeId)
 }
 
-export function getChatSessionsPage(limit: number, offset: number): ChatSession[] {
-  return aiConversationDb.getChatSessionsPage(limit, offset)
-}
-
 export function createChatSession(title: string = '新会话', categoryId: string | null = null, isAssistant: number = 0): ChatSession {
   const now = Date.now()
   const convId = `${now}-${crypto.randomUUID().slice(0, 8)}`

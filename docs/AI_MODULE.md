@@ -210,6 +210,9 @@ flowchart TB
 
 | 决策 | 备选方案 | 为什么这么选 |
 |-----|---------|------------|
+| 置顶只有一份表示：`categoryId = '__pinned__'` | `pinned` 字段 + 特殊分组并存 | 两套并存时同一会话可能既不在置顶组也不在默认组 —— 从侧边栏里直接消失。现在 `categoryId` 是唯一判据，`pinned` 退化成它的冗余副本（只用于 `ORDER BY`），由 `updateSessionCategory` 同步维护 |
+| `updatedAt` 只由消息活动更新 | 改名/移动分组/置顶时顺手更新 | `updatedAt` 代表"最后一条消息的时间"。整理类操作改了它有两个后果：①侧边栏时间显示变成"刚刚"；②列表按 `updatedAt` 排序，会话在侧边栏里会跳来跳去。现在 `touchConversation`（发消息/收消息）是唯一写入口 |
+| 会话列表全量返回（不分页） | OFFSET 分页 / keyset 游标（`WHERE (pinned, updatedAt) < 游标`） | OFFSET 记的是"序号"，行数一变（新建/删除会话）窗口就整体移位 —— 同一行被拉回两次（侧边栏两个高亮，点第二个没反应）或整行取不到。keyset 能根治，但要改 IPC 契约（跨仓库）。会话元数据很小、消息是按会话单独加载的，所以直接全量返回 |
 | 辅助会话复用 `ai_conversation` 表 | 单开一张 `assistant_conversation` 表 | 复用会话的全部能力（流式、改名、消息持久化），少一套并行实现；代价是所有查询都得记得带 `isAssistant` 条件 |
 | scopeId = 主会话 convId | 单独的工作区表 + 外键 | 不引入第二张注册表；删除主会话天然就是删除工作区 |
 | 笔记存来源快照 | 只存 sourceConvId 外键 | 辅助会话可被单独删除，快照保证笔记始终可读 |
@@ -268,6 +271,7 @@ flowchart TB
 5. **消息全文索引是全量回填**，在 messages 表很大的历史库上，首次启动会一次性扫全表。
 6. **级联删除靠代码而非外键**：新增关联表时必须同步补级联路径，否则会产生孤儿数据 —— 这一点靠 `test/assistant/` 下的删除用例守着。
 7. **端到端测试依赖外部 AI 服务**：AI 回复环节会因服务商限流（529）不稳定，级联删除验证已设计成不依赖它。
+8. **会话列表是全量返回的**：侧边栏一次性拿回全部分组及其会话（`ai:list` 不带分页参数）。会话元数据很小、消息按会话单独加载，这个代价可以接受；但会话数量增长到几千条时，首次加载要等整表返回 —— 那时再考虑 keyset 游标（跨仓库的 IPC 契约变更）。
 
 ---
 
@@ -275,9 +279,10 @@ flowchart TB
 
 | 层次 | 手段 | 覆盖 |
 |-----|------|------|
-| 单元测试 | 容器 `npx vitest run`（71 项） | 表结构、归属校验、级联删除、FTS 回填与降级 |
-| 单元测试 | 子项目 `npx vitest run`（141 项） | 面板交互、笔记增删改查、搜索跳转、高亮、pendingAction 队列 |
+| 单元测试 | 容器 `npx vitest run`（88 项） | 表结构、归属校验、级联删除、FTS 回填与降级、置顶语义、列表排序 |
+| 单元测试 | 子项目 `npx vitest run`（147 项） | 面板交互、笔记增删改查、搜索跳转、高亮、pendingAction 队列、侧边栏分组渲染 |
 | 端到端 | Playwright over CDP 驱动**真实 Electron 容器** | 面板开关、笔记保存与刷新后仍在、搜索命中与跳转高亮、未保存拦截、全屏/布局切换、摘录为笔记、删除主会话后的级联清理 |
+| 需求覆盖 | `npm run check:req-coverage` | 需求文档 ↔ 用例文档 ↔ 测试代码 三方对照，见 [AI_ASSISTANT_CASES.md](AI_ASSISTANT_CASES.md) |
 
 端到端为什么必须连真实容器：浏览器模式的 Playwright 里没有 `window.bridge`，走不到 preload 和 IPC 这一层，只能测到纯前端逻辑。真实容器 + `--remote-debugging-port` 才能验证整条链路。
 
@@ -299,6 +304,7 @@ flowchart TB
 | `electron/modules/workspace/` | 工作区激活状态、级联入口 |
 | `electron/modules/search/` | 跨工作区全文搜索、FTS + LIKE 降级 |
 | `electron/shared/ids.ts` | ID 格式校验 |
+| `electron/shared/constants.ts` | 跨模块业务常量（`PINNED_CATEGORY_ID`） |
 | `preload/preload.ts` | 四个模块的 proxy 注册 |
 | `electron/bootstrap.ts` | 四个 handler 的注册 |
 

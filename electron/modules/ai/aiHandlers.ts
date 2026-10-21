@@ -6,7 +6,6 @@ import { ipcLogger } from '../../shared/logger'
 import { aiChannels } from './ipcClient'
 import {
   getAllChatSessions,
-  getChatSessionsPage,
   createChatSession,
   updateTitle,
   deleteChatSession,
@@ -26,10 +25,9 @@ import { getMessagesByConvId, appendMessage } from './aiConversationDb'
 import { isValidId } from '../../shared/ids'
 
 export function registerAIHandlers() {
-  ipcMain.handle(aiChannels.list, async (_event, options?: { limit?: number; offset?: number }) => {
-    if (options?.limit !== undefined) {
-      return getChatSessionsPage(options.limit, options.offset ?? 0)
-    }
+  // 会话列表全量返回：分组（置顶 / 目录 / 默认）及其会话一次拿全，
+  // 渲染进程本地分组。分页会让同一行落进两页（重复高亮 + 漏行）。
+  ipcMain.handle(aiChannels.list, async () => {
     return getAllChatSessions()
   })
 

@@ -1,4 +1,5 @@
 import { getDatabase } from '../../shared/database'
+import { PINNED_CATEGORY_ID } from '../../shared/constants'
 import { clearActiveConvIfDeleted } from '../workspace/workspaceDb'
 // 副作用导入：确保 ai_conversation / messages / messages_fts 表已创建
 import './aiDb'
@@ -40,20 +41,20 @@ export type CreateChatSessionInput = Pick<
 const SESSION_COLUMNS =
   'convId, title, createdAt, updatedAt, pinned, categoryId, scopeId, ord'
 
+/**
+ * 会话列表的排序：置顶优先，再按更新时间倒序。
+ * 末尾必须带 convId 作为 tiebreaker —— updatedAt 相同（同一毫秒）时，
+ * 没有 tiebreaker 的排序在两次查询之间可能给出不同顺序，
+ * 同一份数据两次读出来顺序不一致。
+ */
+const SESSION_ORDER = 'ORDER BY pinned DESC, updatedAt DESC, convId DESC'
+
 // 获取所有 AI 会话（置顶优先，再按更新时间倒序，排除辅助会话）
 export function getAllChatSessions(): ChatSession[] {
   const stmt = getDatabase().prepare(
-    `SELECT ${SESSION_COLUMNS} FROM ai_conversation WHERE isAssistant = 0 ORDER BY pinned DESC, updatedAt DESC`
+    `SELECT ${SESSION_COLUMNS} FROM ai_conversation WHERE isAssistant = 0 ${SESSION_ORDER}`
   )
   return stmt.all() as ChatSession[]
-}
-
-// 分页查询 AI 会话（置顶优先，排除辅助会话）
-export function getChatSessionsPage(limit: number, offset: number): ChatSession[] {
-  const stmt = getDatabase().prepare(
-    `SELECT ${SESSION_COLUMNS} FROM ai_conversation WHERE isAssistant = 0 ORDER BY pinned DESC, updatedAt DESC LIMIT ? OFFSET ?`
-  )
-  return stmt.all(limit, offset) as ChatSession[]
 }
 
 // 根据 convId 获取 AI 会话
@@ -98,13 +99,15 @@ export function getNextAssistantOrd(scopeId: string): number {
 // 创建 AI 会话
 export function createChatSession(convId: string, input: CreateChatSessionInput, isAssistant: number = 0): void {
   const stmt = getDatabase().prepare(
-    'INSERT INTO ai_conversation (convId, title, createdAt, updatedAt, pinned, categoryId, isAssistant, scopeId, ord) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)'
+    'INSERT INTO ai_conversation (convId, title, createdAt, updatedAt, pinned, categoryId, isAssistant, scopeId, ord) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   )
   stmt.run(
     convId,
     input.title,
     input.createdAt,
     input.updatedAt,
+    // pinned 是 categoryId 的冗余副本，写入时就保持一致
+    input.categoryId === PINNED_CATEGORY_ID ? 1 : 0,
     input.categoryId ?? null,
     isAssistant,
     input.scopeId ?? null,
@@ -117,18 +120,20 @@ export function updateConversationOrd(convId: string, ord: number): void {
   getDatabase().prepare('UPDATE ai_conversation SET ord = ? WHERE convId = ?').run(ord, convId)
 }
 
-// 更新置顶状态
+// 更新置顶状态（兼容旧接口）
+// 置顶的唯一判据是 categoryId = PINNED_CATEGORY_ID，直接改 categoryId；
+// 取消置顶回到默认分组 —— 原分组只在渲染进程内存里（previousCategoryId），主进程恢复不了。
 export function updatePinned(convId: string, pinned: number): void {
-  getDatabase().prepare(
-    'UPDATE ai_conversation SET pinned = ?, updatedAt = ? WHERE convId = ?'
-  ).run(pinned, Date.now(), convId)
+  updateSessionCategory(convId, pinned ? PINNED_CATEGORY_ID : null)
 }
 
 // 更新标题
+// 不动 updatedAt：改名是整理，不是"有新内容"。
+// updatedAt 只由消息活动更新（touchConversation），它代表最后一条消息的时间。
 export function updateTitle(convId: string, title: string): void {
   getDatabase().prepare(
-    'UPDATE ai_conversation SET title = ?, updatedAt = ? WHERE convId = ?'
-  ).run(title, Date.now(), convId)
+    'UPDATE ai_conversation SET title = ? WHERE convId = ?'
+  ).run(title, convId)
 }
 
 // 获取会话的所有消息（按时间升序）
@@ -219,8 +224,11 @@ export function updateCategoryOrder(id: string, ord: number): void {
 }
 
 // 将会话移动到目录
+// 不动 updatedAt：移动分组/置顶是整理，不是"有新内容"。
+// updatedAt 只由消息活动更新（touchConversation），它代表最后一条消息的时间。
+// 顺带的好处：整理操作不再改变排序键，分页列表的顺序也就不会被它打乱。
 export function updateSessionCategory(convId: string, categoryId: string | null): void {
   getDatabase().prepare(
-    'UPDATE ai_conversation SET categoryId = ?, updatedAt = ? WHERE convId = ?'
-  ).run(categoryId, Date.now(), convId)
+    'UPDATE ai_conversation SET categoryId = ?, pinned = ? WHERE convId = ?'
+  ).run(categoryId, categoryId === PINNED_CATEGORY_ID ? 1 : 0, convId)
 }

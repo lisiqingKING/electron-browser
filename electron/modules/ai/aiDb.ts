@@ -1,5 +1,6 @@
 import { getDatabase } from '../../shared/database'
 import { ipcLogger } from '../../shared/logger'
+import { PINNED_CATEGORY_ID } from '../../shared/constants'
 
 // ============ 表初始化 ============
 const db = getDatabase()
@@ -58,6 +59,9 @@ try {
   }
 }
 
+// 迁移：置顶语义统一
+alignPinnedCategory()
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
     id              TEXT    PRIMARY KEY,
@@ -111,8 +115,40 @@ try {
   }
 }
 
+// ============ 置顶语义 ============
+
+/**
+ * 把「置顶」的两套表示对齐成一份。幂等，每次启动都可以跑。
+ *
+ * 旧数据里置顶有两个并存表示（pinned 字段 / categoryId = '__pinned__'），
+ * 两套不同步会让同一个会话既不在置顶组、也不在默认组 —— 从侧边栏里直接消失。
+ * 现在 categoryId 是唯一判据，pinned 退化成它的冗余副本（只用于排序）。
+ */
+export function alignPinnedCategory(): void {
+  const db = getDatabase()
+  // 旧数据：标了置顶但没进任何分组 → 归入置顶分组
+  db.prepare(
+    `UPDATE ai_conversation SET categoryId = ?
+     WHERE isAssistant = 0 AND pinned = 1 AND categoryId IS NULL`
+  ).run(PINNED_CATEGORY_ID)
+  // pinned 对齐成 categoryId 的副本
+  db.prepare(
+    `UPDATE ai_conversation
+     SET pinned = CASE WHEN categoryId = ? THEN 1 ELSE 0 END
+     WHERE isAssistant = 0`
+  ).run(PINNED_CATEGORY_ID)
+}
+
 // ============ AI 会话（touch） ============
 
+/**
+ * 会话的最后活动时间 —— ai_conversation.updatedAt 的唯一写入口。
+ *
+ * updatedAt 代表"最后一条消息的时间"，所以只有消息活动才能改它：
+ * 发消息时（ai:chat 入口）和收到回复时（流结束）各 touch 一次。
+ * 移动分组、置顶、改标题都是整理，改了就会污染活动时间，
+ * 还会打乱按 updatedAt 排序的列表（分页时顺序漂移）。
+ */
 export function touchConversation(convId: string, now: number): void {
   getDatabase().prepare(
     'INSERT OR IGNORE INTO ai_conversation (convId, title, createdAt, updatedAt, pinned) VALUES (?, ?, ?, ?, 0)'
