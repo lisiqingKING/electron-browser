@@ -25,7 +25,6 @@ export default defineConfig({
       input: {
         main: path.join(__dirname, 'index.html'),
         popup: path.join(__dirname, 'popup.html'),
-        assistant: path.join(__dirname, 'assistant.html'),
       },
     },
   },
