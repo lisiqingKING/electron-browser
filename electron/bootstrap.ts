@@ -1,6 +1,8 @@
 import { registerTabHandlers } from './tabs/tabHandlers'
 import { registerDownloadHandlers } from './modules/downloads/downloadHandlers'
 import { registerFavoritesHandlers } from './modules/favorites/favoritesHandlers'
+import { registerShortcutsHandlers } from './modules/shortcuts/handlers'
+import { registerIconsHandlers } from './modules/icons/handlers'
 import { registerSettingsHandlers } from './modules/settings/settingsHandlers'
 import { registerWallpaperHandlers } from './modules/wallpaper/handlers'
 import { registerAIHandlers } from './modules/ai/aiHandlers'
@@ -19,6 +21,8 @@ export function registerAllHandlers() {
   registerTabHandlers()
   registerDownloadHandlers()
   registerFavoritesHandlers()
+  registerShortcutsHandlers()
+  registerIconsHandlers()
   registerSettingsHandlers()
   registerWallpaperHandlers()
   registerAIHandlers()

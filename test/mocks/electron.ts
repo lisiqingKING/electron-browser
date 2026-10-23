@@ -98,6 +98,15 @@ export const Tray = fallback.Tray
 export const nativeTheme = fallback.nativeTheme
 export const powerMonitor = fallback.powerMonitor
 
+// net.request 是链式事件 API，桩成可链式调用但不发事件的空实现
+export const net = {
+  request: vi.fn(() => ({
+    on: vi.fn(),
+    end: vi.fn(),
+    abort: vi.fn(),
+  })),
+}
+
 export default {
   app,
   ipcMain,

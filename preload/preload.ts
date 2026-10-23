@@ -10,6 +10,8 @@ import { createDownloadsProxy, downloadsChannels } from '../electron/modules/dow
 import { createLogsProxy } from '../electron/modules/logs/ipcClient'
 import { createSettingsProxy, settingsChannels } from '../electron/modules/settings/ipcClient'
 import { createFavoritesProxy, favoritesChannels } from '../electron/modules/favorites/ipcClient'
+import { createShortcutsProxy, shortcutsChannels } from '../electron/modules/shortcuts/ipcClient'
+import { createIconsProxy, iconsChannels } from '../electron/modules/icons/ipcClient'
 import { createSuggestionsProxy } from '../electron/modules/suggestions/ipcClient'
 import { createUtilsProxy } from '../electron/modules/utils/ipcClient'
 import { createPopupProxy, popupChannels } from '../electron/modules/popup/ipcClient'
@@ -52,6 +54,8 @@ const moduleRegistry: Record<string, () => Record<string, Function>> = {
   logs: () => createLogsProxy(ipcRenderer),
   settings: () => createSettingsProxy(),
   favorites: () => createFavoritesProxy(),
+  shortcuts: () => createShortcutsProxy(),
+  icons: () => createIconsProxy(),
   suggestions: () => createSuggestionsProxy(),
   utils: () => createUtilsProxy(),
   popup: () => createPopupProxy(),
@@ -115,6 +119,8 @@ contextBridge.exposeInMainWorld('bridge', {
     downloads: downloadsChannels,
     settings: settingsChannels,
     favorites: favoritesChannels,
+    shortcuts: shortcutsChannels,
+    icons: iconsChannels,
     popup: popupChannels,
     wallpaper: wallpaperChannels,
     tab: tabChannels,

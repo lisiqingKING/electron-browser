@@ -38,7 +38,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
-export async function fetchIconAsBase64(iconUrl: string): Promise<string | null> {
+export async function fetchIconAsBase64(iconUrl: string, timeoutMs?: number): Promise<string | null> {
   return new Promise((resolve) => {
     let request: ReturnType<typeof net.request>
     try {
@@ -48,11 +48,32 @@ export async function fetchIconAsBase64(iconUrl: string): Promise<string | null>
       return
     }
 
+    let settled = false
+    let timer: NodeJS.Timeout | undefined
+    const finish = (value: string | null) => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      resolve(value)
+    }
+
+    // 服务器不回数据时请求会一直挂着，Promise 永不 settle
+    if (timeoutMs) {
+      timer = setTimeout(() => {
+        try {
+          request.abort()
+        } catch {
+          // 请求已结束
+        }
+        finish(null)
+      }, timeoutMs)
+    }
+
     const chunks: Buffer[] = []
 
     request.on('response', (response) => {
       if (response.statusCode !== 200) {
-        resolve(null)
+        finish(null)
         return
       }
 
@@ -62,30 +83,34 @@ export async function fetchIconAsBase64(iconUrl: string): Promise<string | null>
 
       response.on('end', () => {
         if (chunks.length === 0) {
-          resolve(null)
+          finish(null)
           return
         }
 
         const buffer = Buffer.concat(chunks)
         const mimeType = detectImageMimeType(buffer)
         const base64 = arrayBufferToBase64(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength))
-        resolve(`data:${mimeType};base64,${base64}`)
+        finish(`data:${mimeType};base64,${base64}`)
       })
 
       response.on('error', () => {
-        resolve(null)
+        finish(null)
       })
     })
 
     request.on('error', () => {
-      resolve(null)
+      finish(null)
     })
 
     request.end()
   })
 }
 
-export async function getOrFetchIcon(pageUrl: string, iconUrl: string): Promise<string | null> {
+export async function getOrFetchIcon(
+  pageUrl: string,
+  iconUrl: string,
+  timeoutMs?: number
+): Promise<string | null> {
   const cached = iconCache.get(pageUrl)
   if (cached) return cached
 
@@ -100,7 +125,7 @@ export async function getOrFetchIcon(pageUrl: string, iconUrl: string): Promise<
   }
 
   try {
-    const base64 = await fetchIconAsBase64(iconUrl)
+    const base64 = await fetchIconAsBase64(iconUrl, timeoutMs)
     if (base64) {
       saveIcon(pageUrl, base64, iconUrl)
       iconCache.set(pageUrl, base64)
@@ -109,4 +134,30 @@ export async function getOrFetchIcon(pageUrl: string, iconUrl: string): Promise<
   } catch {
     return null
   }
+}
+
+/**
+ * 猜测页面 favicon 的位置。
+ *
+ * 只探测 origin 根下的 /favicon.ico —— 解析 HTML 里的 <link rel="icon">
+ * 需要额外抓一次页面并解析，命中率与成本不成正比（YAGNI）。
+ */
+export function guessFaviconUrl(pageUrl: string): string | null {
+  try {
+    const parsed = new URL(pageUrl)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return `${parsed.origin}/favicon.ico`
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 抓取某个页面的图标（快捷方式这类"从未打开过的站点"用）。
+ * 命中 page_icons 缓存则直接返回，失败返回 null，由调用方回退到占位图。
+ */
+export async function fetchIconForPage(pageUrl: string, timeoutMs = 5000): Promise<string | null> {
+  const iconUrl = guessFaviconUrl(pageUrl)
+  if (!iconUrl) return null
+  return getOrFetchIcon(pageUrl, iconUrl, timeoutMs)
 }
