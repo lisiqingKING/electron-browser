@@ -13,6 +13,7 @@
 | [docs/ASSISTANT_PANEL.md](docs/ASSISTANT_PANEL.md) | AI 辅助面板需求（辅助会话 / 笔记 / 跨工作区搜索 / 级联删除） |
 | [docs/AI_ASSISTANT_CASES.md](docs/AI_ASSISTANT_CASES.md) | AI 辅助面板测试用例（需求 → 验证位置 → 覆盖状态对照表） |
 | [docs/AI_MODULE.md](docs/AI_MODULE.md) | AI 模块设计（会话体系 / 工作区模型 / 级联删除 / 面试叙事） |
+| [docs/SHORTCUTS.md](docs/SHORTCUTS.md) | 自定义快捷方式模块（新标签页快捷入口，与收藏夹是两个概念） |
 
 ## 开发命令
 
